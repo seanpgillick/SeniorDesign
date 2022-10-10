@@ -38,6 +38,39 @@ cityApiInfo = {
             "lonCol":"longitude",
             "keys":["ijzp-q8t2"]
         },
+    "Dallas": { #Gives location as x-y coordinates not longitude-latitude 
+            "url":"www.dallasopendata.com",
+            "dateCol":"reporteddate",
+            "offCol":"offincident",
+            "latCol":"x_coordinate",
+            "lonCol":"y_cordinate",
+            "keys":["qv6i-rri7"]
+        },
+    "Austin": {
+            "url":"data.austintexas.gov",
+            "dateCol":"occ_date_time",
+            "offCol":"crime_type",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["fdj4-gpfu"]
+        },
+    "Atlanta": {
+            "url":"sharefulton.fultoncountyga.gov",
+            "dateCol":"reportdate",
+            "offCol":"ucrliteral",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["9w3w-ynjw"]
+        },
+    "Memphis": {
+            "url":"data.memphistn.gov",
+            "dateCol":"offense_date",
+            "offCol":"agency_crimetype_id",
+            "latCol":"coord1",
+            "lonCol":"coord2",
+            "keys":["ybsi-jur4"]
+        },
+
 }
 
 
