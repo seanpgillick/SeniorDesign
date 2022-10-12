@@ -70,6 +70,30 @@ cityApiInfo = {
             "lonCol":"coord2",
             "keys":["ybsi-jur4"]
         },
+    "San Francisco": {
+            "url":"data.sfgov.org",
+            "dateCol":"incident_date",
+            "offCol":"incident_category",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["wg3w-h783"]
+    },
+    "Seattle": {
+            "url":"data.seattle.gov",
+            "dateCol":"offense_start_datetime",
+            "offCol":"offense",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["tazs-3rd5"]
+    },
+    "Colorado Springs": {#LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
+            "url":"policedata.coloradosprings.gov",
+            "dateCol":"reporteddate",
+            "offCol":"statutedescription",
+            "latCol":"location_point",
+            "lonCol":"location_point",
+            "keys":["bc88-hemr"]
+    },
 
 }
 
@@ -127,4 +151,7 @@ for city in cityApiInfo:
     else:
         retrieveCityData(city, cityApiInfo[city]["url"], cityApiInfo[city]["dateCol"], cityApiInfo[city]["offCol"], cityApiInfo[city]["latCol"], 
         cityApiInfo[city]["lonCol"], cityApiInfo[city]["keys"]) 
+
+
+#url for proper DC query https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/MPD/MapServer/2/query?where=1%3D1&outFields=OFFENSE,LATITUDE,LONGITUDE,START_DATE,END_DATE,REPORT_DAT&outSR=4326&f=json
 
