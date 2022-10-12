@@ -94,6 +94,14 @@ cityApiInfo = {
         "lonCol": "location_point",
         "keys": ["bc88-hemr"]
     },
+    "Mesa": {
+        "url": "data.mesaaz.gov",
+        "dateCol": "occurred_date",
+        "offCol": "crime_type",
+        "latCol": "latitude",
+        "lonCol": "longitude",
+        "keys": ["39rt-2rfj"]
+    },
     "Kansas City": {  # LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
         "url": "data.kcmo.org",
         "dateCol": "reported_date",
