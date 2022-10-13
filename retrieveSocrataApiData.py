@@ -38,6 +38,14 @@ cityApiInfo = {
             "lonCol":"longitude",
             "keys":["ijzp-q8t2"]
         },
+    "Fort Worth": {
+            "url":"data.fortworthtexas.gov",
+            "dateCol":"from_date",
+            "offCol":"nature_of_call",
+            "latCol":"location_1",
+            "lonCol":"location_1",
+            "keys":["k6ic-7kp7"]
+        }
 }
 
 
