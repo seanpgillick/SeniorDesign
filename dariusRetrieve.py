@@ -24,6 +24,25 @@ cityApiInfo = {
         }
 }
 
+cityCSVInfo = {
+    "Milwaukee": {
+            "url": "./UnparsedCityCSVs/Milwaukee",
+            "dateCol":"ReportedDateTime",
+            "offCol":"offense",
+            "latCol":"RoughX",
+            "lonCol":"RoughY",
+            "keys":["2005-2021"]
+    },
+    "Portland": {
+            "url": "./UnparsedCityCSVs/Portland",
+            "dateCol":"ReportDate",
+            "offCol":"OffenseCategory",
+            "latCol":"OpenDataLat",
+            "lonCol":"OpenDataLon",
+            "keys":["2019", "2020", "2021"]
+    }
+}
+
 
 def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
     csvName = city + "_data.csv"
@@ -75,91 +94,62 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
         
     final_df.to_csv('./CityData/'+csvName)
 
-def getCSVData():
-    # assign directory
-    directory = './UnparsedCityCSVs/Portland'
 
-    city = "portland"
+
+
+def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
+    csvName = city + "_data.csv"
+    final_df = pd.DataFrame()
+    # assign directory
+    finalCol = [dateCol, offCol, latCol, lonCol]
     #locator = Nominatim(user_agent="myGeocoder")
-    portlandCSVInfo = ["2019", "2020", "2021"]
 
     final_df = pd.DataFrame()
-
-    seenAddressess = dict()
+    colnames=[]
+    offenseColnames=[]
     # get csv data
-    for year in portlandCSVInfo:
+    for year in keys:
         filename = "CrimeData-" + year + ".csv"
         print("Opening " + filename)
-        path = Path("./UnparsedCityCSVs/Portland/"+filename)
+
+        path = Path(url+"/"+filename)
         if (not path.is_file()):
             print("Unable to open file: " + filename)
         else:
             # Open the csv file
-            colnames = ["Address","CaseNumber","CrimeAgainst","Neighborhood","OccurDate","OccurTime","OffenseCategory","OffenseType","OpenDataLat","OpenDataLon","OpenDataX","OpenDataY","ReportDate","OffenseCount"
-]
-            data = pd.read_csv(path, names=colnames, skiprows=(0,),
-                            usecols=["ReportDate", "OffenseCategory", "OpenDataLat", "OpenDataLon"])
-            for num, row in data.iterrows():
-                if(pd.isna(row['OpenDataLat'])):
-                    data.at[num, 'OpenDataLat']="Not Available"
-                if(pd.isna(row['OpenDataLon'])):
-                    data.at[num, 'OpenDataLon']="Not Available"
-            # for row in data:
-            #     print(row['OpenDataLat'])
-            data2 = data[['ReportDate', 'OffenseCategory', 'OpenDataLat', 'OpenDataLon']]
-    final_df = pd.concat([final_df, data2])
-    final_df.columns=["date", "offense", "latitude", "longitude"]
-    final_df.to_csv('./CityData/Portland_data.csv')
-
-
-def getCSVDataMil():
-    # assign directory
-    directory = './UnparsedCityCSVs/Milwaukee'
-
-    city = "portland"
-    #locator = Nominatim(user_agent="myGeocoder")
-    milwaukeeCSVInfo = ["2005-2021"]
-
-    final_df = pd.DataFrame()
-
-    seenAddressess = dict()
-    # get csv data
-    for year in milwaukeeCSVInfo:
-        filename = "CrimeData-" + year + ".csv"
-        print("Opening " + filename)
-        path = Path("./UnparsedCityCSVs/Milwaukee/"+filename)
-        if (not path.is_file()):
-            print("Unable to open file: " + filename)
-        else:
-            # Open the csv file
-            colnames = ["ReportedDateTime","Location","ZIP","RoughX","RoughY","Arson","AssaultOffense","Burglary","CriminalDamage","Homicide","LockedVehicle","Robbery","SexOffense","Theft","VehicleTheft"]
-            offenseColnames = ["Arson","AssaultOffense","Burglary","CriminalDamage","Homicide","LockedVehicle","Robbery","SexOffense","Theft","VehicleTheft"]
-
-
-
-            data = pd.read_csv(path, names=colnames, skiprows=(0,),
-                            usecols=["ReportedDateTime", "Location","ZIP","RoughX","RoughY","Arson","AssaultOffense","Burglary","CriminalDamage","Homicide","LockedVehicle","Robbery","SexOffense","Theft","VehicleTheft"])
+            if(city=="Milwaukee"):
+                colnames = ["ReportedDateTime","Location","ZIP","RoughX","RoughY","Arson","AssaultOffense","Burglary","CriminalDamage","Homicide","LockedVehicle","Robbery","SexOffense","Theft","VehicleTheft"]
+                offenseColnames = ["Arson","AssaultOffense","Burglary","CriminalDamage","Homicide","LockedVehicle","Robbery","SexOffense","Theft","VehicleTheft"]
+            elif(city=="Portland"):
+                colnames = ["Address","CaseNumber","CrimeAgainst","Neighborhood","OccurDate","OccurTime","OffenseCategory","OffenseType","OpenDataLat","OpenDataLon","OpenDataX","OpenDataY","ReportDate","OffenseCount"]
             
-            data["offense"] = "Not Available"
+            data = pd.read_csv(path, names=colnames, skiprows=(0,))
+            
             for num, row in data.iterrows():
-                newOffense=""
-                for x in offenseColnames:
-                    if(row[x]==1):
-                        newOffense=x
-                        break
-                data.at[num, 'offense']=newOffense
-                if(pd.isna(row['RoughX'])):
-                    data.at[num, 'RoughX']="Not Available"
-                if(pd.isna(row['RoughY'])):
-                    data.at[num, 'RoughY']="Not Available"
-            data = data[data['ReportedDateTime'].str.contains("2019") | data['ReportedDateTime'].str.contains("2020") | data['ReportedDateTime'].str.contains("2021")]
-            data2=data[['ReportedDateTime', 'offense', 'RoughX', 'RoughY']]
+                if(city=="Milwaukee"):
+                    newOffense=""
+                    for x in offenseColnames:
+                        if(row[x]==1):
+                            newOffense=x
+                            break
+                    data.at[num, 'offense']=newOffense
+                    if(pd.isna(row['RoughX'])):
+                        data.at[num, 'RoughX']="Not Available"
+                    if(pd.isna(row['RoughY'])):
+                        data.at[num, 'RoughY']="Not Available"
+                elif(city=="Portland"):
+                    if(pd.isna(row['OpenDataLat'])):
+                        data.at[num, 'OpenDataLat']="Not Available"
+                    if(pd.isna(row['OpenDataLon'])):
+                        data.at[num, 'OpenDataLon']="Not Available"
+            if(city=="Milwaukee"):
+                data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains("2020") | data[dateCol].str.contains("2021")]
             # for row in data:
             #     print(row['OpenDataLat'])
+            data2 = data[finalCol]
     final_df = pd.concat([final_df, data2])
     final_df.columns=["date", "offense", "latitude", "longitude"]
-    final_df.to_csv('./CityData/Milwaukee_data.csv')
-
+    final_df.to_csv('./CityData/'+city+'_data.csv')
 
 
 # Loop through the city api dictionary, retrieve the required data and export it to a csv
@@ -176,8 +166,16 @@ for city in cityApiInfo:
         retrieveCityData(city, cityApiInfo[city]["url"], cityApiInfo[city]["dateCol"], cityApiInfo[city]["offCol"], cityApiInfo[city]["latCol"], 
         cityApiInfo[city]["lonCol"], cityApiInfo[city]["keys"]) 
 
-#getCSVData()
-getCSVDataMil()
 
+for city in cityCSVInfo:
+    csvName = city + "_data.csv"
+    path = Path('./CityData/'+csvName)
 
+    print("\nGathering Data for " + city)
 
+    if(path.is_file()):
+        print("Csv for " + city + " already exists. To regather this data, you must delete the following file: /CityData/" + city + "_data.csv")
+    else:
+        
+        retrieveCityCSVData(city, cityCSVInfo[city]["url"], cityCSVInfo[city]["dateCol"], cityCSVInfo[city]["offCol"], cityCSVInfo[city]["latCol"], 
+        cityCSVInfo[city]["lonCol"], cityCSVInfo[city]["keys"]) 
