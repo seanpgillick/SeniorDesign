@@ -39,13 +39,13 @@ cityApiInfo = {
         "lonCol": "longitude",
         "keys": ["ijzp-q8t2"]
     },
-    "Dallas": {  # Gives location as x-y coordinates not longitude-latitude
-        "url": "www.dallasopendata.com",
-        "dateCol": "reporteddate",
-        "offCol": "offincident",
-        "latCol": "x_coordinate",
-        "lonCol": "y_cordinate",
-        "keys": ["qv6i-rri7"]
+    "Cincinnati": {
+        "url": "data.cincinnati-oh.gov",
+        "dateCol": "date_reported",
+        "offCol": "offense",
+        "latCol": "latitude_x",
+        "lonCol": "longitude_x",
+        "keys": ["k59e-2pvf"]
     },
     "Austin": {
         "url": "data.austintexas.gov",
