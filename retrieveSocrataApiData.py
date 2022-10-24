@@ -119,14 +119,6 @@ cityApiInfo = {
             "lonCol":"location_type",
             "keys":["k6ic-7kp7"]
         },
-    "Cincinatti": {
-            "url":"data.cincinnati-oh.gov",
-            "dateCol":"date_reported",
-            "offCol":"offense",
-            "latCol":"latitude_x",
-            "lonCol":"longitude_x",
-            "keys":["k59e-2pvf"]
-        }
 }
 
 cityCSVInfo = {
