@@ -126,6 +126,14 @@ cityApiInfo = {
             "latCol":"latitude_x",
             "lonCol":"longitude_x",
             "keys":["k59e-2pvf"]
+        },
+    "Nashville": {
+            "url":"data.nashville.gov",
+            "dateCol":"incident_reported",
+            "offCol":"offense_description",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["2u6v-ujjs"]
         }
 }
 
