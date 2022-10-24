@@ -5,6 +5,7 @@ import pandas as pd
 from sodapy import Socrata
 import datetime
 from pathlib import Path
+import retrieveCSVData
 
 # This dictionary stores socrata API information
 # If your city uses socrata you can add it's information to this dictionary
@@ -109,6 +110,41 @@ cityApiInfo = {
         "latCol": "location",
         "lonCol": "location",
         "keys": ["pxaa-ahcm", "vsgj-uufz", "w795-ffu6"]
+    },
+    "Fort Worth": {
+            "url":"data.fortworthtexas.gov",
+            "dateCol":"from_date",
+            "offCol":"nature_of_call",
+            "latCol":"location_1",
+            "lonCol":"location_type",
+            "keys":["k6ic-7kp7"]
+        },
+    "Cincinatti": {
+            "url":"data.cincinnati-oh.gov",
+            "dateCol":"date_reported",
+            "offCol":"offense",
+            "latCol":"latitude_x",
+            "lonCol":"longitude_x",
+            "keys":["k59e-2pvf"]
+        }
+}
+
+cityCSVInfo = {
+    "Milwaukee": {
+            "url": "./UnparsedCityCSVs/Milwaukee",
+            "dateCol":"ReportedDateTime",
+            "offCol":"offense",
+            "latCol":"RoughX",
+            "lonCol":"RoughY",
+            "keys":["2005-2021"]
+    },
+    "Portland": {
+            "url": "./UnparsedCityCSVs/Portland",
+            "dateCol":"ReportDate",
+            "offCol":"OffenseCategory",
+            "latCol":"OpenDataLat",
+            "lonCol":"OpenDataLon",
+            "keys":["2019", "2020", "2021"]
     }
 }
 
@@ -147,6 +183,16 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
         while looping:
             results = client.get(key, limit=2000, offset=offset,
                                  where=whereString, select=selectString, order=dateCol)
+
+            if(city=="Fort Worth"):
+                for row in results:
+                    try:
+                        row['longitude']=row['latitude']['longitude']
+                        row['latitude']=row['latitude']['latitude']
+                    except Exception as e:
+                        print("Could not get latitude, longitude: " + str(e))
+                        row['longitude']="Not Available"
+                        row['latitude']="Not Available"
             # Convert to pandas DataFrame
             results_df = pd.DataFrame.from_records(results)
             final_df = pd.concat([final_df, results_df])
@@ -176,5 +222,5 @@ for city in cityApiInfo:
         retrieveCityData(city, cityApiInfo[city]["url"], cityApiInfo[city]["dateCol"], cityApiInfo[city]["offCol"], cityApiInfo[city]["latCol"],
                          cityApiInfo[city]["lonCol"], cityApiInfo[city]["keys"])
 
-
+retrieveCSVData.collectCSVData()
 # url for proper DC query https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/MPD/MapServer/2/query?where=1%3D1&outFields=OFFENSE,LATITUDE,LONGITUDE,START_DATE,END_DATE,REPORT_DAT&outSR=4326&f=json
