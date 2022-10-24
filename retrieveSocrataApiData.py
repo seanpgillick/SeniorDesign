@@ -112,13 +112,21 @@ cityApiInfo = {
         "keys": ["pxaa-ahcm", "vsgj-uufz", "w795-ffu6"]
     },
     "Fort Worth": {
-        "url": "data.fortworthtexas.gov",
-        "dateCol": "from_date",
-        "offCol": "nature_of_call",
-        "latCol": "location_1",
-        "lonCol": "location_type",
-        "keys": ["k6ic-7kp7"]
-    },
+            "url":"data.fortworthtexas.gov",
+            "dateCol":"from_date",
+            "offCol":"nature_of_call",
+            "latCol":"location_1",
+            "lonCol":"location_type",
+            "keys":["k6ic-7kp7"]
+        },
+    "Nashville": {
+            "url":"data.nashville.gov",
+            "dateCol":"incident_reported",
+            "offCol":"offense_description",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["2u6v-ujjs"]
+        }
 }
 
 
