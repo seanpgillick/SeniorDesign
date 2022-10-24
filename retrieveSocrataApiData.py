@@ -119,14 +119,6 @@ cityApiInfo = {
             "lonCol":"location_type",
             "keys":["k6ic-7kp7"]
         },
-    "Cincinatti": {
-            "url":"data.cincinnati-oh.gov",
-            "dateCol":"date_reported",
-            "offCol":"offense",
-            "latCol":"latitude_x",
-            "lonCol":"longitude_x",
-            "keys":["k59e-2pvf"]
-        },
     "Nashville": {
             "url":"data.nashville.gov",
             "dateCol":"incident_reported",
@@ -135,25 +127,6 @@ cityApiInfo = {
             "lonCol":"longitude",
             "keys":["2u6v-ujjs"]
         }
-}
-
-cityCSVInfo = {
-    "Milwaukee": {
-            "url": "./UnparsedCityCSVs/Milwaukee",
-            "dateCol":"ReportedDateTime",
-            "offCol":"offense",
-            "latCol":"RoughX",
-            "lonCol":"RoughY",
-            "keys":["2005-2021"]
-    },
-    "Portland": {
-            "url": "./UnparsedCityCSVs/Portland",
-            "dateCol":"ReportDate",
-            "offCol":"OffenseCategory",
-            "latCol":"OpenDataLat",
-            "lonCol":"OpenDataLon",
-            "keys":["2019", "2020", "2021"]
-    }
 }
 
 
@@ -192,15 +165,15 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
             results = client.get(key, limit=2000, offset=offset,
                                  where=whereString, select=selectString, order=dateCol)
 
-            if(city=="Fort Worth"):
+            if (city == "Fort Worth"):
                 for row in results:
                     try:
-                        row['longitude']=row['latitude']['longitude']
-                        row['latitude']=row['latitude']['latitude']
+                        row['longitude'] = row['latitude']['longitude']
+                        row['latitude'] = row['latitude']['latitude']
                     except Exception as e:
                         print("Could not get latitude, longitude: " + str(e))
-                        row['longitude']="Not Available"
-                        row['latitude']="Not Available"
+                        row['longitude'] = "Not Available"
+                        row['latitude'] = "Not Available"
             # Convert to pandas DataFrame
             results_df = pd.DataFrame.from_records(results)
             final_df = pd.concat([final_df, results_df])
