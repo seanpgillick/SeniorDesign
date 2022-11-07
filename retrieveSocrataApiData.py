@@ -135,6 +135,14 @@ cityApiInfo = {
             "lonCol":"longitude",
             "keys":["d6g9-xbgu"]
         },
+    "Montgomery": {
+            "url":"data.montgomerycountymd.gov",
+            "dateCol":"date",
+            "offCol":"crimename1",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["icn6-v9z3"]
+        },
 }
 
 
