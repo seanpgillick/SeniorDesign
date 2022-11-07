@@ -6,7 +6,7 @@ from sodapy import Socrata
 import datetime
 from pathlib import Path
 
-#when gathering csv data make sure to store it in ./UnprasedCityCSVs
+#when gathering csv data make sure to store it in ./UnparsedCityCSVs
 #create a folder of the city
 #each csv file should be cityName-year.csv (if multiple years do cityName-year-year.csv)
 
@@ -37,6 +37,30 @@ cityCSVInfo = {
             "latCol":"OpenDataLat",
             "lonCol":"OpenDataLon",
             "keys":["2019", "2020", "2021"]
+    },
+    "Boston": {
+            "url": "./UnparsedCityCSVs/Boston",
+            "dateCol":"OCCURRED_ON_DATE",
+            "offCol":"OFFENSE_DESCRIPTION",
+            "latCol":"Lat",
+            "lonCol":"Long",
+            "keys":["2019", "2020", "2021"]
+    },
+    "Raleigh": {
+            "url": "./UnparsedCityCSVs/Raleigh",
+            "dateCol":"reported_date",
+            "offCol":"crime_category",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["2019-2021"]
+    },
+    "Minneapolis": {
+            "url": "./UnparsedCityCSVs/Minneapolis",
+            "dateCol":"reportedDate",
+            "offCol":"offense",
+            "latCol":"centerLat",
+            "lonCol":"centerLong",
+            "keys":["2019", "2020", "2021"]
     }
 }
 
@@ -49,7 +73,7 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
     finalCol = [dateCol, offCol, latCol, lonCol]
     #locator = Nominatim(user_agent="myGeocoder")
 
-    final_df = pd.DataFrame()
+    #final_df = pd.DataFrame()
     colnames=[]
     offenseColnames=[]
     # get csv data
@@ -67,6 +91,12 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                 offenseColnames = ["Arson","AssaultOffense","Burglary","CriminalDamage","Homicide","LockedVehicle","Robbery","SexOffense","Theft","VehicleTheft"]
             elif(city=="Portland"):
                 colnames = ["Address","CaseNumber","CrimeAgainst","Neighborhood","OccurDate","OccurTime","OffenseCategory","OffenseType","OpenDataLat","OpenDataLon","OpenDataX","OpenDataY","ReportDate","OffenseCount"]
+            elif(city=="Boston"):
+                colnames = ["INCIDENT_NUMBER","OFFENSE_CODE","OFFENSE_CODE_GROUP","OFFENSE_DESCRIPTION","DISTRICT","REPORTING_AREA","SHOOTING","OCCURRED_ON_DATE","YEAR","MONTH","DAY_OF_WEEK","HOUR","UCR_PART","STREET","Lat","Long","Location"]
+            elif(city=="Raleigh"):
+                colnames = ["X","Y","OBJECTID","GlobalID","case_number","crime_category","crime_code","crime_description","crime_type","reported_block_address","city_of_incident","city","district","reported_date","reported_year","reported_month","reported_day","reported_hour","reported_dayofwk","latitude","longitude","agency","updated_date"]
+            elif(city=="Minneapolis"):
+                colnames=["X","Y","publicaddress","caseNumber","precinct","reportedDate","reportedTime","beginDate","reportedDateTime","beginTime","offense","description","UCRCode","enteredDate","centergbsid","centerLong","centerLat","centerX","centerY","neighborhood","lastchanged","LastUpdateDateETL","OBJECTID"]
             
             data = pd.read_csv(path, names=colnames, skiprows=(0,))
             
@@ -87,8 +117,28 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                         data.at[num, 'OpenDataLat']="Not Available"
                     if(pd.isna(row['OpenDataLon'])):
                         data.at[num, 'OpenDataLon']="Not Available"
+                elif(city=="Boston"):
+                    if(pd.isna(row['Lat'])):
+                        data.at[num, 'Lat']="Not Available"
+                    if(pd.isna(row['Long'])):
+                        data.at[num, 'Long']="Not Available"
+                elif(city=="Raleigh"):
+                    if(pd.isna(row['latitude'])):
+                        data.at[num, 'latitude']="Not Available"
+                    if(pd.isna(row['longitude'])):
+                        data.at[num, 'longitude']="Not Available"
+                elif(city=="Minneapolis"):
+                    if(pd.isna(row['centerLat'])):
+                        data.at[num, 'centerLat']="Not Available"
+                    if(pd.isna(row['centerLong'])):
+                        data.at[num, 'centerLong']="Not Available"
             if(city=="Milwaukee"):
                 data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains("2020") | data[dateCol].str.contains("2021")]
+            elif(city=="Boston"):
+                data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains("2020") | data[dateCol].str.contains("2021")]
+            elif(city=="Minneapolis"):
+                data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains("2020") | data[dateCol].str.contains("2021")]
+
             # for row in data:
             #     print(row['OpenDataLat'])
             data2 = data[finalCol]
