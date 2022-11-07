@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import requests
 import pandas as pd
@@ -19,7 +20,7 @@ def retrieveCityData(city, url):
     while looping:
         results = requests.get(url)
 
-        results_df = pd.DataFrame.from_records(results)
+        results_df = pd.read_json(results)
         final_df = pd.concat([final_df, results_df])
 
         # If we have reached the end of the data, stop looping
@@ -43,5 +44,3 @@ for city in cityApiInfo:
         print("Csv for " + city + " already exists. To regather this data, you must delete the following file: /CityData/" + city + "_data.csv")
     else:
         retrieveCityData(city, cityApiInfo[city]["url"])
-
-print(response.content)
