@@ -69,6 +69,22 @@ cityCSVInfo = {
         "latCol": "centerLat",
         "lonCol": "centerLong",
         "keys": ["2019", "2020", "2021"]
+    },
+    "Omaha": {
+        "url": "./UnparsedCityCSVs/Omaha",
+        "dateCol": "date",
+        "offCol": "offense",
+        "latCol": "latitude",
+        "lonCol": "longitude",
+        "keys": ["2019", "2020", "2021"]
+    },
+    "Philadelphia": {
+        "url": "./UnparsedCityCSVs/Philadelphia",
+        "dateCol": "date",
+        "offCol": "offense",
+        "latCol": "latitude",
+        "lonCol": "longitude",
+        "keys": ["2019", "2020", "2021"]
     }
 }
 
@@ -113,6 +129,16 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
             elif (city == "Minneapolis"):
                 colnames = ["X", "Y", "publicaddress", "caseNumber", "precinct", "reportedDate", "reportedTime", "beginDate", "reportedDateTime", "beginTime", "offense", "description",
                             "UCRCode", "enteredDate", "centergbsid", "centerLong", "centerLat", "centerX", "centerY", "neighborhood", "lastchanged", "LastUpdateDateETL", "OBJECTID"]
+            elif (city == "Omaha"):
+                colnames = ["a", "date", "c", "offense",
+                            "e", "f", "latitude", "longitude"]
+            elif (city == "Philadelphia"):
+                if year == "2019":
+                    colnames = [
+                        "a", "b", "c", "d", "date", "f", "g", "h", "i", "j", "offense", "l", "m", "latitude", "longitude"]
+                elif year == "2020" or year == "2021":
+                    colnames = [
+                        "a", "b", "c", "d", "x", "f", "g", "date", "h", "j", "z", "l", "m", "offense", "p", "o", "latitude", "longitude"]
 
             data = pd.read_csv(path, names=colnames, skiprows=(0,))
 
