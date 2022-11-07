@@ -17,6 +17,6 @@ for file in files:
         os.remove("./CityData/"+file.name)
         data.to_csv("./CityData/"+file.name, index=False)
     except Exception as e:
-        print("Unable to reformat dates in" + file.name +
+        print("Unable to reformat dates in " + file.name +
               ". This was the resulting error message: \n" + str(e))
         continue
