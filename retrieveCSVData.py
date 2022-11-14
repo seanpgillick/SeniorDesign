@@ -85,7 +85,15 @@ cityCSVInfo = {
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["2019", "2020", "2021"]
-    }
+    },
+    "Baltimore": {
+        "url": "./UnparsedCityCSVs/Baltimore",
+        "dateCol": "CrimeDateTime",
+        "offCol": "Description",
+        "latCol": "Latitude",
+        "lonCol": "Longitude",
+        "keys": ["2012-2022"]
+    },
 }
 
 
@@ -139,8 +147,10 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                 elif year == "2020" or year == "2021":
                     colnames = [
                         "a", "b", "c", "d", "x", "f", "g", "date", "h", "j", "z", "l", "m", "offense", "p", "o", "latitude", "longitude"]
+            elif (city == "Baltimore"):
+                colnames = ["a", "b", "c", "CrimeDateTime", "e", "f", "Description", "h", "i", "j", "k", "l", "m", "n", "o", "p", "Latitude", "Longitude", "s", "t", "u", "v", "w"]
 
-            data = pd.read_csv(path, names=colnames, skiprows=(0,))
+            data = pd.read_csv(path, names=colnames, skiprows=(0,), low_memory=False)
 
             for num, row in data.iterrows():
                 if (city == "Milwaukee"):
@@ -203,6 +213,9 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                 data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains(
                     "2020") | data[dateCol].str.contains("2021")]
             elif (city == "Minneapolis"):
+                data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains(
+                    "2020") | data[dateCol].str.contains("2021")]
+            elif (city == "Baltimore"):
                 data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains(
                     "2020") | data[dateCol].str.contains("2021")]
 
