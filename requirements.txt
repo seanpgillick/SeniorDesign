@@ -1,0 +1,7 @@
+geopy
+pathlib
+selenium 
+pandas
+sodapy
+tqdm
+bs4
