@@ -30,13 +30,18 @@ def convert(x, city):
         exit("Failed Count has exceeded 8. Api connection may have been lost")
 
     df = pd.DataFrame(data=d)
+    
     df.to_csv('./convertedAddresses/'+city+'_latlng.csv',
               mode='a', index=False, header=False)
 
 
 def getLatLong(dataframe, city):
+    print(city)
     lastCheckedId = pd.read_csv(
         './convertedAddresses/'+city+'_latlng.csv').last_valid_index()
+    print(lastCheckedId)
+    if(lastCheckedId is None):
+        lastCheckedId=1
     originalDataframe = dataframe
     dataframe = dataframe.iloc[lastCheckedId+1:]
     dataframe['latitude'].progress_apply(lambda x: convert(x, city))
@@ -46,6 +51,24 @@ def getLatLong(dataframe, city):
         originalDataframe[['latitude', 'longitude']] = latLngDataframe
         os.remove("./CityData/"+city+"_data.csv")
         originalDataframe.to_csv('./CityData/'+city+'_data.csv', index=False)
+
+def mainCall(filePath):
+    failedCount = 0
+
+    # if (len(sys.argv) != 2):
+    #     print("You have not supplied the correct number of arguments. This script should be used as follows: \n python ./convertAddressToLatLong.py 'path to city csv'")
+    #     exit(0)
+
+    # path = Path(sys.argv[1])
+    path = Path(filePath)
+    if (not path.is_file()):
+        # print("The file path '" + sys.argv[1] + "' does not exist")
+        exit(0)
+
+    city = path.name.split('_')[0]
+    data = pd.read_csv(path)
+    print(data)
+    getLatLong(data, city)
 
 
 if __name__ == "__main__":
@@ -62,4 +85,5 @@ if __name__ == "__main__":
 
     city = path.name.split('_')[0]
     data = pd.read_csv(path)
+    print(data)
     getLatLong(data, city)

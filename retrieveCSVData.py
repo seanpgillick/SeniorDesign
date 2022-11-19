@@ -5,6 +5,7 @@ import pandas as pd
 from sodapy import Socrata
 import datetime
 from pathlib import Path
+import math
 
 # when gathering csv data make sure to store it in ./UnparsedCityCSVs
 # create a folder of the city
@@ -154,6 +155,8 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                         data.at[num, 'RoughX'] = "Not Available"
                     if (pd.isna(row['RoughY'])):
                         data.at[num, 'RoughY'] = "Not Available"
+                    if(not (math.isnan(data.at[num, 'ZIP']) or pd.isna(data.at[num, 'Location']))):
+                        data.at[num, 'RoughX'] = str(data.at[num, 'Location'])+" "+str(int(data.at[num, 'ZIP']))
                 elif (city == "Portland"):
                     if (pd.isna(row['OpenDataLat'])):
                         data.at[num, 'OpenDataLat'] = "Not Available"
