@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import requests
 import pandas as pd
-
+import datetime as dt
 
 
 cityApiInfo = {
@@ -19,8 +19,22 @@ def retrieveCityData(city, url):
     # Retrieve city data 2000 rows at a time
     while looping:
         results = requests.get(url)
+        data = results.json()
+        listDict = list(data.values())
+        print(type(listDict[5][0]))
+        alteredList = []
+        for x in listDict[5]:
+            tempList = []
+            unixTime = x["attributes"]["REPORT_DAT"]/1000
+            standardTime = dt.datetime.fromtimestamp(unixTime)
+            tempList.append(standardTime)
+            tempList.append(x["attributes"]["OFFENSE"])
+            tempList.append(x["attributes"]["LATITUDE"])
+            tempList.append(x["attributes"]["LONGITUDE"])
+            alteredList.append(tempList)
 
-        results_df = pd.read_json(results)
+
+        results_df = pd.DataFrame.from_dict(alteredList)
         final_df = pd.concat([final_df, results_df])
 
         # If we have reached the end of the data, stop looping
