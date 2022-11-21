@@ -126,7 +126,23 @@ cityApiInfo = {
             "latCol":"latitude",
             "lonCol":"longitude",
             "keys":["2u6v-ujjs"]
-        }
+        },
+    "Buffalo": {
+            "url":"data.buffalony.gov",
+            "dateCol":"incident_datetime",
+            "offCol":"incident_type_primary",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["d6g9-xbgu"]
+        },
+    "Montgomery": {
+            "url":"data.montgomerycountymd.gov",
+            "dateCol":"date",
+            "offCol":"crimename1",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["icn6-v9z3"]
+        },
 }
 
 
