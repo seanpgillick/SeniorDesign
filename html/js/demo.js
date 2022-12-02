@@ -62,6 +62,9 @@ function validateYear(year) {
 //Use this function to Query DB
 function searchDB() {
     dataContainer = document.getElementById("db-data")
+    while (dataContainer.firstChild) {
+        dataContainer.removeChild(dataContainer.firstChild)
+    }
     city = citySelect.value
     year = yearSelect.value
     let table = document.createElement('table')
