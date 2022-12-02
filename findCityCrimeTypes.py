@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import os
 
-directory = './CityData'
+directory = './StandardizedCityData'
 
 files = Path(directory).glob('*')
 newDataFrame = pd.DataFrame()
