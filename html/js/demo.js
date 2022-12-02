@@ -38,7 +38,9 @@ function populateYears(city){
 
     //Put years into yearArr
     yearArr = ["...", "2019","2020","2021"]
-
+    while (yearSelect.firstChild) {
+        yearSelect.removeChild(yearSelect.firstChild)
+    }
     for(element of yearArr)
         {
             var opt = document.createElement("option");
@@ -64,4 +66,25 @@ function searchDB() {
     year = yearSelect.value
     let table = document.createElement('table')
     table.style.border = '1px solid black'
+    //THIS IS ALL TEMP
+    let text = '{"response": [' + 
+    '{ "offense":"Burglary" , "latitude":"42.33367921810846" , "longitude": "-71.09187754618458"},' +
+    '{ "offense":"Murder" , "latitude":"42.33367921810846" , "longitude": "-71.09187754618458" },' +
+    '{ "offense":"Theft" , "latitude":"42.33367921810846" , "longitude": "-71.09187754618458" } ]}';
+    const response = JSON.parse(text)
+    //END TEMP (TO BE REPLACED WITH DATABASE CODE)
+    console.log(response.response)
+    for(entry of response.response) {
+        var tr = table.insertRow();
+        var td = tr.insertCell();
+        td.appendChild(document.createTextNode(entry.offense))
+        var tdLat = tr.insertCell();
+        tdLat.appendChild(document.createTextNode(entry.latitude))
+        var tdLong = tr.insertCell();
+        tdLong.appendChild(document.createTextNode(entry.longitude))
+    }
+
+    dataContainer.appendChild(table)
+
+
 }
