@@ -5,3 +5,6 @@ pandas
 sodapy
 tqdm
 bs4
+psycopg2
+pymysql
+sqlalchemy
