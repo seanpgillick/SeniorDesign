@@ -1,16 +1,19 @@
+# Main goal of this script is to get data for Washington DC City using API link provided
+
 import json
 from pathlib import Path
 import requests
 import pandas as pd
 import datetime as dt
 
-
+# API link for Washington DC
 cityApiInfo = {
     "Washington D.C.": {
         "url": "https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/MPD/MapServer/2/query?where=1%3D1&outFields=OFFENSE,LATITUDE,LONGITUDE,REPORT_DAT&outSR=4326&f=json",
     }
 }
 
+# Retrieve data for Washington DC city
 def retrieveCityData(city, url):
     csvName = city + "_data.csv"
     final_df = pd.DataFrame()
@@ -45,6 +48,7 @@ def retrieveCityData(city, url):
             # print(results_df["date"].iloc[1999])
                 offset += 2000
 
+    # Save data to csv in CityData folder
     final_df.to_csv('./CityData/'+csvName)
 
 
@@ -54,7 +58,9 @@ for city in cityApiInfo:
 
     print("\nGathering Data for " + city)
 
+    # If csv file already exists, skip
     if (path.is_file()):
         print("Csv for " + city + " already exists. To regather this data, you must delete the following file: /CityData/" + city + "_data.csv")
+    # Else retrieve data
     else:
         retrieveCityData(city, cityApiInfo[city]["url"])

@@ -1,3 +1,6 @@
+# Main goal of this script is to retrieve data from CSV files of each city from ./UnparsedCityCSVs and save it to a csv file in the CityData folder
+# cityApiInfo is a dictionary that contains the information of each city that needed to be retrieved
+
 from operator import truediv
 from select import select
 import sys
@@ -20,7 +23,8 @@ from pathlib import Path
 # key    --> Stores the years that the csv file stores (should be the same for the years on the csv file name)
 
 
-# this
+# Dictionary that stores the information of each city
+# If your city uses CSV you can add it's information to this dictionary
 cityCSVInfo = {
     "Milwaukee": {
         "url": "./UnparsedCityCSVs/Milwaukee",
@@ -117,6 +121,9 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
             print("Unable to open file: " + filename)
         else:
             # Open the csv file
+            # For each city you must change the column names to match the column names of the csv file
+            # The columns that are needed are dateCol, offCol, latCol, lonCol
+            # We can use a,b,c,d... for the column names that we are not using (ex. if we are not using the YEAR column we can use "a" for the column name)
             if (city == "Milwaukee"):
                 colnames = ["ReportedDateTime", "Location", "ZIP", "RoughX", "RoughY", "Arson", "AssaultOffense", "Burglary", "CriminalDamage", "Homicide",
                             "LockedVehicle", "Robbery", "SexOffense", "Theft", "VehicleTheft"]
@@ -141,6 +148,7 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                 colnames = ["a", "date", "c", "offense",
                             "e", "f", "latitude", "longitude"]
             elif (city == "Philadelphia"):
+                # Condition for each year file since the column names are different
                 if year == "2019":
                     colnames = [
                         "a", "b", "c", "d", "date", "f", "g", "h", "i", "j", "offense", "l", "m", "latitude", "longitude"]
@@ -150,9 +158,11 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
             elif (city == "Baltimore"):
                 colnames = ["a", "b", "c", "CrimeDateTime", "e", "f", "Description", "h", "i", "j", "k", "l", "m", "n", "o", "p", "Latitude", "Longitude", "s", "t", "u", "v", "w"]
 
+            # Read the csv file
             data = pd.read_csv(path, names=colnames, skiprows=(0,), low_memory=False)
 
             for num, row in data.iterrows():
+                # Specific condition for some cities to get its data retrived properly from the csv file
                 if (city == "Milwaukee"):
                     newOffense = ""
                     for x in offenseColnames:
@@ -222,6 +232,7 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
             # for row in data:
             #     print(row['OpenDataLat'])
             data2 = data[finalCol]
+    # Saving retrived data into a csv file in ./CityData
     final_df = pd.concat([final_df, data2])
     final_df.columns = ["date", "offense", "latitude", "longitude"]
     final_df.to_csv('./CityData/'+city+'_data.csv')
@@ -229,16 +240,18 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
 
 def collectCSVData():
 
+    # Accessing each city from dictionary
     for city in cityCSVInfo:
         csvName = city + "_data.csv"
         path = Path('./CityData/'+csvName)
 
         print("\nGathering Data for " + city)
 
+        # Check if the csv file already exists, if so skip it
         if (path.is_file()):
             print("Csv for " + city + " already exists. To regather this data, you must delete the following file: /CityData/" + city + "_data.csv")
+        # Else call retrieveCityCSVData() to get the data
         else:
-
             retrieveCityCSVData(city, cityCSVInfo[city]["url"], cityCSVInfo[city]["dateCol"], cityCSVInfo[city]["offCol"], cityCSVInfo[city]["latCol"],
                                 cityCSVInfo[city]["lonCol"], cityCSVInfo[city]["keys"])
 

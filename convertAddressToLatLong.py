@@ -1,3 +1,5 @@
+#Main goal of this script is convert address to lat and long and update csv file inside CityData folder
+
 from operator import truediv
 from select import select
 import sys
@@ -14,7 +16,7 @@ geolocator = Nominatim(user_agent="seniorProjectCityCrimeData")
 tqdm.pandas()
 # get csv data
 
-
+#convert function to get lat and long for each address in dataframe and save it to csv file inside convertedAddresses folder
 def convert(x, city):
     global failedCount
     try:
@@ -34,12 +36,13 @@ def convert(x, city):
               mode='a', index=False, header=False)
 
 
+#With this function, we can convert the address to lat and long. Replacing CityData in CityData folder with lat and long info.
 def getLatLong(dataframe, city):
     lastCheckedId = pd.read_csv(
         './convertedAddresses/'+city+'_latlng.csv').last_valid_index()
     originalDataframe = dataframe
     dataframe = dataframe.iloc[lastCheckedId+1:]
-    dataframe['latitude'].progress_apply(lambda x: convert(x, city))
+    dataframe['latitude'].progress_apply(lambda x: convert(x, city))  #calling convert function to get lat and long for each address in dataframe
     if (lastCheckedId == originalDataframe.shape[0]-1):
         latLngDataframe = pd.read_csv(
             './convertedAddresses/'+city+'_latlng.csv')
@@ -51,15 +54,18 @@ def getLatLong(dataframe, city):
 if __name__ == "__main__":
     failedCount = 0
 
+    #Checking if path to CSV file is provided. If not exit.
     if (len(sys.argv) != 2):
         print("You have not supplied the correct number of arguments. This script should be used as follows: \n python ./convertAddressToLatLong.py 'path to city csv'")
         exit(0)
 
+    #Checking if path to CSV file is valid. If not exit.
     path = Path(sys.argv[1])
     if (not path.is_file()):
         print("The file path '" + sys.argv[1] + "' does not exist")
         exit(0)
 
+    #Getting city name and data to get Lat/Long
     city = path.name.split('_')[0]
     data = pd.read_csv(path)
     getLatLong(data, city)

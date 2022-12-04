@@ -1,3 +1,6 @@
+# This function takes in an offense and returns the standardized crime type
+# Each if statement checks if the offense contains a certain keyword and returns the standardized crime type
+
 from operator import truediv
 from select import select
 import sys
@@ -46,16 +49,22 @@ def defineCrimeType(offense):
     # Check if Sexual Assault
     if ("assault" in offense.lower() and "sexual" in offense.lower()):
         return "Sexual Assault"
+    # Check if Homicide
     if ("homicide" in offense.lower()):
         return "Homicide"
+    # Check if Kidnapping
     if ("kidnapping" in offense.lower()):
         return "Kidnapping"
+    # Check if Fraud
     if ("fraud" in offense.lower()):
         return "Fraud"
+    # Check if Shooting
     if ("shot" in offense.lower() or "shooting" in offense.lower()):
         return "Shooting"
+    # Check if Vandalism
     if ("vandalism" in offense.lower()):
         return "Vandalism"
+    # Check if Harassment
     if ("harassment" in offense.lower() or "harrasment" in offense.lower() or "harrassament" in offense.lower() or "harass" in offense.lower()):
         return "Harassment"
 
@@ -65,6 +74,7 @@ def defineCrimeType(offense):
 def standardizeCrimeTypes(data, city):
     print("Standardizing Crime types for " + city)
 
+    # Replace each offence of the data to the standardized crime type by calling defineCrimeType and passing the unstandardized offense
     data["offense"] = data['offense'].progress_apply(
         lambda x: defineCrimeType(x))
     data.to_csv('./StandardizedCityData/'+city+'_data.csv', index=False)
@@ -73,7 +83,11 @@ def standardizeCrimeTypes(data, city):
 if __name__ == "__main__":
     directory = './CityData'
     files = Path(directory).glob('*')
+    # Loop through all files in the directory to standardize crime types
     for file in files:
         data = pd.read_csv(file)
-
+        
+        #Passing data of the file and city name to the function
         standardizeCrimeTypes(data, file.name.split('_')[0])
+
+# Find similar crime types from each city
