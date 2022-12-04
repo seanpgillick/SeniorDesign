@@ -1,5 +1,3 @@
-
-
 //Need some code to get cities from DB and into Array
 //Need some code to get year from selected city from DB into Array
 //Need some code to get data from selected city and year from DB into array
