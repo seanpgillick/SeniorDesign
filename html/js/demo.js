@@ -1,5 +1,3 @@
-
-
 //Need some code to get cities from DB and into Array
 //Need some code to get year from selected city from DB into Array
 //Need some code to get data from selected city and year from DB into array
@@ -62,9 +60,23 @@ function validateYear(year) {
 //Use this function to Query DB
 function searchDB() {
     dataContainer = document.getElementById("db-data")
+    while (dataContainer.firstChild) {
+        dataContainer.removeChild(dataContainer.firstChild)
+    }
     city = citySelect.value
     year = yearSelect.value
     let table = document.createElement('table')
+    thOff = document.createElement('th')
+    thLat = document.createElement('th')
+    thLong = document.createElement('th')
+    thOff.innerHTML = "Offense"
+    thLat.innerHTML = "Latitude"
+    thLong.innerHTML = "Longitude"
+    headerRow = document.createElement('tr')
+    headerRow.appendChild(thOff)
+    headerRow.appendChild(thLat)
+    headerRow.appendChild(thLong)
+    table.appendChild(headerRow)
     table.style.border = '1px solid black'
     //THIS IS ALL TEMP
     let text = '{"response": [' + 
@@ -74,6 +86,7 @@ function searchDB() {
     const response = JSON.parse(text)
     //END TEMP (TO BE REPLACED WITH DATABASE CODE)
     console.log(response.response)
+    let num = -1
     for(entry of response.response) {
         var tr = table.insertRow();
         var td = tr.insertCell();
@@ -82,6 +95,10 @@ function searchDB() {
         tdLat.appendChild(document.createTextNode(entry.latitude))
         var tdLong = tr.insertCell();
         tdLong.appendChild(document.createTextNode(entry.longitude))
+        if(num == -1) {
+            tr.style.backgroundColor="#D3D3D3"
+        }
+        num = num * -1
     }
 
     dataContainer.appendChild(table)
