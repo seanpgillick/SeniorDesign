@@ -38,6 +38,7 @@ def retrieveCityData(city, url):
 
 
         results_df = pd.DataFrame.from_dict(alteredList)
+        results_df.columns = ['date','offense','latitude','longitude']
         final_df = pd.concat([final_df, results_df])
 
         # If we have reached the end of the data, stop looping

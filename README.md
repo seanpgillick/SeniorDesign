@@ -15,4 +15,4 @@ To update/install the dependenices in vm, first activate the vm, then run the fo
 py -m pip install --upgrade pip
 py -m pip install -r requirements.txt
 
-To ensure all scripts are run with the correct dependencies and the correct versions, they should be run within the vm
+To ensure all scripts are ran with the correct dependencies and the correct versions, they should be ran within the vm
