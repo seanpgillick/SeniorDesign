@@ -16,3 +16,10 @@ py -m pip install --upgrade pip
 py -m pip install -r requirements.txt
 
 To ensure all scripts are ran with the correct dependencies and the correct versions, they should be ran within the vm
+
+#Demo
+To launch a local version run, make sure you are in the top level of the directory. Next run: 
+node server.js
+
+Next open:
+http://localhost:5000
