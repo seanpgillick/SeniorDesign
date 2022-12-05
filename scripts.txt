@@ -15,6 +15,8 @@ of each city that needed to be retrieved using this script. When gathering csv d
 
 retrieveSocrataApiData.py - This script is mainly used to retrieve data from the Socrata API and save it to a csv file in the CityData folder. cityApiInfo is a dictionary that contains the information of each city that needed to be retrieved.
 
+standardizeCrimeTypes.py - The main goal of this script is to standartize crime types across all city crime data. This script goes through each row of each file to change the OFFENSE type to a standard type.
 
+standardizeDates.py - The main goal of this script is to standardize Date across the Crime Data files to dd/mm/YYYY. The script goes through each City Data file and update the date column.
 
-convertAddressToLatLong.py - Manually runned script. Use Command - python 
+webScraping.py - 

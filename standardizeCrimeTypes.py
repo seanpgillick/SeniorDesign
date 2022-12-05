@@ -1,5 +1,4 @@
-# This function takes in an offense and returns the standardized crime type
-# Each if statement checks if the offense contains a certain keyword and returns the standardized crime type
+# Find similar crime types from each city
 
 from operator import truediv
 from select import select
@@ -14,7 +13,8 @@ import numpy as np
 
 tqdm.pandas()
 
-
+# This function takes in an offense and returns the standardized crime type
+# Each if statement checks if the offense contains a certain keyword and returns the standardized crime type
 def defineCrimeType(offense):
     offense = str(offense)
     # Check if Motor Vehicle Theft
@@ -89,5 +89,3 @@ if __name__ == "__main__":
         
         #Passing data of the file and city name to the function
         standardizeCrimeTypes(data, file.name.split('_')[0])
-
-# Find similar crime types from each city
