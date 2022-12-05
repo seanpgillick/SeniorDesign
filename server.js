@@ -71,6 +71,5 @@ app.post("/getData", function (req, res) {
 });
 
 var server = app.listen(5000, function () {
-  console.log(__dirname + "/public");
   console.log("Server is listening at port 5000...");
 });
