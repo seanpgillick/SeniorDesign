@@ -45,8 +45,6 @@ function PopulatePage(results){
     var city = document.getElementById("cities-select").value;
     var year = document.getElementById("years-select").value;
     let table = document.createElement('table')
-    table.setAttribute("id", "DataTable");
-
 
     //Table Headers
     thCity = document.createElement('th')
@@ -71,11 +69,8 @@ function PopulatePage(results){
     table.style.border = '1px solid black'
 
     let num = -1
-
     //Loop through each entry returned. Create a cell for the City, Date, Offense, Latitude, and Longitude
     for(entry of results) {
-        // console.log("Entry:")
-        // console.log(entry)
         var tr = table.insertRow();
         var tdCity = tr.insertCell();
         tdCity.appendChild(document.createTextNode(entry.City))
