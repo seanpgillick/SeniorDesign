@@ -1,3 +1,6 @@
+# Main goal of this script is to retrieve data from the Socrata API and save it to a csv file in the CityData folder
+# cityApiInfo is a dictionary that contains the information of each city that needed to be retrieved
+
 from operator import truediv
 from select import select
 import sys
