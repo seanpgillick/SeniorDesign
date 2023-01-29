@@ -40,9 +40,11 @@ def convert(x, city):
 def getLatLong(dataframe, city):
     lastCheckedId = pd.read_csv(
         './convertedAddresses/'+city+'_latlng.csv').last_valid_index()
+    if(lastCheckedId is None):
+        lastCheckedId=1
     originalDataframe = dataframe
     dataframe = dataframe.iloc[lastCheckedId+1:]
-    dataframe['latitude'].progress_apply(lambda x: convert(x, city))  #calling convert function to get lat and long for each address in dataframe
+    dataframe['Location'].progress_apply(lambda x: convert(x, city))  #calling convert function to get lat and long for each address in dataframe
     if (lastCheckedId == originalDataframe.shape[0]-1):
         latLngDataframe = pd.read_csv(
             './convertedAddresses/'+city+'_latlng.csv')
@@ -68,4 +70,5 @@ if __name__ == "__main__":
     #Getting city name and data to get Lat/Long
     city = path.name.split('_')[0]
     data = pd.read_csv(path)
+    print(city)
     getLatLong(data, city)
