@@ -1,6 +1,9 @@
 const express = require("express");
 const app = express();
 const mysql = require("mysql");
+const { PORT = 3000} = process.env
+
+console.log("PORT: ", PORT)
 
 app.use(express.json());
 app.use(express.static(__dirname + "/public"));
@@ -70,6 +73,10 @@ app.post("/getData", function (req, res) {
   });
 });
 
-var server = app.listen(5000, function () {
-  console.log("Server is listening at port 5000...");
-});
+// var server = app.listen(5000, function () {
+//   console.log("Server is listening at port 5000...");
+// });
+
+app.listen(PORT, () =>
+  console.log(`App listening at http://localhost:${PORT}`)
+)
