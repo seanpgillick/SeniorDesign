@@ -39,6 +39,7 @@ app.get("/", function (req, res) {
   );
 });
 
+
 // Post request - Calls the DB and returns all the results for a city within the given Year
 app.post("/getData", function (req, res) {
   var city = req.body.City;
@@ -70,6 +71,6 @@ app.post("/getData", function (req, res) {
   });
 });
 
-var server = app.listen(5000, function () {
-  console.log("Server is listening at port 5000...");
+var server = app.listen(8050, function () {
+  console.log("Server is listening at port 8050...");
 });
