@@ -1,0 +1,22 @@
+Filename - Comment
+
+arcgisQuery.py - This script is used to get crime data of Washington DC using an API link. It will get DATE, OFFENSE, LATITUDE, LONGITUDE and combine it into a CSV file in ./CityData directory. 
+
+convertAddressToLatLong.py - This script need to be manually runned using the command - ./convertAddressToLatLong.py 'path to city csv'. This script is used to convert address to latitude and longitude. Any cities crime data which is missing Latitude and Longitude but has an address this script could be used to fix that. 
+
+findCityCrimeTypes.py - This script is used to find unique crime types in each cities Crime Data CSV files which is stored in directory - StandardizedCityData and store the unique Crime Types to ./uniqueCrimeTypes.csv file.
+
+reformatCSData.py - Initially the Latitude and Longitude of Colorado Spring is not properly populated. This script will restore the proper values to the Latitude and Longitude columns.
+
+reformatKCData.py - Initially the Latitude and Longitude of Kansas City is not properly populated. This script will restore the proper values to the Latitude and Longitude columns.
+
+retrieveCSVData.py - This script is mainly used to retrieve data from CSV files of each city from ./UnparsedCityCSVs and save it to a csv file in the CityData folder. cityApiInfo is a dictionary that contains the information 
+of each city that needed to be retrieved using this script. When gathering csv data make sure to store it in ./UnparsedCityCSVs. Create a folder of the city. Each csv file should be cityName-year.csv (if multiple years do cityName-year-year.csv)
+
+retrieveSocrataApiData.py - This script is mainly used to retrieve data from the Socrata API and save it to a csv file in the CityData folder. cityApiInfo is a dictionary that contains the information of each city that needed to be retrieved.
+
+standardizeCrimeTypes.py - The main goal of this script is to standartize crime types across all city crime data. This script goes through each row of each file to change the OFFENSE type to a standard type.
+
+standardizeDates.py - The main goal of this script is to standardize Date across the Crime Data files to dd/mm/YYYY. The script goes through each City Data file and update the date column.
+
+webScraping.py - 

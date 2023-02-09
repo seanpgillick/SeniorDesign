@@ -1,0 +1,25 @@
+
+  
+  * {
+    padding: 0px;
+    margin: 0;
+  }
+  
+  .navbar-text {
+    color: rgb(250, 250, 250);
+  }
+  
+  .navbar-brand {
+    color: rgb(250, 250, 250);
+    font-size: 2.5rem;
+  }
+  
+  .navbar-brand:hover {
+    color: rgb(250, 250, 250);
+  }
+  
+  .site-header-logo h1 {
+    color: rgb(39, 147, 248);
+    font-size: 3rem;
+    margin-top: 2rem;
+  }
