@@ -32,19 +32,11 @@ stateabbreviations = {
 }
 
 directory = './CityData'
-# file = 'Demo_data.csv'
 
 files = Path(directory).glob('*')
-# Loop through all CityData files reformat the date column to dd/mm/YYYY
+# Loop through all CityData files to add state abbreviation column
 for file in files:
     data = pd.read_csv(file)
     data["state"] = stateabbreviations[file.name.split("_")[0]]
     data.to_csv("./CityData/"+file.name, index=False)
-        # data.insert(0, column = "state", value = stateabbreviations[file.name.split("_")[0]])
-        # print(stateabbreviations[file.name.split("_")[0]])
-    # print("Reformatting dates in " + file.name.split("_")[0])
-
-# data = pd.read_csv(directory)
-# data["state"] = stateabbreviations[file.name.split("_")[0]]
-
-# print(stateabbreviations["Atlanta"])
+    
