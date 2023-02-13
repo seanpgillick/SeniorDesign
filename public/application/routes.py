@@ -65,67 +65,94 @@ def chart1():
 
     return render_template('index.html', graph1JSON=graph1JSON,  graph2JSON=graph2JSON, graph3JSON=graph3JSON)
 
-
+@app.route('/updateGraph', methods=['GET', 'POST'])
+def updateGraphs():
+    # POST request
+    print ("Hello")
+    return  
 
 @app.route('/chart2', methods=['GET', 'POST'])
-def chart2():
+@app.route('/chart2city=<city>year=<year>', methods=['GET', 'POST'])
+def chart2Inputs(city=None, year=None):
     # POST request
+    print(request.args.getlist('city'))
+    print(request.args.getlist('year'))
+    print(city)
+    print(year)
     if request.method == 'POST':
         print('Incoming..')
-        print(request.get_json())  # parse as JSON
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
 
+    else:
+    
+        cursor = mysql.get_db().cursor()
+        cursor.execute("SELECT City FROM SeniorDesign.CrimeData GROUP BY City")
+        citiesSQL=cursor.fetchall()
+        cursor.execute("SELECT Year(Date) AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
+        yearsSQL=cursor.fetchall()
+        cursor.execute("SELECT Offense FROM SeniorDesign.CrimeData GROUP BY Offense"),
+        offensesSQL=cursor.fetchall()
+        yearsSelect=[]
+        citiesSelect=[]
+        offenses=[]
+        for i in yearsSQL:
+            yearsSelect.append(i[0])
         
+        for i in citiesSQL:
+            citiesSelect.append(i[0])
+
+        for i in offensesSQL:
+            offenses.append(i[0])
+
+        if(request.args.getlist('city')!=[] and request.args.getlist('city')!=[]):
+            yearString="("
+            cityString="("
+            for i in request.args.getlist('year'):
+                yearString=yearString+"'"+i+"', "
+            for i in request.args.getlist('city'):
+                cityString=cityString+"'"+i+"', "
+            cityString=cityString[:-2]+")"
+            yearString=yearString[:-2]+")"
+            print(yearString)
+            print(cityString)
+            cursor.execute("SELECT City, Year(Date) as Year, Offense, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
+            # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
+            cityData = cursor.fetchall()
+
+            df = pd.DataFrame(cityData, columns=["city", "date", "offense", "latitude", "longitude"])
+
+            crimeCount=df.groupby(['city']).count().reset_index()
+
+            df = px.data.medals_wide()
+            fig1 = px.bar(crimeCount, x="city", y="offense", color="offense", title="Amount of Crimes in each City")
+            graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
+
+            # Graph Two
+            fig2 = px.pie(crimeCount, values="offense", names="city", color="offense", title="Pie Crime")
+            graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
+
+            return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
+        # else:
+        else:
+            cursor.execute("SELECT * FROM CrimeData LIMIT 1000")
+            cityData = cursor.fetchall()
+        
+        
+        # query = 'SELECT * FROM SeniorDesign.CrimeData WHERE City="' +city +'" AND Date >= ' + minDate + " AND Date < " + maxDate +";"
+
+
+            df = pd.DataFrame(cityData, columns=["id", "city", "date", "offense", "latitude", "longitude"])
+
+            crimeCount=df.groupby(['city']).count().reset_index()
+
+            df = px.data.medals_wide()
+            fig1 = px.bar(crimeCount, x="city", y="offense", color="offense", title="Amount of Crimes in each City")
+            graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
+
+            # Graph Two
+            fig2 = px.pie(crimeCount, values="offense", names="city", color="offense", title="Pie Crime")
+            graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
+
+            return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
     
-    cursor = mysql.get_db().cursor()
-    cursor.execute("SELECT City FROM SeniorDesign.CrimeData GROUP BY City")
-    cities=cursor.fetchall()
-    cursor.execute("SELECT Year(Date) AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
-    years=cursor.fetchall()
-    cursor.execute("SELECT Offense AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
-    years=cursor.fetchall()
-    
-
-    # query = 'SELECT * FROM SeniorDesign.CrimeData WHERE City="' +city +'" AND Date >= ' + minDate + " AND Date < " + maxDate +";"
-
-    cursor.execute("SELECT * FROM CrimeData")
-    cityData = cursor.fetchall()
-    print(cityData)
-    df = pd.DataFrame(cityData, columns=["id", "city", "date", "offense", "latitude", "longitude"])
-    print(df)
-    # print(df.groupby(['category']).count())
-    crimeCount=df.groupby(['city']).count().reset_index()
-    # print(uniqueCrimes)
-    print(df)
-    print(years)
-    print(cities)
-    # fig = px.pie(df, values=1, names=1, title='Population of European continent')
-    # Graph One
-    df = px.data.medals_wide()
-    fig1 = px.bar(crimeCount, x="city", y="offense", color="offense", title="Amount of Crimes in each City")
-    graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
-
-        # Graph One
-    fig2 = px.pie(crimeCount, values="offense", names="city", color="offense", title="Pie Crime")
-    graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
-
-
-    # yearCount=df.groupby(['city']).count().reset_index()
-    # print(yearCount)
-    # fig3 = px.bar(yearCount, x="city", y="offense", color="offense", title="Amount of Crimes in each City")
-    # graph3JSON = json.dumps(fig3, cls=plotly.utils.PlotlyJSONEncoder)
-
-    return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=cities, years=years)
-
-    # # Graph two
-    # df = px.data.iris()
-    # fig2 = px.scatter_3d(df, x='sepal_length', y='sepal_width', z='Crime Data',
-    #           color='species',  title="Iris Dataset")
-    # graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
-
-    # # Graph three
-    # df = px.data.gapminder().query("continent=='Oceania'")
-    # fig3 = px.line(df, x="year", y="lifeExp", color='country',  title="Crime Data")
-    # graph3JSON = json.dumps(fig3, cls=plotly.utils.PlotlyJSONEncoder)
-
-
-    # return render_template('index.html', graph1JSON=graph1JSON,  graph2JSON=graph2JSON, graph3JSON=graph3JSON)

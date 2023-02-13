@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{url_for('static', filename = 'main.css')}}" type="text/css">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
 
     {% if title %}
         <title>CodeWithPrince-{{title}}</title>
@@ -47,6 +49,16 @@
       AOS.init({
         offset: 400,
         duration: 1000
+      });
+      $(function() {
+        $('a#updateGraph').on('click', function(e) {
+          e.preventDefault()
+          $.getJSON('/chart2',
+              function(data) {
+            //do nothing
+          });
+          return false;
+        });
       });
      
     </script>
