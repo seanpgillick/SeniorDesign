@@ -3,5 +3,23 @@
     "ejs": "^3.1.8",
     "express": "^4.18.2",
     "mysql": "^2.18.1"
-  }
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "senior-design",
+  "description": "We are using a python venv virtual environment. This was created using 'py -m pip install --user virtualenv'\r The dependencies that are installed in our vm can be found in requirements.txt",
+  "version": "1.0.0",
+  "main": "server.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seanpgillick/SeniorDesign.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/seanpgillick/SeniorDesign/issues"
+  },
+  "homepage": "https://github.com/seanpgillick/SeniorDesign#readme"
 }
