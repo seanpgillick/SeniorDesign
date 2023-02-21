@@ -6,6 +6,11 @@ import pandas as pd
 import plotly
 import plotly.express as px
 from flaskext.mysql import MySQL
+from decimal import Decimal
+from unicodedata import decimal
+import folium
+from folium.plugins import HeatMap
+
 
 application = Flask(__name__) # This needs to be named `application`
 
@@ -71,6 +76,82 @@ def updateGraphs():
     # POST request
     print ("Hello")
     return  
+
+@application.route('/heatmap', methods=['GET', 'POST'])
+@application.route('/heatmapcity=<city>year=<year>', methods=['GET', 'POST'])
+def heatmapInputs(city=None, year=None):
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    else:
+
+        cursor = mysql.get_db().cursor()
+        cursor.execute("SELECT City FROM SeniorDesign.CrimeData GROUP BY City")
+        citiesSQL=cursor.fetchall()
+        cursor.execute("SELECT Year(Date) AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
+        yearsSQL=cursor.fetchall()
+        cursor.execute("SELECT Offense FROM SeniorDesign.CrimeData GROUP BY Offense"),
+        offensesSQL=cursor.fetchall()
+        yearsSelect=[]
+        citiesSelect=[]
+        offenses=[]
+        for i in yearsSQL:
+            yearsSelect.append(i[0])
+
+        for i in citiesSQL:
+            citiesSelect.append(i[0])
+
+        for i in offensesSQL:
+            offenses.append(i[0])
+
+        if(request.args.getlist('city')!=[] and request.args.getlist('year')!=[]):
+            yearString="("
+            cityString="("
+            for i in request.args.getlist('year'):
+                yearString=yearString+"'"+i+"', "
+            for i in request.args.getlist('city'):
+                cityString=cityString+"'"+i+"', "
+            cityString=cityString[:-2]+")"
+            yearString=yearString[:-2]+")"
+            print(yearString)
+            print(cityString)
+            cursor.execute("SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
+            # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
+            cityData = cursor.fetchall()
+
+            df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
+            print(df)
+            mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+            data = []
+            temp = df.to_numpy()
+            for x in temp:
+                if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], Decimal)) and (isinstance(x[3], Decimal))):
+                    data.append([x[2], x[3], .2])
+            for x in data:
+                print(x)
+
+            HeatMap(data).add_to(mapObj)
+            mapObj.save("./application/templates/folTest.html")
+            return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
+
+        else:
+            # cursor.execute("SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData")
+            # cityData = cursor.fetchall()
+            # df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
+            # mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+            # data = []
+            # temp = df.to_numpy()
+            # for x in temp:
+            #     print(x)
+            #     if(x[2] is not None and x[3] is not None and isinstance(x[2], Decimal) and isinstance(x[3], Decimal)):
+            #         data.append([x[2], x[3], .2])
+            # for x in data:
+            #     print(x)
+
+            # HeatMap(data).add_to(mapObj)
+            # mapObj.save("./application/templates/folTest.html")
+            return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
 
 @application.route('/chart2', methods=['GET', 'POST'])
 @application.route('/chart2city=<city>year=<year>', methods=['GET', 'POST'])
