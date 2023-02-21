@@ -40,7 +40,7 @@ def hello():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('layout.html')
 
 
 @app.route('/chart1')
@@ -135,7 +135,7 @@ def chart2Inputs(city=None, year=None):
             return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
         # else:
         else:
-            cursor.execute("SELECT * FROM CrimeData LIMIT 1000")
+            cursor.execute("SELECT * FROM CrimeData")
             cityData = cursor.fetchall()
         
         
