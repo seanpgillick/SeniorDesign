@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, render_template, request
 
 import json
-
+from unicodedata import decimal
+import folium
+from folium.plugins import HeatMap
 import pandas as pd
 import plotly
 import plotly.express as px
