@@ -134,7 +134,7 @@ def heatmapInputs(city=None, year=None):
                 print(x)
 
             HeatMap(data).add_to(mapObj)
-            mapObj.save("./application/templates/folTest.html")
+            mapObj.save("./templates/folTest.html")
             return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
 
         else:
@@ -152,7 +152,10 @@ def heatmapInputs(city=None, year=None):
             #     print(x)
 
             # HeatMap(data).add_to(mapObj)
-            # mapObj.save("./application/templates/folTest.html")
+            # mapObj.save("./templates/folTest.html")
+            mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+            data = []
+            mapObj.save("./templates/folTest.html")
             return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
 
 @application.route('/chart2', methods=['GET', 'POST'])
