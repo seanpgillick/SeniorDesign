@@ -1,0 +1,37 @@
+{% block content %}
+    <div class="site-header-logo">
+        <h1 class="text-center">
+            Heatmap
+        </h1>
+    </div>
+
+    <div id="selections" class="flex-container">
+        <form action="/heatmap">
+            <div id="city-select">
+                <label for="cities-select">Select a City</label>
+                <select name="city" id="cities-select" onchange="validateCity(this)" multiple>
+                    {% for o in cities %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="year-select">
+                <label for="years-select">Select a Year</label>
+                <select name="year" id="years-select" onchange="validateYear(this)" multiple>
+                    {% for o in years %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button>Update Heatmap</button>
+            </div>
+        </form>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="text/javascript">
+
+    </script>
+{% endblock %}
+{% extends "folTest.html" %}
