@@ -1,11 +1,13 @@
+from flask import Flask, jsonify, render_template, request
+
 import json
 
 import pandas as pd
 import plotly
 import plotly.express as px
-from application import app
-from flask import Flask, jsonify, render_template, request
 from flaskext.mysql import MySQL
+
+application = Flask(__name__) # This needs to be named `application`
 
 
 #   host: "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com",
@@ -14,17 +16,21 @@ from flaskext.mysql import MySQL
 #   password: "password!",
 
 # https://flask-mysqldb.readthedocs.io/en/latest/
-app.config['MYSQL_DATABASE_HOST'] = "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com"
-app.config['MYSQL_DATABASE_USER'] = "admin"
-app.config['MYSQL_DATABASE_PASSWORD'] = "password!"
-app.config['MYSQL_DATABASE_DB'] = "SeniorDesign"
-app.config['MYSQL_DATABASE_PORT'] = 3306
+application.config['MYSQL_DATABASE_HOST'] = "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com"
+application.config['MYSQL_DATABASE_USER'] = "admin"
+application.config['MYSQL_DATABASE_PASSWORD'] = "password!"
+application.config['MYSQL_DATABASE_DB'] = "SeniorDesign"
+application.config['MYSQL_DATABASE_PORT'] = 3306
 mysql = MySQL()
-mysql.init_app(app)
+mysql.init_app(application)
 # cursor = mysql.get_db().cursor()
 
+@application.route('/')
+def index():
+    return render_template('index.html')
 
-@app.route('/hello', methods=['GET', 'POST'])
+
+@application.route('/hello', methods=['GET', 'POST'])
 def hello():
 
     # POST request
@@ -38,12 +44,7 @@ def hello():
         message = {'greeting':'Hello from Flask!'}
         return jsonify(message)  # serialize and use JSON headers
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route('/chart1')
+@application.route('/chart1')
 def chart1():
 
     # Graph One
@@ -65,14 +66,14 @@ def chart1():
 
     return render_template('index.html', graph1JSON=graph1JSON,  graph2JSON=graph2JSON, graph3JSON=graph3JSON)
 
-@app.route('/updateGraph', methods=['GET', 'POST'])
+@application.route('/updateGraph', methods=['GET', 'POST'])
 def updateGraphs():
     # POST request
     print ("Hello")
     return  
 
-@app.route('/chart2', methods=['GET', 'POST'])
-@app.route('/chart2city=<city>year=<year>', methods=['GET', 'POST'])
+@application.route('/chart2', methods=['GET', 'POST'])
+@application.route('/chart2city=<city>year=<year>', methods=['GET', 'POST'])
 def chart2Inputs(city=None, year=None):
     # POST request
     print(request.args.getlist('city'))
@@ -155,4 +156,7 @@ def chart2Inputs(city=None, year=None):
             graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
 
             return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
-    
+ 
+
+if __name__ == "__main__":
+    application.run(debug=True)
