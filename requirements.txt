@@ -83,6 +83,7 @@ flake8-warnings==0.4.0
 Flask==2.2.2
 Flask-MySQL==1.5.2
 Flask-MySQLdb==1.0.1
+folium==0.14.0
 geographiclib==1.52
 geopy==2.2.0
 gitdb==4.0.10
