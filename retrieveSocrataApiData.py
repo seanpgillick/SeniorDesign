@@ -53,7 +53,7 @@ cityApiInfo = {
     "Austin": {
         "url": "data.austintexas.gov",
         "dateCol": "occ_date_time",
-        "offCol": "crime_type",
+        "offCol": "category_description",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["fdj4-gpfu"]
@@ -93,7 +93,7 @@ cityApiInfo = {
     "Colorado Springs": {  # LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
         "url": "policedata.coloradosprings.gov",
         "dateCol": "reporteddate",
-        "offCol": "statutedescription",
+        "offCol": "CrimeCodeDescription",
         "latCol": "location_point",
         "lonCol": "location_point",
         "keys": ["bc88-hemr"]
@@ -125,7 +125,7 @@ cityApiInfo = {
     "Nashville": {
             "url":"data.nashville.gov",
             "dateCol":"incident_reported",
-            "offCol":"offense_description",
+            "offCol":"offense_nibrs",
             "latCol":"latitude",
             "lonCol":"longitude",
             "keys":["2u6v-ujjs"]
@@ -141,7 +141,7 @@ cityApiInfo = {
     "Montgomery": {
             "url":"data.montgomerycountymd.gov",
             "dateCol":"date",
-            "offCol":"crimename1",
+            "offCol":"nibrs_code",
             "latCol":"latitude",
             "lonCol":"longitude",
             "keys":["icn6-v9z3"]
