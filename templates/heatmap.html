@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="site-header-logo">
+        <h1 class="text-center">
+            Heatmap
+        </h1>
+    </div>
+
+    <div id="selections" class="flex-container">
+        <form action="/heatmap">
+            <div id="city-select">
+                <label for="cities-select">Select a City</label>
+                <select name="city" id="cities-select" onchange="validateCity(this)" multiple>
+                    {% for o in cities %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="year-select">
+                <label for="years-select">Select a Year</label>
+                <select name="year" id="years-select" onchange="validateYear(this)" multiple>
+                    {% for o in years %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button>Update Heatmap</button>
+            </div>
+        </form>
+        <div id="frameContainer">
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="text/javascript">
+    window.onload = function() {
+        updateSrc();
+    }
+        function updateSrc() {
+            let myIframe = document.createElement('iframe');
+            myIframe.width=900;
+            myIframe.height=600;
+            document.getElementById("frameContainer").innerHTML="";
+            let url_string = "/mapGen";
+            const urlParams = new URLSearchParams(window.location.search);
+            const city = urlParams.get('city');
+            const year = urlParams.get('year');
+
+            let adsURL = url_string+"city="+city+"year="+year;
+            console.log(adsURL);
+            myIframe.src = adsURL;
+            document.getElementById("frameContainer").appendChild(myIframe);
+        }
+    </script>
+{% endblock %}

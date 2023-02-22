@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="site-header-logo">
+        <h1 class="text-center">
+            CodeWithDarius
+        </h1>
+    </div>
+
+    <div id="selections" class="flex-container">
+        <form action="/chart2">
+            <div id="city-select">
+                <label for="cities-select">Select a City</label>
+                <select name="city" id="cities-select" onchange="validateCity(this)" multiple>
+                    {% for o in cities %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="year-select">
+                <label for="years-select">Select a Year</label>
+                <select name="year" id="years-select" onchange="validateYear(this)" multiple>
+                    {% for o in years %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button>Update Graphs</button>
+            </div>
+        </form>
+        <!-- <div id="offense-select">
+            <label for="offenses-select">Select an offense</label>
+            <select name="offense" id="offenses-select" onchange="validateYear(this)">
+                {% for o in offenses %}
+                    <option value="{{ o }}" SELECTED>{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div> -->
+    </div>
+    <div class="row p-4">
+        <div class="card m-auto" style="width: 90%;" data-aos="fade-left">
+            <div class="card-body">
+                <div id="chart1"></div>
+            </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 m-auto" style="width: 90%;" data-aos="fade-left">
+            <div class="card-body">
+                <div id="chart2"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4 m-auto" style="width: 90%;" data-aos="slide-up">
+            <div class="card-body">
+                <div id="chart3"></div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <!-- plotly CDN -->
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="text/javascript">
+
+
+        var graphs1 = {{ graph1JSON | safe}};
+        Plotly.plot("chart1", graphs1,{});
+
+        var graphs2 = {{ graph2JSON | safe}};
+        Plotly.plot("chart2", graphs2,{});
+
+        // var graphs3 = {{ graph3JSON | safe}};
+        // Plotly.plot("chart3", graphs3,{});
+
+        
+    </script>
+
+{% endblock %}

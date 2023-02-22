@@ -58,7 +58,7 @@ cityCSVInfo = {
         "lonCol": "Long",
         "keys": ["2019", "2020", "2021"]
     },
-    "Raleigh": {
+    "Raleigh": {    ##### this city has data of 2018 
         "url": "./UnparsedCityCSVs/Raleigh",
         "dateCol": "reported_date",
         "offCol": "crime_category",
@@ -104,6 +104,7 @@ cityCSVInfo = {
 def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
     csvName = city + "_data.csv"
     final_df = pd.DataFrame()
+    data2 = pd.DataFrame()
     # assign directory
     finalCol = [dateCol, offCol, latCol, lonCol]
     #locator = Nominatim(user_agent="myGeocoder")
@@ -231,7 +232,7 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
 
             # for row in data:
             #     print(row['OpenDataLat'])
-            data2 = data[finalCol]
+            data2 = pd.concat([data2, data[finalCol]])
     # Saving retrived data into a csv file in ./CityData
     final_df = pd.concat([final_df, data2])
     final_df.columns = ["date", "offense", "latitude", "longitude"]
