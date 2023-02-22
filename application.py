@@ -79,8 +79,48 @@ def updateGraphs():
     print ("Hello")
     return  
 
+@application.route('/mapGencity=<city>year=<year>', methods=['GET', 'POST'])
+def heatmapGen(city, year):
+    cursor = mysql.get_db().cursor()
+    cityList = []
+    cityList.append(city)
+    yearList = []
+    yearList.append(year)
+    if(cityList!=[] and yearList!=[]):
+        yearString="("
+        cityString="("
+        for i in yearList:
+            yearString=yearString+"'"+i+"', "
+        for i in cityList:
+            cityString=cityString+"'"+i+"', "
+        cityString=cityString[:-2]+")"
+        yearString=yearString[:-2]+")"
+        print(yearString)
+        print(cityString)
+        cursor.execute("SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
+        # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
+        cityData = cursor.fetchall()
+
+        df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
+        print(df)
+        mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+        data = []
+        temp = df.to_numpy()
+        for x in temp:
+            if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], Decimal)) and (isinstance(x[3], Decimal))):
+                data.append([x[2], x[3], .2])
+        # for x in data:
+        #     print(x)
+
+        HeatMap(data).add_to(mapObj)
+        return mapObj._repr_html_()
+
+    else:
+        mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+        data = []
+        return mapObj._repr_html_()
+
 @application.route('/heatmap', methods=['GET', 'POST'])
-@application.route('/heatmapcity=<city>year=<year>', methods=['GET', 'POST'])
 def heatmapInputs(city=None, year=None):
     if request.method == 'POST':
         print('Incoming..')
@@ -107,56 +147,7 @@ def heatmapInputs(city=None, year=None):
         for i in offensesSQL:
             offenses.append(i[0])
 
-        if(request.args.getlist('city')!=[] and request.args.getlist('year')!=[]):
-            yearString="("
-            cityString="("
-            for i in request.args.getlist('year'):
-                yearString=yearString+"'"+i+"', "
-            for i in request.args.getlist('city'):
-                cityString=cityString+"'"+i+"', "
-            cityString=cityString[:-2]+")"
-            yearString=yearString[:-2]+")"
-            print(yearString)
-            print(cityString)
-            cursor.execute("SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
-            # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
-            cityData = cursor.fetchall()
-
-            df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
-            print(df)
-            mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
-            data = []
-            temp = df.to_numpy()
-            for x in temp:
-                if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], Decimal)) and (isinstance(x[3], Decimal))):
-                    data.append([x[2], x[3], .2])
-            for x in data:
-                print(x)
-
-            HeatMap(data).add_to(mapObj)
-            mapObj.save("./templates/folTest.html")
-            return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
-
-        else:
-            # cursor.execute("SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData")
-            # cityData = cursor.fetchall()
-            # df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
-            # mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
-            # data = []
-            # temp = df.to_numpy()
-            # for x in temp:
-            #     print(x)
-            #     if(x[2] is not None and x[3] is not None and isinstance(x[2], Decimal) and isinstance(x[3], Decimal)):
-            #         data.append([x[2], x[3], .2])
-            # for x in data:
-            #     print(x)
-
-            # HeatMap(data).add_to(mapObj)
-            # mapObj.save("./templates/folTest.html")
-            mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
-            data = []
-            mapObj.save("./templates/folTest.html")
-            return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
+        return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
 
 @application.route('/chart2', methods=['GET', 'POST'])
 @application.route('/chart2city=<city>year=<year>', methods=['GET', 'POST'])
