@@ -37,6 +37,12 @@ files = Path(directory).glob('*')
 # Loop through all CityData files to add state abbreviation column
 for file in files:
     data = pd.read_csv(file)
-    data["state"] = stateabbreviations[file.name.split("_")[0]]
-    data.to_csv("./CityData/"+file.name, index=False)
+    # if state column already exists, skip file else add state column
+    if "state" in data.columns:
+        print("State column already exists for " + file.name)
+        continue
+    else:
+        print("Adding state column for " + file.name)
+        data["state"] = stateabbreviations[file.name.split("_")[0]]
+        data.to_csv("./CityData/"+file.name, index=False)
     
