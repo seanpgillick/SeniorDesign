@@ -29,7 +29,7 @@ def defineCrimeType(offense):
         return "Homicide", VIOLENT_CRIME
 
     # Check if Aggrevated Assault
-    if ("assault" in offense.lower() and "ag" in offense.lower() or "13a" in offense.lower()):
+    if ("assault" in offense.lower() and "ag" in offense.lower() or "13a" in offense.lower() or ("battery" in offense.lower() and "agg" in offense.lower())):
         return "Aggrevated Assault", VIOLENT_CRIME
 
     # Check if Rape

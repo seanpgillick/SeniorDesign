@@ -37,7 +37,7 @@ cityApiInfo = {
     "Chicago": {
         "url": "data.cityofchicago.org",
         "dateCol": "date",
-        "offCol": "primary_type",
+        "offCol": "description, primary_type",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["ijzp-q8t2"]
@@ -193,6 +193,7 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
                         print("Could not get latitude, longitude: " + str(e))
                         row['longitude'] = "Not Available"
                         row['latitude'] = "Not Available"
+
             # Convert to pandas DataFrame
             results_df = pd.DataFrame.from_records(results)
             final_df = pd.concat([final_df, results_df])
@@ -204,6 +205,10 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
             else:
                 # print(results_df["date"].iloc[1999])
                 offset += 2000
+                
+    if(city == "Chicago"):
+        final_df["offense"] = final_df['offense'] +"-"+ final_df["description"]
+        final_df = final_df.drop("description", axis=1)
 
     final_df.to_csv('./CityData/'+csvName)
 
