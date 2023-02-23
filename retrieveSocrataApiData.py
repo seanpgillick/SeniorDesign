@@ -45,7 +45,7 @@ cityApiInfo = {
     "Cincinnati": {
         "url": "data.cincinnati-oh.gov",
         "dateCol": "date_reported",
-        "offCol": "offense",
+        "offCol": "ucr_group",
         "latCol": "latitude_x",
         "lonCol": "longitude_x",
         "keys": ["k59e-2pvf"]
@@ -117,7 +117,7 @@ cityApiInfo = {
     "Fort Worth": {
             "url":"data.fortworthtexas.gov",
             "dateCol":"from_date",
-            "offCol":"nature_of_call",
+            "offCol":"offense",
             "latCol":"location_1",
             "lonCol":"location_type",
             "keys":["k6ic-7kp7"]

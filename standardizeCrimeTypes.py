@@ -24,25 +24,28 @@ def defineCrimeType(offense):
 
     ## Check Violent Crime
     # Check if murder
-    if ("murder" in offense.lower() or "murdr" in offense.lower() or "manslaughter" in offense.lower() or "homicide" in offense.lower()):
+    if ("murder" in offense.lower() or "murdr" in offense.lower() or "manslaughter" in offense.lower() 
+        or "homicide" in offense.lower() or "09a" in offense.lower()):
         return "Homicide", VIOLENT_CRIME
 
     # Check if Aggrevated Assault
-    if ("assault" in offense.lower() and "ag" in offense.lower()):
+    if ("assault" in offense.lower() and "ag" in offense.lower() or "13a" in offense.lower()):
         return "Aggrevated Assault", VIOLENT_CRIME
 
     # Check if Rape
-    if ("rape" in offense.lower() or "sodomy" in offense.lower() or ("sexual" in offense.lower() and ("assault" in offense.lower() or "battery" in offense.lower()))):
+    if ("rape" in offense.lower() or "sodomy" in offense.lower() 
+        or ("sexual" in offense.lower() and ("assault" in offense.lower() or "battery" in offense.lower()))
+        or "11" in offense.lower()):
         return "Rape", VIOLENT_CRIME
 
     # Check if Robbery
-    if ("robbery" in offense.lower() or "carjacking" in offense.lower()):
+    if ("robbery" in offense.lower() or "carjacking" in offense.lower() or "120" in offense.lower()):
         return "Robbery", VIOLENT_CRIME
 
     ## Check Property Crime
     # Check if Motor Vehicle Theft
     if (("theft" in offense.lower() and ("auto" in offense.lower() or "vehicle" in offense.lower()))
-            or "mvt" in offense.lower() or "autoth" in offense.lower() or "mvthft" in offense.lower()):
+            or "mvt" in offense.lower() or "autoth" in offense.lower() or "mvthft" in offense.lower() or "240" in offense.lower()):
         return "Motor Vehicle Theft", PROPERTY_CRIME
 
     # Check if Larceny-Theft
@@ -50,15 +53,15 @@ def defineCrimeType(offense):
         and ("auto" not in offense.lower() or "vehicle" not in offense.lower() or "mv" not in offense.lower() 
         or "attempt" not in offense.lower() or "veh" not in offense.lower() or "fail" not in offense.lower() or "identity" not in offense.lower())
         or ("shoplifting" in offense.lower() or ("pocket" in offense.lower() and "pick" in offense.lower()) or "purse-snatching" in offense.lower())
-        or "larc" in offense.lower()):
+        or "larc" in offense.lower() or "23" in offense.lower()):
         return "Larceny-Theft", PROPERTY_CRIME
 
     # Check if Burglary
-    if ("burglary" in offense.lower() or "buglary" in offense.lower() or "burg" in offense.lower()):
+    if ("burglary" in offense.lower() or "buglary" in offense.lower() or "burg" in offense.lower() or "220" in offense.lower()):
         return "Burglary", PROPERTY_CRIME   
 
     # Check if Arson
-    if ("arson" in offense.lower()):
+    if ("arson" in offense.lower() or ("200" in offense.lower() and "$" not in offense.lower())):
         return "Arson", PROPERTY_CRIME
 
 
