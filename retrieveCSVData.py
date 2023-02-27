@@ -37,7 +37,7 @@ cityCSVInfo = {
     "Portland": {
         "url": "./UnparsedCityCSVs/Portland",
         "dateCol": "ReportDate",
-        "offCol": "OffenseCategory",
+        "offCol": "OffenseType",
         "latCol": "OpenDataLat",
         "lonCol": "OpenDataLon",
         "keys": ["2019", "2020", "2021"]
@@ -61,7 +61,7 @@ cityCSVInfo = {
     "Raleigh": {    ##### this city has data of 2018 
         "url": "./UnparsedCityCSVs/Raleigh",
         "dateCol": "reported_date",
-        "offCol": "crime_category",
+        "offCol": "crime_description",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["2019-2021"]
@@ -69,7 +69,7 @@ cityCSVInfo = {
     "Minneapolis": {
         "url": "./UnparsedCityCSVs/Minneapolis",
         "dateCol": "reportedDate",
-        "offCol": "offense",
+        "offCol": "description",
         "latCol": "centerLat",
         "lonCol": "centerLong",
         "keys": ["2019", "2020", "2021"]

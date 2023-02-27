@@ -77,7 +77,7 @@ cityApiInfo = {
     "San Francisco": {
         "url": "data.sfgov.org",
         "dateCol": "incident_date",
-        "offCol": "incident_category",
+        "offCol": "incident_subcategory",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["wg3w-h783"]

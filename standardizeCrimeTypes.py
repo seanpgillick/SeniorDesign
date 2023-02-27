@@ -29,17 +29,22 @@ def defineCrimeType(offense):
         return "Homicide", VIOLENT_CRIME
 
     # Check if Aggrevated Assault
-    if ("assault" in offense.lower() and "ag" in offense.lower() or "13a" in offense.lower() or ("battery" in offense.lower() and "agg" in offense.lower())):
+    if ("assault" in offense.lower() and "ag" in offense.lower() or "13a" in offense.lower() or 
+        ("battery" in offense.lower() and "agg" in offense.lower()) or ("aslt" in offense.lower() and "5" not in offense.lower())
+        or ("asslt" in offense.lower() and "dngrs weapon" in offense.lower())
+        or ("assault" in offense.lower() and "strangulation" in offense.lower()) 
+        or (("felony" in offense.lower() or "felonious" in offense.lower()) and "assault" in offense.lower())):
         return "Aggrevated Assault", VIOLENT_CRIME
 
     # Check if Rape
     if ("rape" in offense.lower() or "sodomy" in offense.lower() 
         or ("sexual" in offense.lower() and ("assault" in offense.lower() or "battery" in offense.lower()))
-        or "11" in offense.lower()):
+        or "11" in offense.lower() or "csc" in offense.lower() or "absvar" in offense.lower()):
         return "Rape", VIOLENT_CRIME
 
     # Check if Robbery
-    if ("robbery" in offense.lower() or "carjacking" in offense.lower() or "120" in offense.lower()):
+    if ("robbery" in offense.lower() or "carjacking" in offense.lower() or "120" in offense.lower() 
+        or "rob" in offense.lower()):
         return "Robbery", VIOLENT_CRIME
 
     ## Check Property Crime
@@ -58,7 +63,8 @@ def defineCrimeType(offense):
         return "Larceny-Theft", PROPERTY_CRIME
 
     # Check if Burglary
-    if ("burglary" in offense.lower() or "buglary" in offense.lower() or "burg" in offense.lower() or "220" in offense.lower()):
+    if ("burglary" in offense.lower() or "buglary" in offense.lower() or "burg" in offense.lower() or "220" in offense.lower()
+        or "loot" in offense.lower()):
         return "Burglary", PROPERTY_CRIME   
 
     # Check if Arson
