@@ -53,7 +53,8 @@ def defineCrimeType(offense):
         and ("auto" not in offense.lower() or "vehicle" not in offense.lower() or "mv" not in offense.lower() 
         or "attempt" not in offense.lower() or "veh" not in offense.lower() or "fail" not in offense.lower() or "identity" not in offense.lower())
         or ("shoplifting" in offense.lower() or ("pocket" in offense.lower() and "pick" in offense.lower()) or "purse-snatching" in offense.lower())
-        or "larc" in offense.lower() or "23" in offense.lower()):
+        or "larc" in offense.lower() or "23" in offense.lower() or "stealing from buildi" in offense.lower() or "stealing from auto" in offense.lower() 
+        or "stealing auto parts/" in offense.lower() or "purse snatching" in offense.lower()):
         return "Larceny-Theft", PROPERTY_CRIME
 
     # Check if Burglary
