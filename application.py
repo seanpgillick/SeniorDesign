@@ -8,10 +8,10 @@ import pandas as pd
 import plotly
 import plotly.express as px
 from flaskext.mysql import MySQL
-from decimal import Decimal
 from unicodedata import decimal
 import folium
 from folium.plugins import HeatMap
+import numpy as np
 
 
 application = Flask(__name__) # This needs to be named `application`
@@ -107,7 +107,7 @@ def heatmapGen(city, year):
         data = []
         temp = df.to_numpy()
         for x in temp:
-            if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], Decimal)) and (isinstance(x[3], Decimal))):
+            if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], float)) and (isinstance(x[3], float)) and (not np.isnan(x[2])) and (not np.isnan(x[3]))):
                 data.append([x[2], x[3], .2])
         # for x in data:
         #     print(x)
