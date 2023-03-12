@@ -101,9 +101,12 @@ def heatmapGen(city, year):
         # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
         cityData = cursor.fetchall()
 
+        cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CityInformation WHERE city="+cityString+";")
+        startingPoint = cursor.fetchall()
+
         df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
         print(df)
-        mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+        mapObj = folium.Map([startingPoint[0][0], startingPoint[0][1]], zoom_start=11)
         data = []
         temp = df.to_numpy()
         for x in temp:
@@ -116,7 +119,7 @@ def heatmapGen(city, year):
         return mapObj._repr_html_()
 
     else:
-        mapObj = folium.Map([39.9526, -75.1652], zoom_start=12)
+        mapObj = folium.Map([39.9526, -75.1652], zoom_start=9)
         data = []
         return mapObj._repr_html_()
 
