@@ -265,8 +265,6 @@ def defineCrimeType(offense):
 def standardizeCrimeTypes(data, city):
     print("Standardizing Crime types for " + city)
 
-    data["reported_offense"] = data["offense"]
-
     # Replace each offence of the data to the standardized crime type by calling defineCrimeType and passing the unstandardized offense
     data["offense"], data["crime_type"] = zip(*data["offense"].progress_apply(
         lambda x: defineCrimeType(x)))
