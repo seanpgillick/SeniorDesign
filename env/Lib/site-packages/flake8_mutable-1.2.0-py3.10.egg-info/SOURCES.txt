@@ -1,0 +1,14 @@
+LICENSE
+MANIFEST.in
+README.md
+mutable_defaults.py
+setup.cfg
+setup.py
+flake8_mutable.egg-info/PKG-INFO
+flake8_mutable.egg-info/SOURCES.txt
+flake8_mutable.egg-info/dependency_links.txt
+flake8_mutable.egg-info/entry_points.txt
+flake8_mutable.egg-info/not-zip-safe
+flake8_mutable.egg-info/pbr.json
+flake8_mutable.egg-info/requires.txt
+flake8_mutable.egg-info/top_level.txt

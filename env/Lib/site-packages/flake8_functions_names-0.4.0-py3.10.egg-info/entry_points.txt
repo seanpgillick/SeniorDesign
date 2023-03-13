@@ -1,0 +1,3 @@
+[flake8.extension]
+FNE = flake8_functions_names.checker:FunctionsNamesChecker
+

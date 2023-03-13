@@ -1,0 +1,3 @@
+[flake8.extension]
+YTT = flake8_2020:Plugin
+

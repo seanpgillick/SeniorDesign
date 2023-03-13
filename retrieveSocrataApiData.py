@@ -37,7 +37,7 @@ cityApiInfo = {
     "Chicago": {
         "url": "data.cityofchicago.org",
         "dateCol": "date",
-        "offCol": "primary_type",
+        "offCol": "description, primary_type",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["ijzp-q8t2"]
@@ -45,7 +45,7 @@ cityApiInfo = {
     "Cincinnati": {
         "url": "data.cincinnati-oh.gov",
         "dateCol": "date_reported",
-        "offCol": "offense",
+        "offCol": "ucr_group",
         "latCol": "latitude_x",
         "lonCol": "longitude_x",
         "keys": ["k59e-2pvf"]
@@ -53,7 +53,7 @@ cityApiInfo = {
     "Austin": {
         "url": "data.austintexas.gov",
         "dateCol": "occ_date_time",
-        "offCol": "crime_type",
+        "offCol": "category_description",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["fdj4-gpfu"]
@@ -77,7 +77,7 @@ cityApiInfo = {
     "San Francisco": {
         "url": "data.sfgov.org",
         "dateCol": "incident_date",
-        "offCol": "incident_category",
+        "offCol": "incident_subcategory",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["wg3w-h783"]
@@ -93,7 +93,7 @@ cityApiInfo = {
     "Colorado Springs": {  # LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
         "url": "policedata.coloradosprings.gov",
         "dateCol": "reporteddate",
-        "offCol": "statutedescription",
+        "offCol": "CrimeCodeDescription",
         "latCol": "location_point",
         "lonCol": "location_point",
         "keys": ["bc88-hemr"]
@@ -117,7 +117,7 @@ cityApiInfo = {
     "Fort Worth": {
             "url":"data.fortworthtexas.gov",
             "dateCol":"from_date",
-            "offCol":"nature_of_call",
+            "offCol":"offense",
             "latCol":"location_1",
             "lonCol":"location_type",
             "keys":["k6ic-7kp7"]
@@ -125,7 +125,7 @@ cityApiInfo = {
     "Nashville": {
             "url":"data.nashville.gov",
             "dateCol":"incident_reported",
-            "offCol":"offense_description",
+            "offCol":"offense_nibrs",
             "latCol":"latitude",
             "lonCol":"longitude",
             "keys":["2u6v-ujjs"]
@@ -141,7 +141,7 @@ cityApiInfo = {
     "Montgomery": {
             "url":"data.montgomerycountymd.gov",
             "dateCol":"date",
-            "offCol":"crimename1",
+            "offCol":"nibrs_code",
             "latCol":"latitude",
             "lonCol":"longitude",
             "keys":["icn6-v9z3"]
@@ -193,6 +193,7 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
                         print("Could not get latitude, longitude: " + str(e))
                         row['longitude'] = "Not Available"
                         row['latitude'] = "Not Available"
+
             # Convert to pandas DataFrame
             results_df = pd.DataFrame.from_records(results)
             final_df = pd.concat([final_df, results_df])
@@ -204,6 +205,10 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
             else:
                 # print(results_df["date"].iloc[1999])
                 offset += 2000
+                
+    if(city == "Chicago"):
+        final_df["offense"] = final_df['offense'] +"-"+ final_df["description"]
+        final_df = final_df.drop("description", axis=1)
 
     final_df.to_csv('./CityData/'+csvName)
 
