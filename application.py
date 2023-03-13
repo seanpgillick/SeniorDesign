@@ -11,6 +11,7 @@ from flaskext.mysql import MySQL
 from unicodedata import decimal
 import folium
 from folium.plugins import HeatMap
+import markupsafe
 import numpy as np
 
 
@@ -36,48 +37,120 @@ mysql.init_app(application)
 def index():
     return render_template('index.html')
 
-
-@application.route('/hello', methods=['GET', 'POST'])
-def hello():
-
-    # POST request
+@application.route('/graphResults', methods=['GET', 'POST'])
+@application.route('/graphResults/<city>', methods=['GET', 'POST'])
+def graphResults(city=None):
+    # print(request.args.getlist('city'))
     if request.method == 'POST':
         print('Incoming..')
-        print(request.get_json())  # parse as JSON
-        return 'OK', 200
-
-    # GET request
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
     else:
-        message = {'greeting':'Hello from Flask!'}
-        return jsonify(message)  # serialize and use JSON headers
+        cursor = mysql.get_db().cursor()
+        
+        yearsSelect=[]
+        citiesSelect=[]
+        offenses=[]
+        print("Here")
+        print(city)
+        if(city!=None):
+            # cityString="("
 
-@application.route('/chart1')
-def chart1():
-
-    # Graph One
-    df = px.data.medals_wide()
-    fig1 = px.bar(df, x="nation", y=["gold", "silver", "bronze"], title="Wide-Form Input")
-    graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
-
-    # Graph two
-    df = px.data.iris()
-    fig2 = px.scatter_3d(df, x='sepal_length', y='sepal_width', z='petal_width',
-              color='species',  title="Iris Dataset")
-    graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
-
-    # Graph three
-    df = px.data.gapminder().query("continent=='Oceania'")
-    fig3 = px.line(df, x="year", y="lifeExp", color='country',  title="Life Expectancy")
-    graph3JSON = json.dumps(fig3, cls=plotly.utils.PlotlyJSONEncoder)
+            # for i in request.args.getlist('city'):
+            #     cityString=cityString+"'"+i+"', "
+            # cityString=cityString[:-2]+")"
+            print(city)
+            cityString="('"+city+"')"
+            # cursor.execute("SELECT City, Year(Date) as Year, Offense, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
+            cursor.execute("SELECT City, Year(Date) as Year, Offense, Latitude, Longitude, crime_type FROM SeniorDesign.CrimeData WHERE City IN "+cityString)
 
 
-    return render_template('index.html', graph1JSON=graph1JSON,  graph2JSON=graph2JSON, graph3JSON=graph3JSON)
+            crimeData = cursor.fetchall()
 
-@application.route('/updateGraph', methods=['GET', 'POST'])
-def updateGraphs():
-    # POST request
-    print ("Hello")
-    return  
+            cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE City IN "+cityString)
+            cityTypeData = cursor.fetchall()
+
+
+
+            df = pd.DataFrame(crimeData, columns=["city", "date", "offense", "latitude", "longitude", "crimeType"])
+            dfType = pd.DataFrame(cityTypeData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
+
+
+
+            crimeCountTypesType=df.groupby(['city']).count().reset_index()
+
+            #VIOLENT, PROPERTY, OTHER
+
+            
+
+            crimeCountCity=df.groupby(['city']).count().reset_index()
+            crimeCountDates=df.groupby(['date']).count().reset_index()
+            crimeCountTypes=df.groupby(['crimeType']).count().reset_index()
+            agg_functions = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "year": 'first', "vehicle_theft": 'sum'}
+
+            dfType = dfType.groupby(df['city']).aggregate(agg_functions)
+            # df = px.data.medals_wide()
+            # fig1 = px.bar(crimeCountTypes, x="crimeType", y="offense", color="offense", title="Types of crime in each city")
+            # graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
+
+            # fig1 = px.bar(dfType, x=["homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "vehicle_theft"], y=["homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "vehicle_theft"], color="offense", title="Types of crime in each city")
+            # graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
+
+            # Graph Two
+            # df = px.data.tips()
+            print(dfType)
+            print(dfType['total'][0])
+            dataSun = dict(
+                character=["Theft", "Burglary", "Arson", "Vehicle Theft", "homicide", "Aggravated Assault", "Rape", "Robbery"],
+                parent=["Property", "Property", "Property", "Property", "Violent", "Violent", "Violent", "Violent"],
+                value=[dfType['theft'][0], dfType['burglary'][0], dfType['arson'][0], dfType['vehicle_theft'][0], dfType['homicide'][0], dfType['agg_assault'][0], dfType['rape'][0], dfType['robbery'][0]]
+            )
+            # fig2 = px.sunburst(dfType, path=['rape', 'robbery', 'violent'])
+            fig2 = px.sunburst(
+                dataSun,
+                names='character',
+                parents='parent',
+                values='value',
+            )
+            graph1JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
+
+            fig3 = px.line(crimeCountDates, x=['2019', '2020', '2021'], y='offense', title="count of crimes per year", markers=True)
+            graph2JSON = json.dumps(fig3, cls=plotly.utils.PlotlyJSONEncoder)
+
+            
+            print("we made it here")
+            # return fig1.to_html(full_html=False, include_plotlyjs=False)
+            return [graph1JSON, graph2JSON]
+
+
+
+@application.route('/statistics', methods=['GET', 'POST'])
+@application.route('/statisticscity=<city>year=<year>', methods=['GET', 'POST'])
+def statistics(city=None, year=None):
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
+    else:
+        cursor = mysql.get_db().cursor()
+        cursor.execute("SELECT City FROM SeniorDesign.CrimeData GROUP BY City")
+        citiesSQL=cursor.fetchall()
+        cursor.execute("SELECT Year(Date) AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
+        yearsSQL=cursor.fetchall()
+
+        citiesSelect=[]
+        yearsSelect=[]
+
+        for i in citiesSQL:
+            citiesSelect.append(i[0])
+
+        for i in yearsSQL:
+            yearsSelect.append(i[0])
+
+        return render_template("statistics.html", cities=citiesSelect, years=yearsSelect)
+
 
 @application.route('/mapGencity=<city>year=<year>', methods=['GET', 'POST'])
 def heatmapGen(city, year):
@@ -152,9 +225,9 @@ def heatmapInputs(city=None, year=None):
 
         return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
 
-@application.route('/chart2', methods=['GET', 'POST'])
-@application.route('/chart2city=<city>year=<year>', methods=['GET', 'POST'])
-def chart2Inputs(city=None, year=None):
+@application.route('/graphs', methods=['GET', 'POST'])
+@application.route('/graphscity=<city>year=<year>', methods=['GET', 'POST'])
+def graphs(city=None, year=None):
     # POST request
     print(request.args.getlist('city'))
     print(request.args.getlist('year'))
@@ -235,8 +308,8 @@ def chart2Inputs(city=None, year=None):
             fig2 = px.pie(crimeCount, values="offense", names="city", color="offense", title="Pie Crime")
             graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
 
-            return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
+            return render_template('graphs.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
  
 
 if __name__ == "__main__":
-    application.run(debug=True)
+    application.run(port=2000, debug=True)
