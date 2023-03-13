@@ -1,0 +1,3 @@
+[flake8.extension]
+DUO = dlint.extension:Flake8Extension
+

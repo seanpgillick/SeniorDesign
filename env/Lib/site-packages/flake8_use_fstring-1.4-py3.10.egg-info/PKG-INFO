@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: flake8-use-fstring
+Version: 1.4
+Summary: Flake8 plugin for string formatting style.
+Home-page: https://github.com/MichaelKim0407/flake8-use-fstring
+Author: Michael Kim
+Author-email: mkim0407@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Python: >=3.6
+Provides-Extra: test
+Provides-Extra: dev
+Provides-Extra: ci
+License-File: LICENSE
+
+UNKNOWN
+

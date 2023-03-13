@@ -1,0 +1,2 @@
+[tox]
+travis = tox_travis.hooks
