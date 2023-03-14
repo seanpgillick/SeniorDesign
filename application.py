@@ -179,7 +179,10 @@ def heatmapGen(city, year):
 
         df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
         print(df)
-        mapObj = folium.Map([startingPoint[0][0], startingPoint[0][1]], zoom_start=11)
+        if(len(startingPoint) > 0):
+            mapObj = folium.Map([startingPoint[0][0], startingPoint[0][1]], zoom_start=11)
+        else:
+            mapObj = folium.Map([39.9526, -75.1652], zoom_start=9)
         data = []
         temp = df.to_numpy()
         for x in temp:
