@@ -187,11 +187,12 @@ def heatmapGen(city, year):
         temp = df.to_numpy()
         for x in temp:
             if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], float)) and (isinstance(x[3], float)) and (not np.isnan(x[2])) and (not np.isnan(x[3]))):
-                data.append([x[2], x[3], .2])
+                if(abs(startingPoint[0][0]-x[2])<1 and abs(startingPoint[0][1]-x[3])<1):
+                    data.append([x[2], x[3], 3])
         # for x in data:
         #     print(x)
 
-        HeatMap(data).add_to(mapObj)
+        HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=10, min_opacity=.25, max=1.0).add_to(mapObj)
         return mapObj._repr_html_()
 
     else:
