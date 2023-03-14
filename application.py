@@ -35,7 +35,63 @@ mysql.init_app(application)
 
 @application.route('/')
 def index():
-    return render_template('index.html')
+    cursor = mysql.get_db().cursor()
+    cursor.execute("SELECT city FROM SeniorDesign.CityInformation")
+    citiesSQL=cursor.fetchall()
+
+    # cursor.execute("SELECT Year FROM SeniorDesign.CrimeTypeTotals GROUP BY Year"),
+    # yearsSQL=cursor.fetchall()
+
+    citiesSelect=[]
+    # yearsSelect=[]
+
+    for i in citiesSQL:
+        citiesSelect.append(i[0])
+
+    # for i in yearsSQL:
+        # yearsSelect.append(i[0])
+
+    return render_template("index.html", cities=citiesSelect)
+
+def getSQLString(cityList):
+    cityString="("
+    for i in cityList:
+        cityString=cityString+"'"+i+"', "
+    cityString=cityString[:-2]+")"
+    return cityString
+
+@application.route('/statistics', methods=['GET', 'POST'])
+@application.route('/statisticscity=<city>year=<year>', methods=['GET', 'POST'])
+def statistics(city=None, year=None):
+    city=request.args.getlist('city')
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
+    else:
+        cursor = mysql.get_db().cursor()
+        # print(city[0])
+        cityString=getSQLString(city)
+        print(cityString)
+        cursor.execute("SELECT Year FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString),
+        yearsSQL=cursor.fetchall()
+        cursor.execute("SELECT city FROM SeniorDesign.CityInformation WHERE city NOT IN "+cityString)
+        citiesSQL=cursor.fetchall()
+        print(citiesSQL)
+
+        citiesSelect=[]
+        yearsSelect=[]
+
+        for i in citiesSQL:
+            citiesSelect.append(i[0])
+
+        for i in yearsSQL:
+            yearsSelect.append(i[0])
+        print(yearsSelect)
+        print(city[0])
+        return render_template("statistics.html", years=yearsSelect, selectedCity=city[0], cities=citiesSelect)
+
 
 @application.route('/graphResults', methods=['GET', 'POST'])
 @application.route('/graphResults/<city>', methods=['GET', 'POST'])
@@ -48,86 +104,49 @@ def graphResults(city=None):
     
     else:
         cursor = mysql.get_db().cursor()
-        
-        yearsSelect=[]
-        citiesSelect=[]
-        offenses=[]
-        print("Here")
-        print(city)
+
         if(city!=None):
-            # cityString="("
 
-            # for i in request.args.getlist('city'):
-            #     cityString=cityString+"'"+i+"', "
-            # cityString=cityString[:-2]+")"
-            print(city)
             cityString="('"+city+"')"
-            # cursor.execute("SELECT City, Year(Date) as Year, Offense, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
-            cursor.execute("SELECT City, Year(Date) as Year, Offense, Latitude, Longitude, crime_type FROM SeniorDesign.CrimeData WHERE City IN "+cityString)
 
-
-            crimeData = cursor.fetchall()
 
             cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE City IN "+cityString)
             cityTypeData = cursor.fetchall()
 
-
-
-            df = pd.DataFrame(crimeData, columns=["city", "date", "offense", "latitude", "longitude", "crimeType"])
             dfType = pd.DataFrame(cityTypeData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
 
 
+            agg_functionsSun = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "year": 'first', "vehicle_theft": 'sum'}
+            agg_functionsLine = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "vehicle_theft": 'sum'}
 
-            crimeCountTypesType=df.groupby(['city']).count().reset_index()
+            dfSunTotal = dfType.groupby(dfType['city']).aggregate(agg_functionsSun)
+            dfLineChart = dfType.groupby(dfType['year']).aggregate(agg_functionsLine)
 
-            #VIOLENT, PROPERTY, OTHER
-
-            
-
-            crimeCountCity=df.groupby(['city']).count().reset_index()
-            crimeCountDates=df.groupby(['date']).count().reset_index()
-            crimeCountTypes=df.groupby(['crimeType']).count().reset_index()
-            agg_functions = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "year": 'first', "vehicle_theft": 'sum'}
-
-            dfType = dfType.groupby(df['city']).aggregate(agg_functions)
-            # df = px.data.medals_wide()
-            # fig1 = px.bar(crimeCountTypes, x="crimeType", y="offense", color="offense", title="Types of crime in each city")
-            # graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
-
-            # fig1 = px.bar(dfType, x=["homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "vehicle_theft"], y=["homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "vehicle_theft"], color="offense", title="Types of crime in each city")
-            # graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
-
-            # Graph Two
-            # df = px.data.tips()
-            print(dfType)
-            print(dfType['total'][0])
-            dataSun = dict(
-                character=["Theft", "Burglary", "Arson", "Vehicle Theft", "homicide", "Aggravated Assault", "Rape", "Robbery"],
-                parent=["Property", "Property", "Property", "Property", "Violent", "Violent", "Violent", "Violent"],
-                value=[dfType['theft'][0], dfType['burglary'][0], dfType['arson'][0], dfType['vehicle_theft'][0], dfType['homicide'][0], dfType['agg_assault'][0], dfType['rape'][0], dfType['robbery'][0]]
+            specificCrime = ["Theft", "Burglary", "Arson", "Vehicle Theft",
+                    "Homicide", "Aggravated Assault", "Rape", "Robbery"]
+            generalCrime = ["Property", "Property", "Property", "Property",
+                    "Violent", "Violent", "Violent", "Violent"]
+            crimeCount = [dfSunTotal['theft'][0], dfSunTotal['burglary'][0], dfSunTotal['arson'][0], dfSunTotal['vehicle_theft'][0], dfSunTotal['homicide'][0], dfSunTotal['agg_assault'][0], dfSunTotal['rape'][0], dfSunTotal['robbery'][0]]
+            dfSunburst = pd.DataFrame(
+                dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
             )
-            # fig2 = px.sunburst(dfType, path=['rape', 'robbery', 'violent'])
-            fig2 = px.sunburst(
-                dataSun,
-                names='character',
-                parents='parent',
-                values='value',
-            )
+
+            fig2 = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+
             graph1JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
 
-            fig3 = px.line(crimeCountDates, x=['2019', '2020', '2021'], y='offense', title="count of crimes per year", markers=True)
+            fig3 = px.line(dfLineChart, x=['2019', '2020', '2021'], y='total', title="count of crimes per year", markers=True)
             graph2JSON = json.dumps(fig3, cls=plotly.utils.PlotlyJSONEncoder)
 
             
-            print("we made it here")
             # return fig1.to_html(full_html=False, include_plotlyjs=False)
             return [graph1JSON, graph2JSON]
+        
 
-
-
-@application.route('/statistics', methods=['GET', 'POST'])
-@application.route('/statisticscity=<city>year=<year>', methods=['GET', 'POST'])
-def statistics(city=None, year=None):
+@application.route('/sunGraph', methods=['GET', 'POST'])
+@application.route('/sunGraph/city=<city>year=<year>', methods=['GET', 'POST'])
+def sunGraph(city=None, year=None):
+    year=year.split(",")
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
@@ -135,21 +154,64 @@ def statistics(city=None, year=None):
     
     else:
         cursor = mysql.get_db().cursor()
-        cursor.execute("SELECT City FROM SeniorDesign.CrimeData GROUP BY City")
-        citiesSQL=cursor.fetchall()
-        cursor.execute("SELECT Year(Date) AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
-        yearsSQL=cursor.fetchall()
+    
+    
+        yearString=getSQLString(year)
 
-        citiesSelect=[]
-        yearsSelect=[]
+        cityString="('"+city+"')"
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString+" AND year IN "+yearString)
+        cityTypeData = cursor.fetchall()
 
-        for i in citiesSQL:
-            citiesSelect.append(i[0])
+        df = pd.DataFrame(cityTypeData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
+        agg_functionsSun = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "year": 'first', "vehicle_theft": 'sum'}
 
-        for i in yearsSQL:
-            yearsSelect.append(i[0])
+        dfSunTotal = df.groupby(df['city']).aggregate(agg_functionsSun)
+        specificCrime = ["Theft", "Burglary", "Arson", "Vehicle Theft",
+                "Homicide", "Aggravated Assault", "Rape", "Robbery"]
+        generalCrime = ["Property", "Property", "Property", "Property",
+                "Violent", "Violent", "Violent", "Violent"]
+        crimeCount = [dfSunTotal['theft'][0], dfSunTotal['burglary'][0], dfSunTotal['arson'][0], dfSunTotal['vehicle_theft'][0], dfSunTotal['homicide'][0], dfSunTotal['agg_assault'][0], dfSunTotal['rape'][0], dfSunTotal['robbery'][0]]
+        
+        dfSunburst = pd.DataFrame(
+            dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
+        )
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+        graph1JSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-        return render_template("statistics.html", cities=citiesSelect, years=yearsSelect)
+        return [graph1JSON]
+    
+@application.route('/lineGraph', methods=['GET', 'POST'])
+@application.route('/lineGraph/city=<city>cityComp=<cityComp>', methods=['GET', 'POST'])
+def lineGraph(city=None, cityComp=None):
+    print("Hey")
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
+    else:
+        cursor = mysql.get_db().cursor()
+        cityList=[city, cityComp]
+        cityString=getSQLString(cityList)
+
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString)
+        cityData = cursor.fetchall()
+        print(cityData)
+
+        df = pd.DataFrame(cityData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
+
+
+        agg_functionsLine = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "vehicle_theft": 'sum'}
+
+        dfLineChart = df.groupby(df['year']).aggregate(agg_functionsLine)
+
+        fig = px.line(dfLineChart, x=['2019', '2020', '2021'], y='total', title="count of crimes per year", markers=True)
+        graph2JSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+        print("Hey")
+        # return fig1.to_html(full_html=False, include_plotlyjs=False)
+        return [graph2JSON]
+    
 
 
 @application.route('/mapGencity=<city>year=<year>', methods=['GET', 'POST'])
