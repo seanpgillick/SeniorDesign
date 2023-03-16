@@ -13,6 +13,7 @@ import folium
 from folium.plugins import HeatMap
 import markupsafe
 import numpy as np
+import math
 
 
 application = Flask(__name__) # This needs to be named `application`
@@ -36,6 +37,53 @@ mysql.init_app(application)
 @application.route('/')
 def index():
     return render_template('index.html')
+
+@application.route('/safetyScore', methods=['GET', 'POST'])
+def safetyScore():
+    latitude = request.args.get('latitude') 
+    longitude = request.args.get('longitude')
+    radius = request.args.get('radius') or 2
+    city = request.args.get('city')
+    address = request.args.get('address')
+    safetyScore = None
+    if(city and latitude and longitude and radius and city):
+        # Get crimes withing selected area 
+        kmRadius = float(radius)*1.60934
+        cursor = mysql.get_db().cursor()
+        cursor.execute("SELECT Count(*) FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+        crimeCountInRadius = cursor.fetchall()
+        crimeCountInRadius = crimeCountInRadius[0][0]
+
+        # Get city total crimes and total number of crimes
+        cursor = mysql.get_db().cursor()
+        cursor.execute("""SELECT SUM(ctt.total) as total_crime, ci.area
+                            FROM SeniorDesign.CrimeTypeTotals ctt
+                            INNER JOIN SeniorDesign.CityInformation ci 
+                                ON ci.city = ctt.city
+                            WHERE ctt.city='{}'
+                            GROUP BY ci.area 
+                            LIMIT 1;""".format(city))
+        cityInformation = cursor.fetchone()
+        totalCrimeInCity = cityInformation[0]
+        cityArea = cityInformation[1]
+        
+        # Calculate safety score
+        areaOfCircle = math.pi*(float(radius) ** 2)
+        N = areaOfCircle * float(totalCrimeInCity) / cityArea
+        safetyRatio = crimeCountInRadius / N
+        
+        if(safetyRatio > 2):
+            safetyScore = 1
+        elif(1 < safetyRatio and safetyRatio < 2):
+            safetyScore = 2
+        elif(0.5 < safetyRatio and safetyRatio < 1):
+            safetyScore = 3
+        elif(0.25 < safetyRatio and safetyRatio < 0.5):
+            safetyScore = 4
+        else:
+            safetyScore = 5
+
+    return render_template('testSafetyScore.html', safetyScore=safetyScore, address=address, latitude=latitude, longitude=longitude)
 
 @application.route('/graphResults', methods=['GET', 'POST'])
 @application.route('/graphResults/<city>', methods=['GET', 'POST'])

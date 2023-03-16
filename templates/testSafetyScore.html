@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="mt-2">
+    <div class="form-group text-center">
+        <label for="address-input">Enter an address to find the safety score</label>
+        {% set inputValue = "" %}
+        {% if(address) %}
+            {% set inputValue = address %}
+        {% endif %}
+        <input
+            list="addresses"
+            id="address-input"
+            type="text"
+            size="50"
+            class="form-control"
+            value="{{ inputValue }}"
+        />
+        <datalist id="addresses">
+            {% if(address) %}
+                <option selected data-longitude="{{ longitude }}" data-latitude="{{ latitude }}" value="{{ address }}">
+            {% endif %}
+        </datalist>
+        <button type="button" id="calculate-score" class="mt-2 btn btn-primary">Calculate</button>
+    </div>
+    <div>
+        <p id="calculating-score"></p>
+    </div>
+    {% if(safetyScore) %}
+        {% if safetyScore == 1 %}
+            {% set cardColor = "danger" %}
+            {% set cardText = "A safety score of 1 means this area is very unsafe compared to the rest of Philadelphia." %}
+        {% elif safetyScore == 2 %}
+            {% set cardColor = "danger" %}
+            {% set cardText = "A safety score of 2 means this area is unsafe compared to the rest of Philadelphia." %}
+        {% elif safetyScore == 3 %}
+            {% set cardColor = "warning" %}
+            {% set cardText = "A safety score of 3 means this area is okay compared to the rest of Philadelphia." %}
+        {% elif safetyScore == 4 %}
+            {% set cardColor = "success" %}
+            {% set cardText = "A safety score of 4 means this area is safe compared to the rest of Philadelphia." %}
+        {% else %}
+            {% set cardColor = "success" %}
+            {% set cardText = "A safety score of 5 means this area is very safe compared to the rest of Philadelphia." %}
+        {% endif %}
+        <div>
+            <div class="card w-25 mx-auto border-{{ cardColor }}">
+                <h5 class="card-header text-center ">Safety Score</h5>
+                <div class="card-body">
+                <h5 class="card-title text-center text-{{ cardColor }}">{{ safetyScore }}</h5>
+                <p class="card-text text-{{ cardColor }}">{{ cardText }}</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    $( document ).ready(function() {
+        var requestOptions = {
+            method: 'GET',
+        };
+
+        let selectedCity = "Philadelphia, PA";
+        let radius = 2;
+        let placeId = "";
+        fetch("https://api.geoapify.com/v1/geocode/search?text="+selectedCity+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
+            .then(response => response.json())
+            .then(result => {
+                placeId=result.features[0].properties.place_id
+            })
+            .catch(error => console.log('error', error));
+
+
+       $("#address-input").on("input", function(){
+        let searchKey = $(this).val();
+
+        if(searchKey==""){
+            return;
+        }
+
+        fetch("https://api.geoapify.com/v1/geocode/autocomplete?text="+searchKey+"&filter=place:"+placeId+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
+            .then(response => response.json())
+            .then(result => {
+                $('#addresses').empty()
+                let searchResults = result.features;
+                
+                for (const address of searchResults){
+                    console.log(address);
+                    $('#addresses').append("<option data-longitude='" + address.geometry.coordinates[0] + "' data-latitude='" + address.geometry.coordinates[1] + "' value='" + address.properties.formatted + "'>");
+                }
+            
+            })
+            .catch(error => console.log('error', error));
+       }); 
+
+       $("#calculate-score").on("click", function (){
+            $("#calculating-score").text("Calculating safety score...");
+            let selectedAddress = $("#address-input").val();
+            let addressOption = $("#addresses option[value='"+selectedAddress+"']");
+            let latitude = addressOption.data("latitude");
+            let longitude = addressOption.data("longitude");
+
+            window.location.href = "/safetyScore?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city=Philadelphia";
+       });
+    });
+</script>
+{% endblock %}
