@@ -9,22 +9,35 @@
         <form action="/mapUpdate/">
             <div id="city-select">
                 <label for="cities-select">Select a City</label>
-                <select name="city" id="cities-select" onchange="validateCity(this)" multiple>
+                <select name="city" id="cities-select" single>
                     {% for o in cities %}
-                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                        <option value="{{ o }}">{{ o }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div id="year-select">
                 <label for="years-select">Select a Year</label>
-                <select name="year" id="years-select" onchange="validateYear(this)" multiple>
+                <select name="year" id="years-select" single>
+                    <option value="All" selected>All</option>
                     {% for o in years %}
-                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                        <option value="{{ o }}">{{ o }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
+
+            <div id="crime-select">
+                <label for="crime-select">Select a Crime Type</label>
+                <select name="crime" id="crime-select" single>
+                    <option value="All" selected>All</option>
+                    <option value="Violent">Violent</option>
+                    <option value="Property">Propety</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+
                 <button>Update Heatmap</button>
             </div>
         </form>
@@ -37,6 +50,11 @@
     <script type="text/javascript">
     window.onload = function() {
         updateSrc();
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById("cities-select").value = urlParams.get('city');
+        document.getElementById("years-select").value = urlParams.get('year');
+        document.getElementById("crime-select").value = urlParams.get('crime');
+        console.log(urlParams.get('crime'));
     }
         function updateSrc() {
             let myIframe = document.createElement('iframe');
@@ -47,8 +65,9 @@
             const urlParams = new URLSearchParams(window.location.search);
             const city = urlParams.get('city');
             const year = urlParams.get('year');
+            const crime = urlParams.get('crime');
 
-            let adsURL = url_string+"city="+city+"year="+year;
+            let adsURL = url_string+"city="+city+"year="+year+"crime="+crime;
             console.log(adsURL);
             myIframe.src = adsURL;
             document.getElementById("frameContainer").appendChild(myIframe);
