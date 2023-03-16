@@ -3,7 +3,7 @@
     <div class="site-header-logo">
     </div>
 
-    <form action="/statistics" method="GET">
+    <form action="/analysis/">
         <div id="city-select">
             <label for="cities-select">Select a City</label>
             <select name="city" id="cities-select" class="form-select w-25">
@@ -11,7 +11,7 @@
                     <option value="{{ o }}">{{ o }}</option>
                 {% endfor %}
             </select>
-            
+
         </div>
         <button class="btn btn-primary" id="formButton">
             submit

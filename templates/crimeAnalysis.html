@@ -2,7 +2,7 @@
 {% block content %}
     <div class="site-header-logo">
         <h1 class="text-center">
-            {{selectedCity|safe}}
+            {{city|safe}}
         </h1>
     </div>
 
@@ -12,23 +12,21 @@
 
     <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link active" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href='"/analysis/"+{{city}}+"/data"'>Data</a>
-
+            <a class="nav-link active" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Data</a>
         </li>
         <li class="nav-item" role="presentation">
-          <a class="nav-link" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href='"/analysis/"+{{city}}+"/heatmap"'>Heatmap</a>
+            <a class="nav-link" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap">Heatmap</a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="crimelist-tab" data-bs-toggle="tab" data-bs-target="#crimelist-tab-pane" type="button" role="tab" aria-controls="crimelist-tab-pane" aria-selected="false">Crime List</button>
+            <a class="nav-link" id="crimelist-tab" type="button" aria-controls="crimelist-tab-pane" aria-selected="false" href="/analysis/{{ city }}/crimelist">Crime List</a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="safety-tab" data-bs-toggle="tab" data-bs-target="#safety-tab-pane" type="button" role="tab" aria-controls="safety-tab-pane" aria-selected="false">Safety Score</button>
+            <a class="nav-link" id="safety-tab" type="button" aria-controls="safety-tab-pane" aria-selected="false" href="/analysis/{{ city }}/safety">Safety Score</a>
         </li>
 
       </ul>
-      <div class="tab-content" id="myTabContent">
-        <div class="tab-pane fade" id="data-tab-pane" role="tabpanel" aria-labelledby="data-tab" tabindex="0">
-            <div id="graph-results" hidden="hidden">
+        {% if tab == "data" or tab=="crimelist" or tab=="safety" %}
+            <div id="graph-results">
         
                 <div class="row container text-center">
                     <div class="col card">
@@ -73,16 +71,11 @@
                 <br/>
                 <hr/>
             </div>
-        </div>
+            {% elif tab == "heatmap" %}
+                {% include "heatmap.html" %}
 
-        <div class="tab-pane fade" id="heatmap-tab-pane" role="tabpanel" aria-labelledby="heatmap-tab" tabindex="0">
-            {% include "heatmap.html" %}
+            {% endif %}
 
-        </div>
-        <div class="tab-pane fade" id="crimelist-tab-pane" role="tabpanel" aria-labelledby="crimelist-tab" tabindex="0">Yo</div>
-        <div class="tab-pane fade" id="safety-tab-pane" role="tabpanel" aria-labelledby="safety-tab" tabindex="0">Yo</div>
-
-      </div>
 
     <br/>
 
@@ -90,51 +83,53 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
     <script type="text/javascript">
+
+
+
         $(document).ready(function() {
-            alert(window.location.href)
-            if(window.location.href.includes("/crime/heatmap")){
-                alert("Hi")
-                $('#data-tab-pane').removeClass("show")
+            var graphs1 = {{ graph1JSON | safe}};
+            Plotly.plot("chart1", graphs1,{});
+
+            var graphs2 = {{ graph2JSON | safe}};
+            Plotly.plot("chart2", graphs2,{});
+            
+            $("#heatmap-tab").click(function(){
                 $('#data-tab-pane').removeClass("active")
-                
-                $('#heatmap-tab-pane').addClass("active")
-                $('#heatmap-tab-pane').addClass("show")
-                $('#heatmap-tab').addClass("active")
                 $('#data-tab').removeClass("active")
-            }
-            else if(window.location.href.includes("/crime/data")){
-                $('#data-tab-pane').addClass("show")
-                $('#data-tab-pane').addClass("active")
-                
-                $('#heatmap-tab-pane').removeClass("active")
-                $('#heatmap-tab-pane').removeClass("show")
-                $('#heatmap-tab').removeClass("active")
+                $('#data-tab').removeClass("active")
                 $('#data-tab').addClass("active")
-                document.getElementById("cityRenderStatus").innerHTML=`<div>Loading Graphs...</div>`
-                const cityName =$("#cities-select").val()
-                const graph_url = {{ url_for("graphResults")|tojson }};
-                fetch("http://127.0.0.1:2000/graphResults/"+"{{selectedCity}}")
-                    .then((res) => {
-                        if (!res.ok) {
-                            throw new Error("HTTP error " + res.status)
-                        }
-                        console.log(res)
-                        return res.text();
-                    })
-                    .then((data) => {
-                        document.getElementById("graph-results").removeAttribute("hidden");
-                        Plotly.plot("chart1", JSON.parse(JSON.parse(data)[0]),{});
-                        Plotly.plot("chart2", JSON.parse(JSON.parse(data)[1]),{});
-                        document.getElementById("cityRenderStatus").innerHTML=``
 
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                        document.getElementById("cityRenderStatus").innerHTML=`<div>Error loading graphs</div>`
+            })
+            // $('#data-tab-pane').addClass("show")
+            // $('#data-tab-pane').addClass("active")
+            
+            // $('#heatmap-tab-pane').removeClass("active")
+            // $('#heatmap-tab-pane').removeClass("show")
+            // $('#heatmap-tab').removeClass("active")
+            // $('#data-tab').addClass("active")
+            // document.getElementById("cityRenderStatus").innerHTML=`<div>Loading Graphs...</div>`
+            // const cityName =$("#cities-select").val()
+            // const graph_url = {{ url_for("graphResults")|tojson }};
+            // fetch("http://127.0.0.1:2000/graphResults/"+"{{selectedCity}}")
+            //     .then((res) => {
+            //         if (!res.ok) {
+            //             throw new Error("HTTP error " + res.status)
+            //         }
+            //         console.log(res)
+            //         return res.text();
+            //     })
+            //     .then((data) => {
+            //         document.getElementById("graph-results").removeAttribute("hidden");
+            //         Plotly.plot("chart1", JSON.parse(JSON.parse(data)[0]),{});
+            //         Plotly.plot("chart2", JSON.parse(JSON.parse(data)[1]),{});
+            //         document.getElementById("cityRenderStatus").innerHTML=``
 
-                    });
-            }
+            //     })
+            //     .catch((err) => {
+            //         console.log(err);
+            //         document.getElementById("cityRenderStatus").innerHTML=`<div>Error loading graphs</div>`
 
+            //     });
             $("#updateYearsComp").click(function() {
                 // $("#chart1").removeClass("js-plotly-plot")
                 // $("#chart1").html("");

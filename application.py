@@ -60,10 +60,52 @@ def getSQLString(cityList):
     cityString=cityString[:-2]+")"
     return cityString
 
-@application.route('/statistics', methods=['GET', 'POST'])
-@application.route('/statisticscity=<city>year=<year>', methods=['GET', 'POST'])
-def statistics(city=None, year=None):
-    city=request.args.getlist('city')
+
+@application.route('/analysis/')
+def crimeLoad(city=None):
+    print("ARE YOU HERE?")
+    city=request.args.get('city')
+    jsonData=graphResults(city)
+    cityInfo=getDataDrops(city)
+    print(jsonData)
+    print(cityInfo['years'])
+    return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city)
+
+@application.route('/mapUpdate/')
+def mapLoad(city=None):
+    print("ARE YOU HERE?")
+    city=request.args.get('city')
+    cityInfo=getHeatMapDrops(city)
+    print(cityInfo['years'])
+    return render_template("crimeAnalysis.html", years=cityInfo['years'], cities=cityInfo['cities'], tab="heatmap", city=city)
+
+
+@application.route('/analysis/<city>/<tab>')
+def crimeAnalysis(city=None, tab=None):
+    if(tab=="data" or tab=="crimelist" or tab=="safety"):
+        jsonData=graphResults(city)
+        cityInfo=getDataDrops(city)
+        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city)
+    elif(tab=="heatmap"):
+        print("I am here")
+        cityInfo=getHeatMapDrops(city)
+        return render_template('crimeAnalysis.html', years=cityInfo['years'], cities=cityInfo['cities'], tab="heatmap", city=city)
+
+    # elif(tab=="crimelist"):
+    #     return render_template("crimeAnalysis.html")
+    # elif(tab=="analysis"):
+    #     return render_template("crimeAnalysis.html")
+
+
+    
+    return render_template("crimeAnalysis.html")
+
+        
+
+
+@application.route('/cityDrops', methods=['GET', 'POST'])
+@application.route('/cityDrops=<city>year=<year>', methods=['GET', 'POST'])
+def getDataDrops(city=None, year=None):
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
@@ -71,14 +113,11 @@ def statistics(city=None, year=None):
     
     else:
         cursor = mysql.get_db().cursor()
-        # print(city[0])
-        cityString=getSQLString(city)
-        print(cityString)
+        cityString=getSQLString([city])
         cursor.execute("SELECT Year FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString),
         yearsSQL=cursor.fetchall()
         cursor.execute("SELECT city FROM SeniorDesign.CityInformation WHERE city NOT IN "+cityString)
         citiesSQL=cursor.fetchall()
-        print(citiesSQL)
 
         citiesSelect=[]
         yearsSelect=[]
@@ -89,9 +128,34 @@ def statistics(city=None, year=None):
         for i in yearsSQL:
             yearsSelect.append(i[0])
         print(yearsSelect)
-        print(city[0])
-        return render_template("statistics.html", years=yearsSelect, selectedCity=city[0], cities=citiesSelect)
+        return {"years":yearsSelect, "cities":citiesSelect}
+    
+@application.route('/cityDrops', methods=['GET', 'POST'])
+@application.route('/cityDrops=<city>year=<year>', methods=['GET', 'POST'])
+def getHeatMapDrops(city=None, year=None):
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
+    else:
+        cursor = mysql.get_db().cursor()
+        cityString=getSQLString([city])
+        cursor.execute("SELECT Year FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString),
+        yearsSQL=cursor.fetchall()
+        cursor.execute("SELECT city FROM SeniorDesign.CityInformation")
+        citiesSQL=cursor.fetchall()
 
+        citiesSelect=[]
+        yearsSelect=[]
+
+        for i in citiesSQL:
+            citiesSelect.append(i[0])
+
+        for i in yearsSQL:
+            yearsSelect.append(i[0])
+        print(yearsSelect)
+        return {"years":yearsSelect, "cities":citiesSelect}
 
 @application.route('/graphResults', methods=['GET', 'POST'])
 @application.route('/graphResults/<city>', methods=['GET', 'POST'])
@@ -183,7 +247,6 @@ def sunGraph(city=None, year=None):
 @application.route('/lineGraph', methods=['GET', 'POST'])
 @application.route('/lineGraph/city=<city>cityComp=<cityComp>', methods=['GET', 'POST'])
 def lineGraph(city=None, cityComp=None):
-    print("Hey")
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
@@ -262,7 +325,7 @@ def heatmapGen(city, year):
         data = []
         return mapObj._repr_html_()
 
-@application.route('/heatmap', methods=['GET', 'POST'])
+@application.route('/crime/heatmap', methods=['GET', 'POST'])
 def heatmapInputs(city=None, year=None):
     if request.method == 'POST':
         print('Incoming..')
@@ -289,93 +352,8 @@ def heatmapInputs(city=None, year=None):
         for i in offensesSQL:
             offenses.append(i[0])
 
-        return render_template('heatmap.html', cities=citiesSelect, years=yearsSelect)
+        return render_template('crimeAnalysis.html', cities=citiesSelect, years=yearsSelect)
 
-@application.route('/graphs', methods=['GET', 'POST'])
-@application.route('/graphscity=<city>year=<year>', methods=['GET', 'POST'])
-def graphs(city=None, year=None):
-    # POST request
-    print(request.args.getlist('city'))
-    print(request.args.getlist('year'))
-    print(city)
-    print(year)
-    if request.method == 'POST':
-        print('Incoming..')
-        print(request.get_json()) 
-        return ("Nothing") # parse as JSON
-
-    else:
-    
-        cursor = mysql.get_db().cursor()
-        cursor.execute("SELECT City FROM SeniorDesign.CrimeData GROUP BY City")
-        citiesSQL=cursor.fetchall()
-        cursor.execute("SELECT Year(Date) AS Year FROM SeniorDesign.CrimeData GROUP BY Year(Date)"),
-        yearsSQL=cursor.fetchall()
-        cursor.execute("SELECT Offense FROM SeniorDesign.CrimeData GROUP BY Offense"),
-        offensesSQL=cursor.fetchall()
-        yearsSelect=[]
-        citiesSelect=[]
-        offenses=[]
-        for i in yearsSQL:
-            yearsSelect.append(i[0])
-        
-        for i in citiesSQL:
-            citiesSelect.append(i[0])
-
-        for i in offensesSQL:
-            offenses.append(i[0])
-
-        if(request.args.getlist('city')!=[] and request.args.getlist('city')!=[]):
-            yearString="("
-            cityString="("
-            for i in request.args.getlist('year'):
-                yearString=yearString+"'"+i+"', "
-            for i in request.args.getlist('city'):
-                cityString=cityString+"'"+i+"', "
-            cityString=cityString[:-2]+")"
-            yearString=yearString[:-2]+")"
-            print(yearString)
-            print(cityString)
-            cursor.execute("SELECT City, Year(Date) as Year, Offense, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
-            # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
-            cityData = cursor.fetchall()
-
-            df = pd.DataFrame(cityData, columns=["city", "date", "offense", "latitude", "longitude"])
-
-            crimeCount=df.groupby(['city']).count().reset_index()
-
-            df = px.data.medals_wide()
-            fig1 = px.bar(crimeCount, x="city", y="offense", color="offense", title="Amount of Crimes in each City")
-            graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
-
-            # Graph Two
-            fig2 = px.pie(crimeCount, values="offense", names="city", color="offense", title="Pie Crime")
-            graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
-
-            return render_template('index.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
-        # else:
-        else:
-            cursor.execute("SELECT * FROM CrimeData LIMIT 1000")
-            cityData = cursor.fetchall()
-        
-        
-        # query = 'SELECT * FROM SeniorDesign.CrimeData WHERE City="' +city +'" AND Date >= ' + minDate + " AND Date < " + maxDate +";"
-
-
-            df = pd.DataFrame(cityData, columns=["id", "city", "date", "offense", "latitude", "longitude"])
-
-            crimeCount=df.groupby(['city']).count().reset_index()
-
-            df = px.data.medals_wide()
-            fig1 = px.bar(crimeCount, x="city", y="offense", color="offense", title="Amount of Crimes in each City")
-            graph1JSON = json.dumps(fig1, cls=plotly.utils.PlotlyJSONEncoder)
-
-            # Graph Two
-            fig2 = px.pie(crimeCount, values="offense", names="city", color="offense", title="Pie Crime")
-            graph2JSON = json.dumps(fig2, cls=plotly.utils.PlotlyJSONEncoder)
-
-            return render_template('graphs.html', graph1JSON=graph1JSON, graph2JSON=graph2JSON, cities=citiesSelect, years=yearsSelect)
- 
 
 if __name__ == "__main__":
     application.run(port=2000, debug=True)
