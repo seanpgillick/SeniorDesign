@@ -3,13 +3,18 @@
     <div class="site-header-logo">
     </div>
 
-    
-    <!-- plotly CDN -->
+    <form action="/analysis/">
+        <div id="city-select">
+            <label for="cities-select">Select a City</label>
+            <select name="city" id="cities-select" class="form-select w-25">
+                {% for o in cities %}
+                    <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+            </select>
 
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script type="text/javascript">
-
-        
-    </script>
-
+        </div>
+        <button class="btn btn-primary" id="formButton">
+            submit
+        </button>
+    </form>
 {% endblock %}
