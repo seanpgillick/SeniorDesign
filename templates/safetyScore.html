@@ -1,28 +1,60 @@
-{% extends "layout.html" %}
 {% block content %}
 <div class="mt-2">
-    <div class="form-group text-center">
-        <label for="address-input">Enter an address to find the safety score</label>
-        {% set inputValue = "" %}
+    {% set inputValue = "" %}
+    {% set inputRadius = "" %}
+    {% if(address) %}
+        {% set inputValue = address %}
+    {% endif %}
+    {% if(radius) %}
+        {% set inputRadius = radius %}
+    {% endif %}
+
+    {% if(unit =="mi") %}
+        {% set milesSelected = "selected" %}
+        {% set kmSelected = "" %}
+    {% else %}
+        {% set milesSelected = "" %}
+        {% set kmSelected = "selected" %}
+    {% endif %}
+        <div class="text-center mb-2">
+            <i class="text-muted">Enter an address and radius to check the safety score of a specific area of {{ city }}</i>
+        </div>
+        <div class="row g-2 w-50 mx-auto">
+            <div class="col-sm-5"> 
+                <input
+                placeholder="Address"
+                list="addresses"
+                id="address-input"
+                type="text"
+                class="form-control"
+                value="{{ inputValue }}"/>
+            </div>
+
+            <div class="col-sm-3">
+                <input
+                placeholder="Radius"
+                id="radius-input"
+                type="number"
+                min="1"
+                class="form-control"
+                value="{{ inputRadius }}"/>
+            </div>
+            <div class="col-sm-2">
+                <select class="form-select" id="radius_unit" style="background-color: #E9ECEF;">
+                    <option {{ milesSelected }} value="mi">mi</option>
+                    <option {{ kmSelected }} value="km">km</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" id="calculate-score" class="btn btn-outline-primary">Calculate</button>
+            </div>
+        </div>   
+    <datalist id="addresses">
         {% if(address) %}
-            {% set inputValue = address %}
+            <option selected data-longitude="{{ longitude }}" data-latitude="{{ latitude }}" value="{{ address }}">
         {% endif %}
-        <input
-            list="addresses"
-            id="address-input"
-            type="text"
-            size="50"
-            class="form-control"
-            value="{{ inputValue }}"
-        />
-        <datalist id="addresses">
-            {% if(address) %}
-                <option selected data-longitude="{{ longitude }}" data-latitude="{{ latitude }}" value="{{ address }}">
-            {% endif %}
-        </datalist>
-        <button type="button" id="calculate-score" class="mt-2 btn btn-primary">Calculate</button>
-    </div>
-    <div>
+    </datalist>
+    <div class="text-center">
         <p id="calculating-score"></p>
     </div>
     {% if(safetyScore) %}
@@ -61,7 +93,6 @@
         };
 
         let selectedCity = "Philadelphia, PA";
-        let radius = 2;
         let placeId = "";
         fetch("https://api.geoapify.com/v1/geocode/search?text="+selectedCity+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
             .then(response => response.json())
@@ -94,13 +125,27 @@
        }); 
 
        $("#calculate-score").on("click", function (){
-            $("#calculating-score").text("Calculating safety score...");
-            let selectedAddress = $("#address-input").val();
-            let addressOption = $("#addresses option[value='"+selectedAddress+"']");
-            let latitude = addressOption.data("latitude");
-            let longitude = addressOption.data("longitude");
+            let selectedAddress = $("#address-input").val();            
+            let radius = $("#radius-input").val();
 
-            window.location.href = "/safetyScore?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city=Philadelphia";
+            if(!selectedAddress){
+                $("#address-input").addClass("is-invalid");
+            }
+            if(!radius){
+                $("#radius-input").addClass("is-invalid");
+            }
+
+            if(selectedAddress && radius){
+                console.log("HERE")
+                $("#calculating-score").text("Calculating safety score...");
+                let addressOption = $("#addresses option[value='"+selectedAddress+"']");
+                let latitude = addressOption.data("latitude");
+                let longitude = addressOption.data("longitude");
+                let unit = $("#radius_unit").find(":selected").val();
+
+                window.location.href = "/analysis/Philadelphia/safety?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city={{ city }}&unit="+unit;
+            }
+            
        });
     });
 </script>

@@ -25,7 +25,7 @@
         </li>
 
       </ul>
-        {% if tab == "data" or tab=="crimelist" or tab=="safety" %}
+        {% if tab == "data" or tab=="crimelist" %}
             <div id="graph-results">
         
                 <div class="row container text-center">
@@ -73,7 +73,8 @@
             </div>
             {% elif tab == "heatmap" %}
                 {% include "heatmap.html" %}
-
+            {% elif tab == "safety" %}
+                {% include "safetyScore.html" %}
             {% endif %}
 
 

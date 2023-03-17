@@ -81,17 +81,21 @@ def mapLoad(city=None):
     return render_template("crimeAnalysis.html", years=cityInfo['years'], cities=cityInfo['cities'], tab="heatmap", city=city)
 
 
-@application.route('/analysis/<city>/<tab>')
+@application.route('/analysis/<city>/<tab>', methods=["GET", "POST"])
 def crimeAnalysis(city=None, tab=None):
-    if(tab=="data" or tab=="crimelist" or tab=="safety"):
+    print(tab)
+    if(tab=="data" or tab=="crimelist"):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
         return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city)
     elif(tab=="heatmap"):
-        print("I am here")
         cityInfo=getHeatMapDrops(city)
         return render_template('crimeAnalysis.html', years=cityInfo['years'], cities=cityInfo['cities'], tab="heatmap", city=city)
-
+    elif(tab=="safety"):
+        cityInfo = safetyScore()
+        return render_template('crimeAnalysis.html', safetyScore=cityInfo["safetyScore"], 
+                               address=cityInfo["address"], latitude=cityInfo["latitude"], longitude=cityInfo["longitude"], 
+                               state=cityInfo["state"], city=city, tab="safety", radius=cityInfo["radius"], unit=cityInfo["unit"])
     # elif(tab=="crimelist"):
     #     return render_template("crimeAnalysis.html")
     # elif(tab=="analysis"):
@@ -162,33 +166,58 @@ def getHeatMapDrops(city=None, year=None):
 def safetyScore():
     latitude = request.args.get('latitude') 
     longitude = request.args.get('longitude')
-    radius = request.args.get('radius') or 2
+    radius = request.args.get('radius')
     city = request.args.get('city')
     address = request.args.get('address')
+    radiusUnit = request.args.get('unit') or "mi"
     safetyScore = None
-    if(city and latitude and longitude and radius and city):
+    cityState = ""
+    if(city and latitude and longitude and radius):
         # Get crimes withing selected area 
-        kmRadius = float(radius)*1.60934
+        if(radiusUnit == "km"):
+            print("km")
+            kmRadius = float(radius) * 0.621371
+            print(kmRadius)
+        else:
+            kmRadius = float(radius) 
         cursor = mysql.get_db().cursor()
-        cursor.execute("SELECT Count(*) FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
-        crimeCountInRadius = cursor.fetchall()
-        crimeCountInRadius = crimeCountInRadius[0][0]
+        
+        # cursor.execute("set @px="+str(longitude)+";")
+        # cursor.execute("set @py="+str(latitude)+";")
+        # cursor.execute("set @rangeKm="+str(kmRadius)+";")
+        # cursor.execute("""set @search_area = st_makeEnvelope (
+        #     point((@px + @rangeKm / 111), (@py + @rangeKm / 111)),
+        #     point((@px - @rangeKm / 111), (@py - @rangeKm / 111)));""")
+        
+
+
+        # cursor.execute("SELECT latitude, longitude, st_distance_sphere(point(@px, @py), point(longitude, latitude)) as distanc FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND st_contains(@search_area, point("+longitude+","+latitude+"))")
+        
+        cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+
+        crimeLatLng = cursor.fetchall()
+        crimeCountInRadius = cursor.rowcount
+        print(radiusUnit)
+        print(crimeCountInRadius)       
+        # crimeCountInRadius = crimeCountInRadius[0][0]
 
         # Get city total crimes and total number of crimes
         cursor = mysql.get_db().cursor()
-        cursor.execute("""SELECT SUM(ctt.total) as total_crime, ci.area
+        cursor.execute("""SELECT SUM(ctt.total) as total_crime, ci.area, ci.state
                             FROM SeniorDesign.CrimeTypeTotals ctt
                             INNER JOIN SeniorDesign.CityInformation ci 
                                 ON ci.city = ctt.city
                             WHERE ctt.city='{}'
                             GROUP BY ci.area 
                             LIMIT 1;""".format(city))
+        
         cityInformation = cursor.fetchone()
         totalCrimeInCity = cityInformation[0]
         cityArea = cityInformation[1]
+        cityState = cityInformation[2]
         
         # Calculate safety score
-        areaOfCircle = math.pi*(float(radius) ** 2)
+        areaOfCircle = math.pi*(float(kmRadius) ** 2)
         N = areaOfCircle * float(totalCrimeInCity) / cityArea
         safetyRatio = crimeCountInRadius / N
         
@@ -202,8 +231,8 @@ def safetyScore():
             safetyScore = 4
         else:
             safetyScore = 5
-
-    return render_template('testSafetyScore.html', safetyScore=safetyScore, address=address, latitude=latitude, longitude=longitude)
+    return {"safetyScore": safetyScore, "address": address, 
+            "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit}
 
 @application.route('/graphResults', methods=['GET', 'POST'])
 @application.route('/graphResults/<city>', methods=['GET', 'POST'])
