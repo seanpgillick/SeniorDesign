@@ -1,0 +1,152 @@
+{% block content %}
+<div class="mt-2">
+    {% set inputValue = "" %}
+    {% set inputRadius = "" %}
+    {% if(address) %}
+        {% set inputValue = address %}
+    {% endif %}
+    {% if(radius) %}
+        {% set inputRadius = radius %}
+    {% endif %}
+
+    {% if(unit =="mi") %}
+        {% set milesSelected = "selected" %}
+        {% set kmSelected = "" %}
+    {% else %}
+        {% set milesSelected = "" %}
+        {% set kmSelected = "selected" %}
+    {% endif %}
+        <div class="text-center mb-2">
+            <i class="text-muted">Enter an address and radius to check the safety score of a specific area of {{ city }}</i>
+        </div>
+        <div class="row g-2 w-50 mx-auto">
+            <div class="col-sm-5"> 
+                <input
+                placeholder="Address"
+                list="addresses"
+                id="address-input"
+                type="text"
+                class="form-control"
+                value="{{ inputValue }}"/>
+            </div>
+
+            <div class="col-sm-3">
+                <input
+                placeholder="Radius"
+                id="radius-input"
+                type="number"
+                min="1"
+                class="form-control"
+                value="{{ inputRadius }}"/>
+            </div>
+            <div class="col-sm-2">
+                <select class="form-select" id="radius_unit" style="background-color: #E9ECEF;">
+                    <option {{ milesSelected }} value="mi">mi</option>
+                    <option {{ kmSelected }} value="km">km</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" id="calculate-score" class="btn btn-outline-primary">Calculate</button>
+            </div>
+        </div>   
+    <datalist id="addresses">
+        {% if(address) %}
+            <option selected data-longitude="{{ longitude }}" data-latitude="{{ latitude }}" value="{{ address }}">
+        {% endif %}
+    </datalist>
+    <div class="text-center">
+        <p id="calculating-score"></p>
+    </div>
+    {% if(safetyScore) %}
+        {% if safetyScore == 1 %}
+            {% set cardColor = "danger" %}
+            {% set cardText = "A safety score of 1 means this area is very unsafe compared to the rest of Philadelphia." %}
+        {% elif safetyScore == 2 %}
+            {% set cardColor = "danger" %}
+            {% set cardText = "A safety score of 2 means this area is unsafe compared to the rest of Philadelphia." %}
+        {% elif safetyScore == 3 %}
+            {% set cardColor = "warning" %}
+            {% set cardText = "A safety score of 3 means this area is okay compared to the rest of Philadelphia." %}
+        {% elif safetyScore == 4 %}
+            {% set cardColor = "success" %}
+            {% set cardText = "A safety score of 4 means this area is safe compared to the rest of Philadelphia." %}
+        {% else %}
+            {% set cardColor = "success" %}
+            {% set cardText = "A safety score of 5 means this area is very safe compared to the rest of Philadelphia." %}
+        {% endif %}
+        <div>
+            <div class="card w-25 mx-auto border-{{ cardColor }}">
+                <h5 class="card-header text-center ">Safety Score</h5>
+                <div class="card-body">
+                <h5 class="card-title text-center text-{{ cardColor }}">{{ safetyScore }}</h5>
+                <p class="card-text text-{{ cardColor }}">{{ cardText }}</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    $( document ).ready(function() {
+        var requestOptions = {
+            method: 'GET',
+        };
+
+        let selectedCity = "Philadelphia, PA";
+        let placeId = "";
+        fetch("https://api.geoapify.com/v1/geocode/search?text="+selectedCity+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
+            .then(response => response.json())
+            .then(result => {
+                placeId=result.features[0].properties.place_id
+            })
+            .catch(error => console.log('error', error));
+
+
+       $("#address-input").on("input", function(){
+        let searchKey = $(this).val();
+
+        if(searchKey==""){
+            return;
+        }
+
+        fetch("https://api.geoapify.com/v1/geocode/autocomplete?text="+searchKey+"&filter=place:"+placeId+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
+            .then(response => response.json())
+            .then(result => {
+                $('#addresses').empty()
+                let searchResults = result.features;
+                
+                for (const address of searchResults){
+                    console.log(address);
+                    $('#addresses').append("<option data-longitude='" + address.geometry.coordinates[0] + "' data-latitude='" + address.geometry.coordinates[1] + "' value='" + address.properties.formatted + "'>");
+                }
+            
+            })
+            .catch(error => console.log('error', error));
+       }); 
+
+       $("#calculate-score").on("click", function (){
+            let selectedAddress = $("#address-input").val();            
+            let radius = $("#radius-input").val();
+
+            if(!selectedAddress){
+                $("#address-input").addClass("is-invalid");
+            }
+            if(!radius){
+                $("#radius-input").addClass("is-invalid");
+            }
+
+            if(selectedAddress && radius){
+                console.log("HERE")
+                $("#calculating-score").text("Calculating safety score...");
+                let addressOption = $("#addresses option[value='"+selectedAddress+"']");
+                let latitude = addressOption.data("latitude");
+                let longitude = addressOption.data("longitude");
+                let unit = $("#radius_unit").find(":selected").val();
+
+                window.location.href = "/analysis/Philadelphia/safety?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city={{ city }}&unit="+unit;
+            }
+            
+       });
+    });
+</script>
+{% endblock %}

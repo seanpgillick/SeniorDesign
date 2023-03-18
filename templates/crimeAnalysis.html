@@ -12,20 +12,20 @@
 
     <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link active" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Data</a>
+            <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Data</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap">Heatmap</a>
+            <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap">Heatmap</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link" id="crimelist-tab" type="button" aria-controls="crimelist-tab-pane" aria-selected="false" href="/analysis/{{ city }}/crimelist">Crime List</a>
+            <a class="nav-link {{ 'active' if tab == 'crimelist' else '' }}" id="crimelist-tab" type="button" aria-controls="crimelist-tab-pane" aria-selected="false" href="/analysis/{{ city }}/crimelist">Crime List</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link" id="safety-tab" type="button" aria-controls="safety-tab-pane" aria-selected="false" href="/analysis/{{ city }}/safety">Safety Score</a>
+            <a class="nav-link {{ 'active' if tab == 'safety' else '' }}" id="safety-tab" type="button" aria-controls="safety-tab-pane" aria-selected="false" href="/analysis/{{ city }}/safety">Safety Score</a>
         </li>
 
       </ul>
-        {% if tab == "data" or tab=="crimelist" or tab=="safety" %}
+        {% if tab == "data" or tab=="crimelist" %}
             <div id="graph-results">
         
                 <div class="row container text-center">
@@ -73,7 +73,8 @@
             </div>
             {% elif tab == "heatmap" %}
                 {% include "heatmap.html" %}
-
+            {% elif tab == "safety" %}
+                {% include "safetyScore.html" %}
             {% endif %}
 
 
