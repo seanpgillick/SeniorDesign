@@ -4,40 +4,41 @@
             Heatmap
         </h1>
     </div>
-
+    
     <div id="selections" class="flex-container">
-        <form action="/mapUpdate/">
-            <div id="city-select">
-                <label for="cities-select">Select a City</label>
-                <select name="city" id="cities-select" single>
-                    {% for o in cities %}
-                        <option value="{{ o }}">{{ o }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div id="year-select">
-                <label for="years-select">Select a Year</label>
-                <select name="year" id="years-select" single>
-                    <option value="All" selected>All</option>
-                    {% for o in years %}
-                        <option value="{{ o }}">{{ o }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+        <form style="text-align:center" action="/mapUpdate/">
+            <br>
+                <div id="city-select">
+                    <label for="cities-select">Select a City</label>
+                    <select name="city" id="cities-select" single>
+                        {% for o in cities %}
+                            <option value="{{ o }}">{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            <br>
+                <div id="year-select">
+                    <label for="years-select">Select a Year</label>
+                    <select name="year" id="years-select" single>
+                        <option value="All" selected>All</option>
+                        {% for o in years %}
+                            <option value="{{ o }}">{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+            <br>
+                <div id="crime-select">
+                    <label for="crimes-select">Select a Crime Type</label>
+                    <select name="crime" id="crimes-select" single>
+                        <option value="All" selected>All</option>
+                        <option value="Violent">Violent</option>
+                        <option value="Property">Propety</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            <br>
             <div>
-
-            <div id="crime-select">
-                <label for="crime-select">Select a Crime Type</label>
-                <select name="crime" id="crime-select" single>
-                    <option value="All" selected>All</option>
-                    <option value="Violent">Violent</option>
-                    <option value="Property">Propety</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div>
-
                 <button>Update Heatmap</button>
             </div>
         </form>
@@ -53,7 +54,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         document.getElementById("cities-select").value = urlParams.get('city');
         document.getElementById("years-select").value = urlParams.get('year');
-        document.getElementById("crime-select").value = urlParams.get('crime');
+        document.getElementById("crimes-select").value = urlParams.get('crime');
         console.log(urlParams.get('crime'));
     }
         function updateSrc() {
