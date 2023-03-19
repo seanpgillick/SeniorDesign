@@ -392,23 +392,42 @@ def barGraph(city=None):
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
         return [graphJSON]
 
-@application.route('/mapGencity=<city>year=<year>', methods=['GET', 'POST'])
-def heatmapGen(city, year):
+@application.route('/mapGencity=<city>year=<year>crime=<crime>', methods=['GET', 'POST'])
+def heatmapGen(city, year, crime):
     cursor = mysql.get_db().cursor()
     cityList = []
     cityList.append(city)
     yearList = []
     yearList.append(year)
+    crimeList = []
+    crimeList.append(crime)
     if(cityList!=[] and yearList!=[]):
+        queryString=""
         yearString="("
         cityString="("
+        crimeString="("
         for i in yearList:
             yearString=yearString+"'"+i+"', "
         for i in cityList:
             cityString=cityString+"'"+i+"', "
+        for i in crimeList:
+            crimeString=crimeString+"'"+i+"', "
         cityString=cityString[:-2]+")"
         yearString=yearString[:-2]+")"
-        cursor.execute("SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString)
+        crimeString=crimeString[:-2]+")"
+        print(yearString)
+        print(cityString)
+        if(yearString=="('All')"):
+            queryString += "SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE City = "+cityString
+        else:
+            queryString += "SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString
+        
+        if(not crimeString=="('All')"):
+            queryString += "AND crime_type IN" +crimeString
+            print(crimeString)
+        
+
+        cursor.execute(queryString)
         # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
         cityData = cursor.fetchall()
 
@@ -464,7 +483,7 @@ def heatmapInputs(city=None, year=None):
         for i in offensesSQL:
             offenses.append(i[0])
 
-        return render_template('crimeAnalysis.html', cities=citiesSelect, years=yearsSelect)
+        return render_template('crimeAnalysis.html', cities=citiesSelect, years=yearsSelect, crimes=offenses)
 
 
 if __name__ == "__main__":
