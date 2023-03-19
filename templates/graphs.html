@@ -110,9 +110,9 @@
                 document.getElementById("chart1Load").innerHTML=`<div>Loading Graphs...</div>`
                 let url=""
                 if("{{compCity}}"){
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears="+years+"compCity={{compCity}}"
+                    url="/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears="+years+"compCity={{compCity}}"
                 } else{
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears="+years
+                    url="/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears="+years
                 }
 
                 
@@ -141,9 +141,9 @@
                 console.log(cityComp)
                 if("{{pieYears}}"){
                     console.log("{{pieYears}}")
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears={{pieYears}}compCity="+cityComp
+                    url="/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears={{pieYears}}compCity="+cityComp
                 } else{
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity="+cityComp
+                    url="/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity="+cityComp
                 }
 
                 fetch(url)
