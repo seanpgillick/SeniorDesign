@@ -2,19 +2,32 @@
 {% block content %}
     <div class="site-header-logo">
     </div>
-
-    <form action="/analysis/">
-        <div id="city-select">
-            <label for="cities-select">Select a City</label>
-            <select name="city" id="cities-select" class="form-select w-25">
+    <div class="row g-4 w-25 mx-auto mt-4" id="initialForm">
+        <div class="text-center mb-2">
+            <h3 class="text-muted">Select a city to get started</h3>
+        </div>
+        <div class="col-sm-8" id="city-select"> 
+            <select name="city" id="cities-select" class="form-select">
                 {% for o in cities %}
                     <option value="{{ o }}">{{ o }}</option>
                 {% endfor %}
             </select>
 
         </div>
-        <button class="btn btn-primary" id="formButton">
-            submit
-        </button>
-    </form>
+        <div class="col-sm-4">
+            <button type="button" id="formButton" class="btn btn-outline-primary">Submit</button>
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#formButton").click(function() {
+                var value = $("#cities-select").val()
+                console.log(value)
+                window.location.href="/analysis/"+value+"/data"
+            });
+        })
+    </script>
+
 {% endblock %}

@@ -7,8 +7,7 @@
     </div>
 
     <br/>
-    <div id="cityRenderStatus" >
-    </div>
+
 
     <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
@@ -26,78 +25,14 @@
 
       </ul>
         {% if tab == "data" %}
-            <div id="graph-results">
-                <div class="col card">
-                        
-                        <h2>{{city}} Compared to Others</h2>
-                    
-                    <div id="chart3Load"></div>
-                    <div id="chart3"></div>
-                    <br/>
-                    
-                </div>
-                <div class="row container text-center">
-                    <div class="col card">
-                        
-                            <h2>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h2>
-                        
-                        <div id="chart1Load"></div>
-                        <div id="chart1"></div>
-                        <br/>
-                        <div id="year-select" >
-                            <label for="years-select">Select Years</label>
-                            {% for o in years %}
-                                <div class="form-check form-check-inline">
-                                    {% if pieYears and o in pieYears %}
-                                        <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}" checked>
-                                    {% else %}
-                                        <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}">
-                                    {% endif %}
-                                    
-                                    <label class="form-check-label" for="inlineCheckbox1">{{o}}</label>
-                                </div>
-                            {% endfor %}
-                
-                            <button class="btn btn-secondary" type="button" id="updateYearsComp" >
-                                Set Years
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col card">
-                        {% if compCity %}
-                            <h2>Comparing {{city}} to {{compCity}}</h2>
-                        {% endif %}
-                        <div id="chart2Load"></div> 
-                        <div id="chart2"></div> 
-                        <div id="secondCityForm">
-                
-                            <div id="city-select">
-                                <label for="cities-comp-select">Select a City</label>
-      
-                                <select name="city" id="cities-comp-select" class="form-select w-25">
-                                    {% for o in cities %}
-                                        <option value="{{ o }}">{{ o }}</option>
-                                    {% endfor %}
-                                </select>
-                                
-                            </div>
-                            <button class="btn btn-primary" id="updateCityComp">
-                                submit
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            
-                <br/>
-                <hr/>
-            </div>
-            {% elif tab == "heatmap" %}
-                {% include "heatmap.html" %}
-            {% elif tab == "crimelist" %}
-                {% include "crimelist.html" %}
-            {% elif tab == "safety" %}
-                {% include "safetyScore.html" %}
-            {% endif %}
+            {% include "graphs.html" %}
+        {% elif tab == "heatmap" %}
+            {% include "heatmap.html" %}
+        {% elif tab == "crimelist" %}
+            {% include "crimelist.html" %}
+        {% elif tab == "safety" %}
+            {% include "safetyScore.html" %}
+        {% endif %}
 
 
     <br/>
@@ -105,105 +40,5 @@
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
-    <script type="text/javascript">
-
-        
-
-        $(document).ready(function() {
-            var graphs1 = {{ graph1JSON | safe}};
-            Plotly.plot("chart1", graphs1,{});
-
-            var graphs2 = {{ graph2JSON | safe}};
-            Plotly.plot("chart2", graphs2,{});
-
-            var graphs3 = {{ graph3JSON | safe}};
-            Plotly.plot("chart3", graphs3,{});
-            
-            $("#heatmap-tab").click(function(){
-                $('#data-tab-pane').removeClass("active")
-                $('#data-tab').removeClass("active")
-                $('#data-tab').removeClass("active")
-                $('#data-tab').addClass("active")
-
-            })
-
-            
-            $("#updateYearsComp").click(function() {
-                yearsSelected=$('.yearsCheck:checkbox:checked')
-                let years=[]
-                if(yearsSelected.length>0){
-                    for(let x=0; x<yearsSelected.length; x++){
-                        console.log(yearsSelected[x].value)
-                        years.push(yearsSelected[x].value)
-                    }
-                }
-                else{
-                    yearsSelected=$('.yearsCheck:checkbox')
-                    for(let x=0; x<yearsSelected.length; x++){
-                        years.push(yearsSelected[x].value)
-                    }
-                }
-
-                document.getElementById("chart1Load").innerHTML=`<div>Loading Graphs...</div>`
-                let url=""
-                if("{{compCity}}"){
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears="+years+"compCity={{compCity}}"
-                } else{
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears="+years
-                }
-
-                
-                fetch(url)
-                .then((res) => {
-                    if (!res.ok) {
-                        throw new Error("HTTP error " + res.status)
-                    }
-                    console.log(res)
-                    //document.getElementById("chart1Load").innerHTML=``
-                    window.location.replace(res.url)
-
-                })
-                .catch((err) => {
-                    console.log(err);
-                    document.getElementById("chart1").innerHTML=`<div>Error loading graphs</div>`
-
-                });
-                
-            });
-
-            $("#updateCityComp").click(function() {
-                const cityComp =$("#cities-comp-select").val()
-                document.getElementById("chart2Load").innerHTML=`<div>Loading Graphs...</div>`
-                let url=""
-                console.log(cityComp)
-                if("{{pieYears}}"){
-                    console.log("{{pieYears}}")
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears={{pieYears}}compCity="+cityComp
-                } else{
-                    url="http://127.0.0.1:2000/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity="+cityComp
-                }
-
-                fetch(url)
-                .then((res) => {
-                    if (!res.ok) {
-                        throw new Error("HTTP error " + res.status)
-                    }
-                    console.log(res)
-                    window.location.replace(res.url)
-                    //document.getElementById("chart2Load").innerHTML=``
-
-                })
-                .catch((err) => {
-                    console.log(err);
-                    document.getElementById("chart2").innerHTML=`<div>Error loading graphs</div>`
-
-                });
-            });
-            
-        });
-        
-
-        
-    </script>
 
 {% endblock %}

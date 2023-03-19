@@ -62,14 +62,6 @@ def getSQLString(cityList):
     return cityString
 
 
-@application.route('/analysis/')
-def crimeLoad(city=None):
-    city=request.args.get('city')
-    jsonData=graphResults(city)
-    cityInfo=getDataDrops(city)
-    return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city)
-
-
 @application.route('/mapUpdate/')
 def mapLoad(city=None):
     city=request.args.get('city')
@@ -79,17 +71,15 @@ def mapLoad(city=None):
 
 @application.route('/analysis/<city>/<tab>', methods=["GET", "POST"])
 def crimeAnalysis(city=None, tab=None):
-    print(tab)
     if(tab=="data"):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
-        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city)
+        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city)
     elif(tab=="heatmap"):
         cityInfo=getHeatMapDrops(city)
         return render_template('crimeAnalysis.html', years=cityInfo['years'], cities=cityInfo['cities'], tab="heatmap", city=city)
     elif(tab=="crimelist"):
         df=getCrimeList(city)
-        print(df)
         return render_template("crimeAnalysis.html", tab="crimelist", city=city, crimeData=np.array(df))
     elif(tab=="safety"):
         cityInfo = safetyScore()
@@ -106,6 +96,7 @@ def crimeAnalysis(city=None, tab=None):
 def dataGraphsUpdate(city=None, tab=None, pieYears=None, compCity=None):
     jsonData=graphResults(city)
     cityInfo=getDataDrops(city)
+    print(pieYears)
     if(pieYears!=None):
         graph1JSON=sunGraph(city, pieYears)[0]
     else:
@@ -203,9 +194,7 @@ def safetyScore():
     if(city and latitude and longitude and radius):
         # Get crimes withing selected area 
         if(radiusUnit == "km"):
-            print("km")
             kmRadius = float(radius) * 0.621371
-            print(kmRadius)
         else:
             kmRadius = float(radius) 
         cursor = mysql.get_db().cursor()
@@ -224,9 +213,7 @@ def safetyScore():
         cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
         crimeLatLng = cursor.fetchall()
-        crimeCountInRadius = cursor.rowcount
-        print(radiusUnit)
-        print(crimeCountInRadius)       
+        crimeCountInRadius = cursor.rowcount      
         # crimeCountInRadius = crimeCountInRadius[0][0]
 
         # Get city total crimes and total number of crimes
@@ -275,10 +262,6 @@ def graphResults(city=None):
         # cursor = mysql.get_db().cursor()
 
         # if(city!=None):
-
-            
-        print(city)
-        print(city)
             
             # return fig1.to_html(full_html=False, include_plotlyjs=False)
         return [sunGraph(city)[0], lineGraph(city)[0], barGraph(city)[0]]
@@ -315,7 +298,6 @@ def sunGraph(city=None, year=None):
         generalCrime = ["Other", "Property", "Property", "Property", "Property",
                 "Violent", "Violent", "Violent", "Violent"]
         crimeCount = [dfSunTotal['other'][0], dfSunTotal['theft'][0], dfSunTotal['burglary'][0], dfSunTotal['arson'][0], dfSunTotal['vehicle_theft'][0], dfSunTotal['homicide'][0], dfSunTotal['agg_assault'][0], dfSunTotal['rape'][0], dfSunTotal['robbery'][0]]
-        print(crimeCount)
         dfSunburst = pd.DataFrame(
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
@@ -340,7 +322,7 @@ def lineGraph(city=None, compCity=None):
             cityList=[city, compCity]
             cityString=getSQLString(cityList)
         
-
+        print(cityString)
         cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString)
         cityData = cursor.fetchall()
 
@@ -355,7 +337,7 @@ def lineGraph(city=None, compCity=None):
         plotDF=plotDF.sort_values(by='year')
 
 
-        fig = px.line(plotDF, x='year', y='total', title="count of crimes per year", color='city')
+        fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city')
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
@@ -373,21 +355,25 @@ def barGraph(city=None):
     
     else:
         cursor = mysql.get_db().cursor()
-        
-        cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals")
+        yearSearch="('2019', '2020', '2021')"
+        print(yearSearch)
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE year IN "+yearSearch)
         cityData = cursor.fetchall()
-
+        print(cityData)
         df = pd.DataFrame(cityData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
-
+        print(df)
 
         agg_functionsLine = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "vehicle_theft": 'sum'}
 
         dfLineChart = df.groupby(df['city']).aggregate(agg_functionsLine).reset_index()
         # plotDF=dfLineChart[['city', 'total', 'year']].copy()
-        print(dfLineChart)
         color_discrete_map = {city: 'rgb(0,255,0)'}
 
-        fig = px.bar(dfLineChart, x="city", y="total", title="Amount of Crimes in each City", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=['blue'])
+        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=['blue'])
+        fig.update_layout(
+            xaxis_title="Cities",
+            yaxis_title="Num. of Crimes (2019-2021)",
+        )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
         return [graphJSON]
@@ -415,8 +401,7 @@ def heatmapGen(city, year, crime):
         cityString=cityString[:-2]+")"
         yearString=yearString[:-2]+")"
         crimeString=crimeString[:-2]+")"
-        print(yearString)
-        print(cityString)
+
         if(yearString=="('All')"):
             queryString += "SELECT City, Year(Date) as Year, Latitude, Longitude FROM SeniorDesign.CrimeData WHERE City = "+cityString
         else:
@@ -424,7 +409,6 @@ def heatmapGen(city, year, crime):
         
         if(not crimeString=="('All')"):
             queryString += "AND crime_type IN" +crimeString
-            print(crimeString)
         
 
         cursor.execute(queryString)
