@@ -7,8 +7,7 @@
     </div>
 
     <br/>
-    <div id="cityRenderStatus" >
-    </div>
+
 
     <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
@@ -25,57 +24,15 @@
         </li>
 
       </ul>
-        {% if tab == "data" or tab=="crimelist" %}
-            <div id="graph-results">
-        
-                <div class="row container text-center">
-                    <div class="col card">
-                        <div id="chart1Load"></div>
-                        <div id="chart1"></div>
-                        <br/>
-                        <div id="year-select" >
-                            <label for="years-select">Select Years</label>
-                            {% for o in years %}
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}">
-                                    <label class="form-check-label" for="inlineCheckbox1">{{o}}</label>
-                                </div>
-                            {% endfor %}
-                
-                            <button class="btn btn-secondary" type="button" id="updateYearsComp" >
-                                Set Years
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col card">
-                        <div id="chart2Load"></div> 
-                        <div id="chart2"></div> 
-                        <div id="secondCityForm">
-                
-                            <div id="city-select">
-                                <label for="cities-comp-select">Select a City</label>
-                                <select name="city" id="cities-comp-select" class="form-select w-25">
-                                    {% for o in cities %}
-                                        <option value="{{ o }}">{{ o }}</option>
-                                    {% endfor %}
-                                </select>
-                                
-                            </div>
-                            <button class="btn btn-primary" id="updateCityComp">
-                                submit
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            
-                <br/>
-                <hr/>
-            </div>
-            {% elif tab == "heatmap" %}
-                {% include "heatmap.html" %}
-            {% elif tab == "safety" %}
-                {% include "safetyScore.html" %}
-            {% endif %}
+        {% if tab == "data" %}
+            {% include "graphs.html" %}
+        {% elif tab == "heatmap" %}
+            {% include "heatmap.html" %}
+        {% elif tab == "crimelist" %}
+            {% include "crimelist.html" %}
+        {% elif tab == "safety" %}
+            {% include "safetyScore.html" %}
+        {% endif %}
 
 
     <br/>
@@ -83,134 +40,5 @@
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
-    <script type="text/javascript">
-
-
-
-        $(document).ready(function() {
-            var graphs1 = {{ graph1JSON | safe}};
-            Plotly.plot("chart1", graphs1,{});
-
-            var graphs2 = {{ graph2JSON | safe}};
-            Plotly.plot("chart2", graphs2,{});
-            
-            $("#heatmap-tab").click(function(){
-                $('#data-tab-pane').removeClass("active")
-                $('#data-tab').removeClass("active")
-                $('#data-tab').removeClass("active")
-                $('#data-tab').addClass("active")
-
-            })
-            // $('#data-tab-pane').addClass("show")
-            // $('#data-tab-pane').addClass("active")
-            
-            // $('#heatmap-tab-pane').removeClass("active")
-            // $('#heatmap-tab-pane').removeClass("show")
-            // $('#heatmap-tab').removeClass("active")
-            // $('#data-tab').addClass("active")
-            // document.getElementById("cityRenderStatus").innerHTML=`<div>Loading Graphs...</div>`
-            // const cityName =$("#cities-select").val()
-            // const graph_url = {{ url_for("graphResults")|tojson }};
-            // fetch("http://127.0.0.1:2000/graphResults/"+"{{selectedCity}}")
-            //     .then((res) => {
-            //         if (!res.ok) {
-            //             throw new Error("HTTP error " + res.status)
-            //         }
-            //         console.log(res)
-            //         return res.text();
-            //     })
-            //     .then((data) => {
-            //         document.getElementById("graph-results").removeAttribute("hidden");
-            //         Plotly.plot("chart1", JSON.parse(JSON.parse(data)[0]),{});
-            //         Plotly.plot("chart2", JSON.parse(JSON.parse(data)[1]),{});
-            //         document.getElementById("cityRenderStatus").innerHTML=``
-
-            //     })
-            //     .catch((err) => {
-            //         console.log(err);
-            //         document.getElementById("cityRenderStatus").innerHTML=`<div>Error loading graphs</div>`
-
-            //     });
-            $("#updateYearsComp").click(function() {
-                // $("#chart1").removeClass("js-plotly-plot")
-                // $("#chart1").html("");
-                yearsSelected=$('.yearsCheck:checkbox:checked')
-                let years=[]
-                if(yearsSelected.length>0){
-                    for(let x=0; x<yearsSelected.length; x++){
-                        console.log(yearsSelected[x].value)
-                        years.push(yearsSelected[x].value)
-                    }
-
-                    document.getElementById("chart1Load").innerHTML=`<div>Loading Graphs...</div>`
-                    const cityName =$("#cities-select").val()
-                    let selectedCity="{{selectedCity}}"
-                    const graph_url = {{ url_for("sunGraph", city=selectedCity, year=years)|tojson }};
-
-                    fetch("http://127.0.0.1:2000/sunGraph/city={{selectedCity}}year="+years)
-                    .then((res) => {
-                            if (!res.ok) {
-                                throw new Error("HTTP error " + res.status)
-                            }
-                            console.log(res)
-                            return res.text();
-                        })
-                        .then((data) => {
-                            // document.getElementById("graph-results").removeAttribute("hidden");
-                            // $("#chart1").html("");
-                            document.getElementById("chart1Load").innerHTML=``
-
-                            Plotly.plot("chart1", JSON.parse(JSON.parse(data)[0]),{});
-                            // Plotly.plot("chart2", JSON.parse(JSON.parse(data)[1]),{});
-                            // document.getElementById("cityRenderStatus").innerHTML=``
-
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                        document.getElementById("chart1").innerHTML=`<div>Error loading graphs</div>`
-
-                    });
-                }
-            });
-
-            $("#updateCityComp").click(function() {
-                // $("#chart1").removeClass("js-plotly-plot")
-                // $("#chart1").html("");
-                const cityComp =$("#cities-comp-select").val()
-                document.getElementById("chart2Load").innerHTML=`<div>Loading Graphs...</div>`
-                // const cityName =$("#cities-comp-select").val()
-                // let selectedCity="{{selectedCity}}"
-                // const graph_url = {{ url_for("sunGraph", city=selectedCity, year=years)|tojson }};
-
-                fetch("http://127.0.0.1:2000/lineGraph/city={{selectedCity}}cityComp="+cityComp)
-                .then((res) => {
-                        if (!res.ok) {
-                            throw new Error("HTTP error " + res.status)
-                        }
-                        console.log(res)
-                        return res.text();
-                    })
-                    .then((data) => {
-                        
-                        // document.getElementById("graph-results").removeAttribute("hidden");
-                        // $("#chart1").html("");
-                        document.getElementById("chart2Load").innerHTML=``
-                        Plotly.plot("chart2", JSON.parse(JSON.parse(data)[0]),{});
-                        // Plotly.plot("chart2", JSON.parse(JSON.parse(data)[1]),{});
-                        // document.getElementById("cityRenderStatus").innerHTML=``
-
-                })
-                .catch((err) => {
-                    console.log(err);
-                    document.getElementById("chart2").innerHTML=`<div>Error loading graphs</div>`
-
-                });
-            });
-            
-        });
-        
-
-        
-    </script>
 
 {% endblock %}
