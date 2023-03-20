@@ -15,7 +15,6 @@ import markupsafe
 import numpy as np
 import math
 
-
 application = Flask(__name__) # This needs to be named `application`
 
 

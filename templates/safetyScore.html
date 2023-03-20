@@ -1,5 +1,6 @@
 {% block content %}
 <div class="mt-2">
+    <div id="#google_maps_div"></div>
     {% set inputValue = "" %}
     {% set inputRadius = "" %}
     {% if(address) %}
@@ -49,11 +50,6 @@
                 <button type="button" id="calculate-score" class="btn btn-outline-primary">Calculate</button>
             </div>
         </div>   
-    <datalist id="addresses">
-        {% if(address) %}
-            <option selected data-longitude="{{ longitude }}" data-latitude="{{ latitude }}" value="{{ address }}">
-        {% endif %}
-    </datalist>
     <div class="text-center">
         <p id="calculating-score"></p>
     </div>
@@ -85,47 +81,25 @@
         </div>
     {% endif %}
 </div>
-
+<script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCwhEnLg4K-Bhhuntc3zoMw7oVIhI0neqk&libraries=places&callback=initMap">
+</script>
 <script>
+    function initMap(){}
+
     $( document ).ready(function() {
-        var requestOptions = {
-            method: 'GET',
-        };
+        const autocomplete = new google.maps.places.Autocomplete($("#address-input").get(0));
 
-        let selectedCity = "Philadelphia, PA";
-        let placeId = "";
-        fetch("https://api.geoapify.com/v1/geocode/search?text="+selectedCity+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
-            .then(response => response.json())
-            .then(result => {
-                placeId=result.features[0].properties.place_id
-            })
-            .catch(error => console.log('error', error));
-
-
-       $("#address-input").on("input", function(){
-        let searchKey = $(this).val();
-
-        if(searchKey==""){
-            return;
-        }
-
-        fetch("https://api.geoapify.com/v1/geocode/autocomplete?text="+searchKey+"&filter=place:"+placeId+"&apiKey=c7ed1751053347ee838d0c9c0228a110", requestOptions)
-            .then(response => response.json())
-            .then(result => {
-                $('#addresses').empty()
-                let searchResults = result.features;
+        autocomplete.setFields(["formatted_address", "geometry"]);
                 
-                for (const address of searchResults){
-                    console.log(address);
-                    $('#addresses').append("<option data-longitude='" + address.geometry.coordinates[0] + "' data-latitude='" + address.geometry.coordinates[1] + "' value='" + address.properties.formatted + "'>");
-                }
-            
-            })
-            .catch(error => console.log('error', error));
-       }); 
+        autocomplete.addListener('place_changed', function (place) {
+            $("#calculate-score").data("lng",  autocomplete.getPlace().geometry.location.lng());
+            $("#calculate-score").data("lat", autocomplete.getPlace().geometry.location.lat()); 
+            $("#calculate-score").data("address", autocomplete.getPlace().formatted_address);
+        });
 
        $("#calculate-score").on("click", function (){
-            let selectedAddress = $("#address-input").val();            
+            let selectedAddress = $(this).data("address");            
             let radius = $("#radius-input").val();
 
             if(!selectedAddress){
@@ -136,11 +110,9 @@
             }
 
             if(selectedAddress && radius){
-                console.log("HERE")
                 $("#calculating-score").text("Calculating safety score...");
-                let addressOption = $("#addresses option[value='"+selectedAddress+"']");
-                let latitude = addressOption.data("latitude");
-                let longitude = addressOption.data("longitude");
+                let latitude = $(this).data("lat");
+                let longitude = $(this).data("lng");
                 let unit = $("#radius_unit").find(":selected").val();
 
                 window.location.href = "/analysis/Philadelphia/safety?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city={{ city }}&unit="+unit;
