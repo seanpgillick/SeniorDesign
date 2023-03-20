@@ -4,6 +4,7 @@ import pandas as pd
 
 stateabbreviations = {
     "Atlanta": "GA",
+    "Auburn": "WA",
     "Austin": "TX",
     "Baltimore": "MD",
     "Boston": "MA",
@@ -12,6 +13,7 @@ stateabbreviations = {
     "Cincinnati": "OH",
     "Colorado Springs": "CO",
     "Fort Worth": "TX",
+    "Gainesville": "GA",
     "Houston": "TX",
     "Kansas City": "MO",
     "Los Angeles": "CA",
@@ -22,6 +24,7 @@ stateabbreviations = {
     "Montgomery": "AL",
     "Nashville": "TN",
     "New York": "NY",
+    "Oakland": "CA",
     "Omaha": "NE",
     "Philadelphia": "PA",
     "Portland": "OR",
