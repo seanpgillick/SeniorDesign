@@ -431,6 +431,10 @@ def heatmapGen(city, year, crime):
         # for x in data:
         #     print(x)
 
+        if(len(data)<1):
+            htmlCode = '<html><br><h3 style="text-align: center">Failed to retrieve location data for ' + cityString + '</h3></html>'
+            return htmlCode
+
         HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=10, min_opacity=.25, max=1.0).add_to(mapObj)
         return mapObj._repr_html_()
 
