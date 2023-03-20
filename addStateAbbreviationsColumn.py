@@ -1,7 +1,8 @@
+# The main goal of this script is to add a state column with correct state abbreviation to each city for each city data. The city data that needed State abbreviation must be generated before running this script. This script will got through each CityData csv file and check for State column, if it already exists we skip that file or else we will add that column to that csv file.
 from pathlib import Path
 import pandas as pd
 
-
+# dictionary of state abbreviations for each city
 stateabbreviations = {
     "Atlanta": "GA",
     "Austin": "TX",
@@ -31,6 +32,7 @@ stateabbreviations = {
     "Washington D.C.": "DC",
 }
 
+# Path to CityData directory
 directory = './CityData'
 
 files = Path(directory).glob('*')
