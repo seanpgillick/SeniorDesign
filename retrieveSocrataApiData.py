@@ -146,6 +146,30 @@ cityApiInfo = {
             "lonCol":"longitude",
             "keys":["icn6-v9z3"]
         },
+    "Auburn": { # LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
+            "url":"data.auburnwa.gov",
+            "dateCol":"reported",
+            "offCol":"offense",
+            "latCol":"location_1",
+            "lonCol":"location_1",
+            "keys":["mjmi-qtn7"]
+        },
+    "Oakland": { # LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
+            "url":"data.oaklandca.gov",
+            "dateCol":"DateTime",
+            "offCol":"CrimeType",
+            "latCol":"Location",
+            "lonCol":"Location",
+            "keys":["ppgh-7dqv"]
+        },
+    "Gainesville": {
+            "url":"data.cityofgainesville.org",
+            "dateCol":"offense_date",
+            "offCol":"narrative",
+            "latCol":"Latitude",
+            "lonCol":"Longitude",
+            "keys":["gvua-xt9q"]
+        },
 }
 
 
