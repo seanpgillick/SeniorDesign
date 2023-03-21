@@ -1,25 +1,12 @@
 {% block content %}
-    <div class="site-header-logo">
-        <h1 class="text-center">
-            Heatmap
-        </h1>
-    </div>
-    
+  
     <div id="selections" class="flex-container">
         <div class="text-center mb-2">
             <i class="text-muted">Select a city, year or crime type to get a detailed map of specific crimes in each city</i>
         </div>
-        <form class="row g-1 w-50 mx-auto" action="/mapUpdate/">
+        <form class="row g-1 w-50 mx-auto" action="/analysis/{{city}}/{{tab}}">
             <br>
-                <div id="city-select" class="col-sm-3">
-                    <label for="cities-select">Select a City</label>
-                    <select name="city" id="cities-select" class="form-select" single>
-                        {% for o in cities %}
-                            <option value="{{ o }}">{{ o }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div id="year-select" class="col-sm-3">
+                <div id="year-select" class="col-sm-4">
                     <label for="years-select">Select a Year</label>
                     <select name="year" id="years-select" class="form-select" single>
                         <option value="All" selected>All</option>
@@ -28,7 +15,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div id="crime-select" class="col-sm-3">
+                <div id="crime-select" class="col-sm-4">
                     <label for="crimes-select">Select a Crime Type</label>
                     <select name="crime" id="crimes-select" class="form-select" single>
                         <option value="All" selected>All</option>
@@ -38,7 +25,7 @@
                     </select>
                 </div>
             <br>
-            <div class="col-sm-3 d-flex align-items-end">
+            <div class="col-sm-4 d-flex align-items-end">
                 <button class="btn btn-outline-primary">Update Heatmap</button>
             </div>
         </form>
@@ -52,7 +39,6 @@
     window.onload = function() {
         updateSrc();
         const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById("cities-select").value = urlParams.get('city');
         document.getElementById("years-select").value = urlParams.get('year');
         document.getElementById("crimes-select").value = urlParams.get('crime');
         console.log(urlParams.get('crime'));
@@ -64,7 +50,7 @@
             document.getElementById("frameContainer").innerHTML="";
             let url_string = "/mapGen";
             const urlParams = new URLSearchParams(window.location.search);
-            const city = urlParams.get('city');
+            const city = "{{city}}";
             const year = urlParams.get('year');
             const crime = urlParams.get('crime');
 

@@ -4,6 +4,17 @@
         <h1 class="text-center">
             {{city|safe}}
         </h1>
+
+        <div id="city-select" class="w-25 mx-auto">
+            <select name="city" id="cities-select" class="form-select">
+                <option disabled selected value="">Change City</option>
+                {% for o in cities %}
+                    {% if(o != city) %}
+                        <option value="{{ o }}">{{ o }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
     </div>
 
     <br/>
@@ -14,7 +25,7 @@
             <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Data</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap">Heatmap</a>
+            <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap?city={{city}}&year=All&crime=All">Heatmap</a>
         </li>
         <li class="nav-item" role="presentation">
             <a class="nav-link {{ 'active' if tab == 'crimelist' else '' }}" id="crimelist-tab" type="button" aria-controls="crimelist-tab-pane" aria-selected="false" href="/analysis/{{ city }}/crimelist">Crime List</a>
@@ -41,4 +52,16 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
 
+    <script>
+         $( document ).ready(function() {
+            $("#city-select").on("change", function () {
+                let selectedCity = $(this).find(":selected").val();
+                if("{{tab}}" == "heatmap"){
+                    window.location.href = "/analysis/"+selectedCity+"/{{tab}}?city="+selectedCity+"&year=All&crime=All";
+                }else{
+                    window.location.href = "/analysis/"+selectedCity+"/{{tab}}"
+                }
+            })
+         });
+    </script>
 {% endblock %}
