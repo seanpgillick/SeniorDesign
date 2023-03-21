@@ -1,28 +1,37 @@
 {% include "layout.html" %}
 {% block content %}
+    <div class="w-75 mx-auto mt-2">
     <div class="site-header-logo">
-        <h1 class="text-center">
-            {{city|safe}}
-        </h1>
-
-        <div id="city-select" class="w-25 mx-auto">
-            <select name="city" id="cities-select" class="form-select">
-                <option disabled selected value="">Change City</option>
-                {% for o in cities %}
-                    {% if(o != city) %}
-                        <option value="{{ o }}">{{ o }}</option>
-                    {% endif %}
-                {% endfor %}
-            </select>
+        <div>
+            <h1 style="display:inline;">
+                {{city|safe}} Crime Analytics
+            </h1>
+            <a href="#" class="link-primary" id="change_city_link" style="display:inline;">change city</p>
+        </div>
+        <div id="city-select" class="w-50 d-none row g-1">
+            <div class="col-sm-8">
+                <select name="city" id="cities-select" class="form-select">
+                    {% set selected = "" %}
+                    {% for o in citiesSelect %}
+                        {% if(o == city) %}
+                            {% set selected = "selected" %}
+                        {% endif %}
+                        <option {{ selected }} value="{{ o }}">{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4">
+                <button id="change_city_btn" class="btn btn-outline-primary">change</button>
+            </div>
         </div>
     </div>
 
     <br/>
 
 
-    <ul class="nav nav-tabs" id="myTab" role="tablist">
+    <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Data</a>
+            <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Charts</a>
         </li>
         <li class="nav-item" role="presentation">
             <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap?city={{city}}&year=All&crime=All">Heatmap</a>
@@ -35,6 +44,7 @@
         </li>
 
       </ul>
+      </div>
         {% if tab == "data" %}
             {% include "graphs.html" %}
         {% elif tab == "heatmap" %}
@@ -54,14 +64,25 @@
 
     <script>
          $( document ).ready(function() {
-            $("#city-select").on("change", function () {
-                let selectedCity = $(this).find(":selected").val();
+            $("#change_city_btn").on("click", function () {
+                let selectedCity = $("#city-select").find(":selected").val();
                 if("{{tab}}" == "heatmap"){
                     window.location.href = "/analysis/"+selectedCity+"/{{tab}}?city="+selectedCity+"&year=All&crime=All";
                 }else{
                     window.location.href = "/analysis/"+selectedCity+"/{{tab}}"
                 }
             })
+
+            $("#change_city_link").on("click", function(){
+                let city_dropdown = $("#city-select");
+                if(city_dropdown.hasClass("d-none")){
+                    city_dropdown.removeClass("d-none")
+                    $(this).text("hide dropdown")
+                } else {
+                    city_dropdown.addClass("d-none")
+                    $(this).text("change city")
+                }
+            });
          });
     </script>
 {% endblock %}
