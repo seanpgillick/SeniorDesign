@@ -2,24 +2,24 @@
 {% block content %}
     <div class="site-header-logo">
     </div>
-    <div class="row g-4 w-25 mx-auto mt-4" id="initialForm">
-        <div class="text-center mb-2">
-            <h3 class="text-muted">Select a city to get started</h3>
-        </div>
-        <div class="col-sm-8" id="city-select"> 
-            <select name="city" id="cities-select" class="form-select">
-                {% for o in cities %}
-                    <option value="{{ o }}">{{ o }}</option>
-                {% endfor %}
-            </select>
+    <div class="row w-50 mx-auto align-items-center" style="height: 80vh;">
+        <div id="initialForm">
+            <div class="text-center mb-2">
+                <h3 class="text-muted">Select a city to view crime statistics</h3>
+            </div>
+            <div id="city-select"> 
+                <select name="city" id="cities-select" class="form-select">
+                    {% for o in cities %}
+                        <option value="{{ o }}">{{ o }}</option>
+                    {% endfor %}
+                </select>
 
-        </div>
-        <div class="col-sm-4">
-            <button type="button" id="formButton" class="btn btn-outline-primary">Submit</button>
-        </div>
+            </div>
+            <div class="text-center">
+                <button type="button" id="formButton" class="btn btn-outline-primary mt-2">Generate Statistics</button>
+            </div>
+        </div>        
     </div>
-
-
     <script type="text/javascript">
         $(document).ready(function() {
             $("#formButton").click(function() {
