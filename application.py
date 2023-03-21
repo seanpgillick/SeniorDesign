@@ -91,7 +91,8 @@ def crimeAnalysis(city=None, tab=None):
         return render_template("crimeAnalysis.html", tab="crimelist", city=city, crimeData=np.array(df), citiesSelect=citySelect)
     elif(tab=="safety"):
         cityInfo = safetyScore(city)
-        return render_template('crimeAnalysis.html', safetyScore=cityInfo["safetyScore"], 
+
+        return render_template('crimeAnalysis.html', safetyScore=cityInfo["safetyScore"], status=cityInfo["status"],
                                 address=cityInfo["address"], latitude=cityInfo["latitude"], longitude=cityInfo["longitude"], 
                                 state=cityInfo["state"], city=city, tab="safety", radius=cityInfo["radius"], unit=cityInfo["unit"],
                                 cityLat=cityInfo["cityLat"], cityLng=cityInfo["cityLng"], scoresByYear=cityInfo["scoresByYear"],
@@ -211,6 +212,11 @@ def safetyScore(city):
     graphJSON = None
 
     if(address and latitude and longitude and radius):
+        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1)):
+            return {"safetyScore": overalSafetyScore, "address": address, "status": "failed",
+            "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
+            "cityLat": cityLat, "cityLng": cityLng, "scoresByYear": safetyScoresByYear, "graph": graphJSON}
+        
         # Get crimes withing selected area 
         if(radiusUnit == "km"):
             kmRadius = float(radius) * 0.621371
@@ -221,7 +227,7 @@ def safetyScore(city):
 
         # Get city total crimes and total number of crimes
         cursor = mysql.get_db().cursor()
-        cursor.execute("""SELECT ctt.year, ctt.total, ci.area, ci.state
+        cursor.execute("""SELECT ctt.year, ctt.total, ci.area, ci.state, ci.latitude, ci.longitude
                             FROM SeniorDesign.CrimeTypeTotals ctt
                             INNER JOIN SeniorDesign.CityInformation ci 
                                 ON ci.city = ctt.city
@@ -245,7 +251,6 @@ def safetyScore(city):
             
             # cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND YEAR(date)='"+currentYear+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
-        print(totalCrimeCountsByYear)
         sqlQuery += "FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)
         cursor.execute(sqlQuery)
 
@@ -276,11 +281,12 @@ def safetyScore(city):
 
         safetyScoreDf = pd.DataFrame.from_dict(safetyScoresByYear)
         fig = px.line(safetyScoreDf, x='years', y='scores', title="Safety score over the years")
+        fig.update_layout(yaxis_range=[0,5])
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
     
-    return {"safetyScore": overalSafetyScore, "address": address, 
+    return {"safetyScore": overalSafetyScore, "address": address, "status":"passed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
             "cityLat": cityLat, "cityLng": cityLng, "scoresByYear": safetyScoresByYear, "graph": graphJSON}
 

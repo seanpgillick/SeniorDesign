@@ -62,6 +62,11 @@
                     data-address="{{ inputValue }}" data-lat="{{ latitude }}" data-lng="{{ longitude }}">Calculate</button>
             </div>
         </div>   
+        {% if(status and status == "failed") %}
+            <div class="text-center">
+                <p id="error-score" class="text-danger">The selected address is not located within {{city}}</p>
+            </div>
+        {% endif %}
     <div class="text-center">
         <p id="calculating-score"></p>
     </div>
@@ -139,7 +144,6 @@
             var newGraph = {{ graph | safe}};
             Plotly.plot("chart1", newGraph,{});
         }
-                
         
         if("{{address}}"){
             $('<iframe>', {
