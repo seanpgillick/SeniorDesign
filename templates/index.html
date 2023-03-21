@@ -9,8 +9,8 @@
             </div>
             <div id="city-select"> 
                 <select name="city" id="cities-select" class="form-select">
-                    {% for o in cities %}
-                        <option value="{{ o }}">{{ o }}</option>
+                    {% for city in cities %}
+                        <option value="{{ city[0] }}">{{ city[0] }}, {{city[1]}}</option>
                     {% endfor %}
                 </select>
 

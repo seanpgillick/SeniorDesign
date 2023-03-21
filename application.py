@@ -36,22 +36,10 @@ mysql.init_app(application)
 @application.route('/')
 def index():
     cursor = mysql.get_db().cursor()
-    cursor.execute("SELECT city FROM SeniorDesign.CityInformation")
+    cursor.execute("SELECT city, state FROM SeniorDesign.CityInformation")
     citiesSQL=cursor.fetchall()
 
-    # cursor.execute("SELECT Year FROM SeniorDesign.CrimeTypeTotals GROUP BY Year"),
-    # yearsSQL=cursor.fetchall()
-
-    citiesSelect=[]
-    # yearsSelect=[]
-
-    for i in citiesSQL:
-        citiesSelect.append(i[0])
-
-    # for i in yearsSQL:
-        # yearsSelect.append(i[0])
-
-    return render_template("index.html", cities=citiesSelect)
+    return render_template("index.html", cities=citiesSQL)
 
 def getSQLString(cityList):
     cityString="("
@@ -71,24 +59,19 @@ def mapLoad(city=None):
 @application.route('/analysis/<city>/<tab>', methods=["GET", "POST"])
 def crimeAnalysis(city=None, tab=None):
     cursor = mysql.get_db().cursor()
-    cursor.execute("SELECT city FROM SeniorDesign.CityInformation;")
+    cursor.execute("SELECT city, state FROM SeniorDesign.CityInformation;")
     citiesSQL=cursor.fetchall()
-    print(citiesSQL)
-    citySelect = []
-    for tempCity in citiesSQL:
-        citySelect += [tempCity[0]]
-
-    print(citySelect)
+    
     if(tab=="data"):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
-        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city, citiesSelect=citySelect)
+        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city, citiesSelect=citiesSQL)
     elif(tab=="heatmap"):
         cityInfo=getHeatMapDrops(city)
-        return render_template('crimeAnalysis.html', years=cityInfo['years'], tab="heatmap", city=city, citiesSelect=citySelect)
+        return render_template('crimeAnalysis.html', years=cityInfo['years'], tab="heatmap", city=city, citiesSelect=citiesSQL)
     elif(tab=="crimelist"):
         df=getCrimeList(city)
-        return render_template("crimeAnalysis.html", tab="crimelist", city=city, crimeData=np.array(df), citiesSelect=citySelect)
+        return render_template("crimeAnalysis.html", tab="crimelist", city=city, crimeData=np.array(df), citiesSelect=citiesSQL)
     elif(tab=="safety"):
         cityInfo = safetyScore(city)
 
@@ -96,7 +79,7 @@ def crimeAnalysis(city=None, tab=None):
                                 address=cityInfo["address"], latitude=cityInfo["latitude"], longitude=cityInfo["longitude"], 
                                 state=cityInfo["state"], city=city, tab="safety", radius=cityInfo["radius"], unit=cityInfo["unit"],
                                 cityLat=cityInfo["cityLat"], cityLng=cityInfo["cityLng"], scoresByYear=cityInfo["scoresByYear"],
-                                graph=cityInfo["graph"], citiesSelect=citySelect)
+                                graph=cityInfo["graph"], citiesSelect=citiesSQL)
 
 
     return render_template("crimeAnalysis.html")

@@ -6,17 +6,17 @@
             <h1 style="display:inline;">
                 {{city|safe}} Crime Analytics
             </h1>
-            <a href="#" class="link-primary" id="change_city_link" style="display:inline;">change city</p>
+            <a href="#" class="link-primary" id="change_city_link" style="display:inline;">change city</a>
         </div>
         <div id="city-select" class="w-50 d-none row g-1">
             <div class="col-sm-8">
                 <select name="city" id="cities-select" class="form-select">
                     {% set selected = "" %}
                     {% for o in citiesSelect %}
-                        {% if(o == city) %}
+                        {% if(o[0] == city) %}
                             {% set selected = "selected" %}
                         {% endif %}
-                        <option {{ selected }} value="{{ o }}">{{ o }}</option>
+                        <option {{ selected }} value="{{ o[0] }}">{{ o[0] }}, {{ o[1] }}</option>
                     {% endfor %}
                 </select>
             </div>
