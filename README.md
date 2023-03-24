@@ -2,6 +2,8 @@
 
 ### Virtual Environment:
 
+Before getting started make sure you are in Dev branch or pull latest changes from Dev branch. Currently Dev branch is updated.
+
 We are using a python venv virtual environment. This was created using 'py -m pip install --user virtualenv'
 The dependencies that are installed in our vm can be found in requirements.txt
 
