@@ -2,6 +2,8 @@
 
 ### Virtual Environment:
 
+Before getting started make sure you are in Dev branch or pull latest changes from Dev branch. Currently Dev branch is updated.
+
 We are using a python venv virtual environment. This was created using 'py -m pip install --user virtualenv'
 The dependencies that are installed in our vm can be found in requirements.txt
 
@@ -19,7 +21,7 @@ To ensure all scripts are ran with the correct dependencies and the correct vers
 
 #Demo
 To launch a local version run, make sure you are in the top level of the directory. Next run: 
-node server.js
+python application.py
 
 Next open:
-http://localhost:5000
+http://localhost:2000
