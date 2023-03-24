@@ -19,9 +19,9 @@ To ensure all scripts are ran with the correct dependencies and the correct vers
 
 #Demo
 To launch a local version run, make sure you are in the top level of the directory. Next run: 
-node server.js
+python application.py
 
 Next open:
-http://localhost:5000
+http://localhost:2000
 
 
