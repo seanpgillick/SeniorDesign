@@ -50,7 +50,8 @@ def defineCrimeType(offense):
     ## Check Property Crime
     # Check if Motor Vehicle Theft
     if (("theft" in offense.lower() and ("auto" in offense.lower() or "vehicle" in offense.lower()))
-            or "mvt" in offense.lower() or "autoth" in offense.lower() or "mvthft" in offense.lower() or "240" in offense.lower()):
+            or "mvt" in offense.lower() or "autoth" in offense.lower() or "mvthft" in offense.lower() 
+            or "240" in offense.lower() or "vehic" in offense.lower()):
         return "Motor Vehicle Theft", PROPERTY_CRIME
 
     # Check if Larceny-Theft
@@ -59,7 +60,7 @@ def defineCrimeType(offense):
         or "attempt" not in offense.lower() or "veh" not in offense.lower() or "fail" not in offense.lower() or "identity" not in offense.lower())
         or ("shoplifting" in offense.lower() or ("pocket" in offense.lower() and "pick" in offense.lower()) or "purse-snatching" in offense.lower())
         or "larc" in offense.lower() or "23" in offense.lower() or "stealing from buildi" in offense.lower() or "stealing from auto" in offense.lower() 
-        or "stealing auto parts/" in offense.lower() or "purse snatching" in offense.lower()):
+        or "stealing auto parts/" in offense.lower() or "purse snatching" in offense.lower() or "extortion" in offense.lower()):
         return "Larceny-Theft", PROPERTY_CRIME
 
     # Check if Burglary
