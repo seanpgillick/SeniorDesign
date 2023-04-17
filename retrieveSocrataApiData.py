@@ -170,6 +170,14 @@ cityApiInfo = {
             "lonCol":"Longitude",
             "keys":["gvua-xt9q"]
         },
+    "Baton Rouge": {
+            "url":"data.brla.gov",
+            "dateCol":"charge_date",
+            "offCol":"statute_description",
+            "latCol":"latitude",
+            "lonCol":"longitude",
+            "keys":["pbin-pcm7"]
+    }
 }
 
 
