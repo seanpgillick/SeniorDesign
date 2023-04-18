@@ -90,12 +90,13 @@ def crimeAnalysis(city=None, tab=None):
 def dataGraphsUpdate(city=None, tab=None, pieYears=None, compCity=None):
     jsonData=graphResults(city)
     cityInfo=getDataDrops(city)
-    print(pieYears)
-    if(pieYears!=None):
+    if(pieYears!=None and pieYears!="None"):
         graph1JSON=sunGraph(city, pieYears)[0]
     else:
+        print('HERE 5')
         graph1JSON=jsonData[0]
     if(compCity!=None):
+        print("ARE YOU HERE")
         graph2JSON=lineGraph(city, compCity)[0]
     else:
         graph2JSON=jsonData[1]
@@ -340,13 +341,14 @@ def lineGraph(city=None, compCity=None):
     
     else:
         cursor = mysql.get_db().cursor()
+        print(city)
+        print(compCity)
         if(compCity==None or compCity is None):
             cityString="('"+city+"')"
         else:
             cityList=[city, compCity]
             cityString=getSQLString(cityList)
         
-        print(cityString)
         cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString)
         cityData = cursor.fetchall()
 
@@ -380,12 +382,11 @@ def barGraph(city=None):
     else:
         cursor = mysql.get_db().cursor()
         yearSearch="('2019', '2020', '2021')"
-        print(yearSearch)
+
         cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE year IN "+yearSearch)
         cityData = cursor.fetchall()
-        print(cityData)
+
         df = pd.DataFrame(cityData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
-        print(df)
 
         agg_functionsLine = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "vehicle_theft": 'sum'}
 
