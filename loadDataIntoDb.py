@@ -31,7 +31,7 @@ if __name__ == "__main__":
         table_n = "CrimeData"
 
         
-        citiesLeft = []
+        citiesLeft = ["Baton Rouge"]
         for file in files:
             data = pd.read_csv(file)
             city = file.name.split('_')[0]
@@ -43,9 +43,9 @@ if __name__ == "__main__":
             data = data[list(
                 ('city', 'state', 'offense', 'crime_type', 'date', 'latitude', 'longitude'))]
 
-            print("Deleting data for " + city)
-            with engine.connect() as conn:
-                conn.execute("DELETE FROM CrimeData WHERE city='"+city+"'")
+            # print("Deleting data for " + city)
+            # with engine.connect() as conn:
+            #     conn.execute("DELETE FROM CrimeData WHERE city='"+city+"'")
             
 
             # Un comment this out to load new records into CrimeData
@@ -69,14 +69,15 @@ if __name__ == "__main__":
             tempCrimeTypeCount = data.groupby(["crime_type", "Year"]).size()
 
             for year in data["Year"].unique():
+                print("Calculating " + city + " crime totals for " + year)
                 cityCrimeTotals = checkCityCrimTotals(city, year, engine)
                 if(not cityCrimeTotals):
-                    if("Homicide" in tempCrimeCount):
+                    if("Homicide" in tempCrimeCount and year in tempCrimeCount["Homicide"]):
                         homicideCount = tempCrimeCount["Homicide"][year]
                     else:
                         homicideCount = 0
-
-                    if("Aggrevated Assault" in tempCrimeCount):
+                    
+                    if("Aggrevated Assault" in tempCrimeCount and year in tempCrimeCount["Aggrevated Assault"]):
                         aggCount = tempCrimeCount["Aggrevated Assault"][year]
                     else:
                         aggCount = 0
@@ -86,27 +87,27 @@ if __name__ == "__main__":
                     else:
                         rapeCount = 0
 
-                    if("Robbery" in tempCrimeCount):
+                    if("Robbery" in tempCrimeCount and year in tempCrimeCount["Robbery"]):
                         robberyCount = tempCrimeCount["Robbery"][year]
                     else:
                         robberyCount = 0
 
-                    if("Motor Vehicle Theft" in tempCrimeCount):
+                    if("Motor Vehicle Theft" in tempCrimeCount and year in tempCrimeCount["Motor Vehicle Theft"]):
                         vehicleCount = tempCrimeCount["Motor Vehicle Theft"][year]
                     else:
                         vehicleCount = 0
 
-                    if("Larceny-Theft" in tempCrimeCount):
+                    if("Larceny-Theft" in tempCrimeCount and year in tempCrimeCount["Larceny-Theft"]):
                         theftCount = tempCrimeCount["Larceny-Theft"][year]
                     else:
                         theftCount = 0
 
-                    if("Burglary" in tempCrimeCount):
+                    if("Burglary" in tempCrimeCount and year in tempCrimeCount["Burglary"]):
                         burglaryCount = tempCrimeCount["Burglary"][year]
                     else:
                         burglaryCount = 0
 
-                    if("Arson" in tempCrimeCount):
+                    if("Arson" in tempCrimeCount and year in tempCrimeCount["Arson"]):
                         arsonCount = tempCrimeCount["Arson"][year]
                     else:
                         arsonCount = 0
