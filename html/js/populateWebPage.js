@@ -22,9 +22,6 @@ document.getElementById("search-button").addEventListener("click", function () {
 	})
     .then(response => response.json())
     .then(data => {
-        console.log("DATA")
-        console.log(data);
-
         //If there are any results, begin entering them into the table.
         if (data.length > 0){
             PopulatePage(data);
@@ -40,6 +37,7 @@ document.getElementById("search-button").addEventListener("click", function () {
 
 //Populates the table on index.html.
 function PopulatePage(results){
+    console.log("Loading Data")
     dataContainer = document.getElementById("db-data")
     while (dataContainer.firstChild) {
         dataContainer.removeChild(dataContainer.firstChild)
@@ -73,8 +71,6 @@ function PopulatePage(results){
     let num = -1
     //Loop through each entry returned. Create a cell for the City, Date, Offense, Latitude, and Longitude
     for(entry of results) {
-        console.log("Entry:")
-        console.log(entry)
         var tr = table.insertRow();
         var tdCity = tr.insertCell();
         tdCity.appendChild(document.createTextNode(entry.City))
@@ -95,5 +91,5 @@ function PopulatePage(results){
     //Append the new Table into index.html
     dataContainer.appendChild(table)
 
-    console.log("DONE")
+    console.log("Finished Loading")
 }
