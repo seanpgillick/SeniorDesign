@@ -24,7 +24,6 @@ cityAreas= {
     "Mesa": 133.1,
     "Milwaukee": 96.82,
     "Minneapolis": 57.51,
-    "Montgomery": 162.3,
     "Nashville": 526,
     "New York": 302.6,
     "Omaha": 146.3,
@@ -54,7 +53,6 @@ stateabbreviations = {
     "Mesa": "AZ",
     "Milwaukee": "WI",
     "Minneapolis": "MN",
-    "Montgomery": "AL",
     "Nashville": "TN",
     "New York": "NY",
     "Omaha": "NE",
@@ -118,9 +116,6 @@ cityPopulations2019 = {
     },
     "Minneapolis": {
         "2019": 428821
-    },
-    "Montgomery": {
-        "2019": 197977
     },
     "Nashville": {
         "2019": 1224000
