@@ -22,7 +22,6 @@ stateabbreviations = {
     "Mesa": "AZ",
     "Milwaukee": "WI",
     "Minneapolis": "MN",
-    "Montgomery": "AL",
     "Nashville": "TN",
     "New York": "NY",
     "Oakland": "CA",

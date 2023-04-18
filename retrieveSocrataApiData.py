@@ -138,14 +138,6 @@ cityApiInfo = {
             "lonCol":"longitude",
             "keys":["d6g9-xbgu"]
         },
-    "Montgomery": {
-            "url":"data.montgomerycountymd.gov",
-            "dateCol":"date",
-            "offCol":"nibrs_code",
-            "latCol":"latitude",
-            "lonCol":"longitude",
-            "keys":["icn6-v9z3"]
-        },
     "Auburn": { # LOCATION IS ALL IN ONE PIECE, WILL NEED TO SPLIT
             "url":"data.auburnwa.gov",
             "dateCol":"reported",
