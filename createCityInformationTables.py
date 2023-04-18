@@ -10,6 +10,7 @@ cityAreas= {
     "Atlanta": 136.3,
     "Austin": 271.8,
     "Baltimore": 92.28,
+    "Baton Rouge": 88.52,
     "Boston": 89.63,
     "Buffalo": 52.51,
     "Chicago": 234.5,
@@ -39,6 +40,7 @@ stateabbreviations = {
     "Atlanta": "GA",
     "Austin": "TX",
     "Baltimore": "MD",
+    "Baton Rouge": "LA",
     "Boston": "MA",
     "Buffalo": "NY",
     "Chicago": "IL",
@@ -74,6 +76,9 @@ cityPopulations2019 = {
     },
     "Baltimore": {
         "2019": 594601
+    },
+    "Baton Rouge": {
+        "2019": 220787
     },
     "Boston": {
         "2019": 694661
