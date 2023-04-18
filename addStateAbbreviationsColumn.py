@@ -7,6 +7,7 @@ stateabbreviations = {
     "Auburn": "WA",
     "Austin": "TX",
     "Baltimore": "MD",
+    "Baton Rouge": "LA",
     "Boston": "MA",
     "Buffalo": "NY",
     "Chicago": "IL",
