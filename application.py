@@ -14,6 +14,8 @@ from folium.plugins import HeatMap
 import markupsafe
 import numpy as np
 import math
+from flask_caching import Cache
+import random
 
 application = Flask(__name__) # This needs to be named `application`
 
@@ -24,21 +26,24 @@ application = Flask(__name__) # This needs to be named `application`
 #   password: "password!",
 
 # https://flask-mysqldb.readthedocs.io/en/latest/
+application.config['CACHE_TYPE'] = "SimpleCache"
 application.config['MYSQL_DATABASE_HOST'] = "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com"
 application.config['MYSQL_DATABASE_USER'] = "admin"
 application.config['MYSQL_DATABASE_PASSWORD'] = "password!"
 application.config['MYSQL_DATABASE_DB'] = "SeniorDesign"
 application.config['MYSQL_DATABASE_PORT'] = 3306
 mysql = MySQL()
+cache = Cache()
 mysql.init_app(application)
+cache.init_app(application)
 # cursor = mysql.get_db().cursor()
 
 @application.route('/')
+@cache.cached(timeout=3600)
 def index():
     cursor = mysql.get_db().cursor()
     cursor.execute("SELECT city, state FROM SeniorDesign.CityInformation")
     citiesSQL=cursor.fetchall()
-
     return render_template("index.html", cities=citiesSQL)
 
 def getSQLString(cityList):
@@ -107,6 +112,7 @@ def dataGraphsUpdate(city=None, tab=None, pieYears=None, compCity=None):
 
 @application.route('/cityDrops', methods=['GET', 'POST'])
 @application.route('/cityDropscity=<city>year=<year>', methods=['GET', 'POST'])
+@cache.memoize(timeout=86400)
 def getDataDrops(city=None, year=None):
     if request.method == 'POST':
         print('Incoming..')
@@ -152,6 +158,7 @@ def getCrimeList(city=None, year=None):
     
 @application.route('/cityDrops', methods=['GET', 'POST'])
 @application.route('/cityDropscity=<city>year=<year>', methods=['GET', 'POST'])
+@cache.memoize(timeout=86400)
 def getHeatMapDrops(city=None, year=None):
     if request.method == 'POST':
         print('Incoming..')
@@ -175,7 +182,7 @@ def getHeatMapDrops(city=None, year=None):
         for i in yearsSQL:
             yearsSelect.append(i[0])
         return {"years":yearsSelect, "cities":citiesSelect}
-
+    
 @application.route('/safetyScore', methods=['GET', 'POST'])
 def safetyScore(city):
     latitude = request.args.get('latitude') 
@@ -276,6 +283,7 @@ def safetyScore(city):
 
 @application.route('/graphResults', methods=['GET', 'POST'])
 @application.route('/graphResults/<city>', methods=['GET', 'POST'])
+@cache.memoize(timeout=86400)
 def graphResults(city=None):
     # print(request.args.getlist('city'))
     if request.method == 'POST':
@@ -431,6 +439,7 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
 
 
 @application.route('/mapGencity=<city>year=<year>crime=<crime>', methods=['GET', 'POST'])
+@cache.memoize(timeout=86400)
 def heatmapGen(city, year, crime):
     cursor = mysql.get_db().cursor()
     cityList = []

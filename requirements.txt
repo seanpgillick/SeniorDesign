@@ -7,7 +7,7 @@ tqdm
 bs4
 pymysql
 sqlalchemy
-
+Flask-Caching
 black==22.12.0
 bs4==0.0.1
 certifi==2022.9.24
