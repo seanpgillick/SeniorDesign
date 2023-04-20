@@ -24,8 +24,8 @@ else:
             else:
                 a_df.at[ind, "latitude"] = ""
                 a_df.at[ind, "longitude"] = ""     
-                
+
     # Save new Auburn_data.csv file
     os.remove("./CityData/Auburn_data.csv")
-    a_df.to_csv('./CityData/Auburn_data_data.csv', index=False)
+    a_df.to_csv('./CityData/Auburn_data.csv', index=False)
 
