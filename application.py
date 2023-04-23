@@ -1,3 +1,5 @@
+from tokenize import String
+from turtle import circle
 from flask import Flask, jsonify, render_template, request
 
 import json
@@ -433,6 +435,58 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
         
 
     HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
+    
+    return mapObj._repr_html_()
+
+@application.route('/mapGenSafetyLabelcity=<city>lat=<lat>lng=<lng>radius=<radius>unit=<unit>', methods=['GET', 'POST'])
+def safetyScoreLabel(city, lat, lng, radius, unit):
+    # Get crimes withing selected area 
+    if(unit == "km"):
+        kmRadius = float(radius) * 0.621371
+    else:
+        kmRadius = float(radius) 
+
+    cursor = mysql.get_db().cursor()
+    cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+
+    totalCrimeLatLng = cursor.fetchall()
+
+    cursor.execute("SELECT crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    crimeTypes = cursor.fetchall()
+
+    #heat map
+    mapObj = folium.Map([lat, lng], zoom_start=16)
+    circleRad = kmRadius * 1010
+
+    violent = 0
+    property = 0
+    other = 0
+
+    # data = []
+    # for point in totalCrimeLatLng:
+    #     if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
+    #         data.append([point[0], point[1], 3])
+
+    for crime in crimeTypes:
+        if(crime[0] == "PROPERTY"):
+            property+=1
+        elif(crime[0] == "VIOLENT"):
+            violent+=1
+        else:
+            other+=1
+
+    circleObj = folium.Circle(
+        radius = circleRad,
+        location = [lat, lng],
+        color='blue',
+        fill=False,)
+
+    folium.Circle(location=[float(lat)+.003,float(lng)+.005], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
+    folium.Circle(location=[float(lat)+.003,float(lng)-.005], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
+    folium.Circle(location=[float(lat)-.003,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
+    circleObj.add_to(mapObj)
+
+    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
     return mapObj._repr_html_()
 

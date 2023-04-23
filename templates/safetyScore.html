@@ -157,6 +157,19 @@
                 console.log("Done");
             });
         }
+
+        if("{{address}}"){
+            $('<iframe>', {
+            src: "/mapGenSafetyLabelcity={{city}}lat={{latitude}}lng={{longitude}}radius={{radius}}unit={{unit}}",
+            id:  'myFrame',
+            frameborder: 0,
+            scrolling: 'no',
+            width:'100%',
+            height:'100%'
+            }).appendTo('#frameContainer').ready(function () {
+                console.log("Done");
+            });
+        }
         
         
        $("#calculate-score").on("click", function (){
