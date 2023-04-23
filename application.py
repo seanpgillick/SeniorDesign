@@ -422,19 +422,31 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
         kmRadius = float(radius) 
 
     cursor = mysql.get_db().cursor()
-    cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    cursor.execute("SELECT latitude, longitude, crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
     totalCrimeLatLng = cursor.fetchall()
 
+    colorDict = {
+        "VIOLENT": "Red",
+        "PROPERTY": "Blue",
+        "OTHER": "Yellow"
+    }
     #heat map
     mapObj = folium.Map([lat, lng], zoom_start=16)
-    data = []
     for point in totalCrimeLatLng:
         if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
-            data.append([point[0], point[1], 3])
+            folium.Circle(
+                location=[point[0], point[1]],
+                popup=point[2],
+                radius = 10,
+                fill = True,
+                fill_opacity = 1, 
+                fill_color = colorDict.get(point[2]),
+                color = colorDict.get(point[2])
+            ).add_to(mapObj)
         
 
-    HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
+    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
     return mapObj._repr_html_()
 
@@ -481,9 +493,12 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
         color='blue',
         fill=False,)
 
-    folium.Circle(location=[float(lat)+.003,float(lng)+.005], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
-    folium.Circle(location=[float(lat)+.003,float(lng)-.005], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
-    folium.Circle(location=[float(lat)-.003,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
+    latChange = (kmRadius/3)/110.574
+    longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
+
+    folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
+    folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
+    folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
     circleObj.add_to(mapObj)
 
     # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
