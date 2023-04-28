@@ -1,0 +1,194 @@
+{% block content %}
+
+<div class="mx-auto align-items-center no-pad" id="graph-results" style="width: 90%;">
+    <div id="cityRenderStatus">
+    </div>
+    <div class="row container-center text-center g-4">
+        <div class="col-md-12 card">
+            <div class="card-header text-center">
+                <h2>{{city}} Compared to Top Cities in U.S.</h2>
+            </div>
+            <div class="blog-post card-effect text-center">
+                <div id="chart3Load"></div>
+                <div id="chart3"></div>
+                <p>A bar graph is a powerful tool for visualizing data, and when it comes to tracking crime rates in US
+                    cities. As your eyes scan from left to right, you might see bars that are shorter or taller
+                    depending on
+                    the severity of crime in each city </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row container-center text-center g-4">
+        <div class="col-md-6 card">
+            <div class="card-header">
+                <h2>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h2>
+            </div>
+            <div class="blog-post card-effect">
+                <div id="chart1Load"></div>
+                <div id="chart1"></div>
+                <br />
+                <div id="year-select">
+                    <label for="years-select">Select Years: </label>
+                    {% for o in years %}
+                    <div class="form-check form-check-inline">
+                        {% if pieYears and o in pieYears %}
+                        <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}" checked>
+                        {% else %}
+                        <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}">
+                        {% endif %}
+
+                        <label class="form-check-label" for="inlineCheckbox1">{{o}}</label>
+                    </div>
+                    {% endfor %}
+
+                    <button class="btn btn-primary no-pad" type="button" id="updateYearsComp">
+                        Set Years
+                    </button>
+                </div>
+                <p>Each slice of the pie represents a category of crime, and the size of the slice corresponds to the
+                    proportion of that category in relation to the total.
+                    This represents the types of crimes are most common in the city. Please select year if you want to see yearly type of crimes data.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 card">
+            <div class="card-header">
+                {% if compCity %}
+                <h2>Comparing {{city}} to {{compCity}}</h2>
+                {% else %}
+                <h2>{{city}} Crime Count for each year</h2>
+                {% endif %}
+            </div>
+            <div class="blog-post card-effect">
+                <div id="chart2Load"></div>
+                <div id="chart2"></div>
+                <br />
+                <div id="city-select">
+                    <label for="cities-comp-select">Select a City to Compare: </label>
+                    <select name="city" id="cities-comp-select" class="form-select w-25" style="display: inline;">
+                        {% for o in cities %}
+                        <option value="{{ o }}">{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-primary no-pad" type="button" id="updateCityComp">
+                        Submit
+                    </button>
+                </div>
+
+
+                {% if compCity %}
+
+                <p>Comparing crime rates between two cities can provide valuable information about the relative
+                    safety of each city.
+                    By analyzing crime data from both cities, we can identify patterns and trends that may indicate
+                    areas of concern or success
+                    in each city's approach to crime prevention.</p>
+                {% else %}
+                <p>Crime counts for each year can provide important information about trends in crime over time.
+                    By tracking the number of crimes committed each year, we can identify patterns and changes in
+                    the prevalence of different
+                    types of crimes, as well as changes in the overall level of crime.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <br />
+    <hr />
+
+</div>
+<script type="text/javascript">
+
+
+
+    $(document).ready(function () {
+        var graphs1 = {{ graph1JSON | safe
+    }};
+    Plotly.plot("chart1", graphs1, {});
+
+    var graphs2 = {{ graph2JSON | safe}};
+    Plotly.plot("chart2", graphs2, {});
+
+    var graphs3 = {{ graph3JSON | safe}};
+    Plotly.plot("chart3", graphs3, {});
+
+
+    $("#updateYearsComp").click(function () {
+        yearsSelected = $('.yearsCheck:checkbox:checked')
+        let years = []
+        if (yearsSelected.length > 0) {
+            for (let x = 0; x < yearsSelected.length; x++) {
+                console.log(yearsSelected[x].value)
+                years.push(yearsSelected[x].value)
+            }
+        }
+        else {
+            yearsSelected = $('.yearsCheck:checkbox')
+            for (let x = 0; x < yearsSelected.length; x++) {
+                years.push(yearsSelected[x].value)
+            }
+        }
+
+        document.getElementById("chart1Load").innerHTML = `<div>Loading Graphs...</div>`
+        let url = ""
+        if ("{{compCity}}") {
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears=" + years + "compCity={{compCity}}"
+        } else {
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears=" + years
+        }
+
+
+        fetch(url)
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status)
+                }
+                console.log(res)
+                //document.getElementById("chart1Load").innerHTML=``
+                window.location.replace(res.url)
+
+            })
+            .catch((err) => {
+                console.log(err);
+                document.getElementById("chart1").innerHTML = `<div>Error loading graphs</div>`
+
+            });
+
+    });
+
+    $("#updateCityComp").click(function () {
+        const cityComp = $("#cities-comp-select").val()
+        document.getElementById("chart2Load").innerHTML = `<div>Loading Graphs...</div>`
+        let url = ""
+        console.log(cityComp)
+        if ("{{pieYears}}") {
+            console.log("{{pieYears}}")
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears={{pieYears}}compCity=" + cityComp
+        } else {
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=" + cityComp
+        }
+
+        fetch(url)
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status)
+                }
+                console.log(res)
+                window.location.replace(res.url)
+                //document.getElementById("chart2Load").innerHTML=``
+
+            })
+            .catch((err) => {
+                console.log(err);
+                document.getElementById("chart2").innerHTML = `<div>Error loading graphs</div>`
+
+            });
+    });
+            
+        });
+
+
+
+</script>
+{% endblock %}

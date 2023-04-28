@@ -1,0 +1,6 @@
+[flake8.extension]
+WPS=wemake_python_styleguide.checker:Checker
+
+[flake8.report]
+wemake=wemake_python_styleguide.formatter:WemakeFormatter
+

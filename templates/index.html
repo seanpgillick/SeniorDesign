@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="site-header-logo">
+</div>
+
+<!-- City Select Section -->
+<div class="hero vh-100 d-flex align-items-center" id="home">
+    <div class="container" id="initialForm">
+        <div class="row">
+            <div class="col-lg-7 mx-auto text-center">
+                <h1 class="display-4 text-white">Select a city to view crime analytics</h1>
+                <div id="city-select" class="text-white my-3">
+                    <!--<i class="bi-geo-alt"></i>-->
+                    <select name="city" id="cities-select" class="form-select text-center" >
+                        {% for city in cities %}
+                        <option value="{{ city[0] }}">{{ city[0] }}, {{city[1]}}</option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+                <button type="button" id="formButton" class="btn me-2 btn-primary mt-2">Generate Analytics</button>
+            </div>
+        </div>
+    </div>
+</div><!-- City Select ends -->
+
+<!-- About Section-->
+<section id="about">
+    <div id="about" class="container text-center">
+        <div class="row mb-5">
+            <div class="col-md-8 mx-auto text-center">
+                <h3>ABOUT THIS PROJECT</h3>
+                
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-4 col-sm-6 text-center">
+                    <div class="service card-effect bounceInUp align-items-center">
+                        <div class="iconbox text-center mt-4 mb-2"><i class=" bi bi-display-fill"></i></div>
+                        <p>This crime data portal involves an analysis of crime in the U.S. cities and helps determine
+                            safe neighbourhoods</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-sm-6">
+                    <div class="service card-effect bounceInUp">
+                        <div class="iconbox text-center mt-4 mb-2"><i class="bi bi-graph-up"></i></div>
+                        <p>We have used a variety of easy to understand visualizations involving charts, heatmap and a
+                            measure called safety score</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-sm-6">
+                    <div class="service card-effect bounceInUp">
+                        <div class="iconbox text-center mt-4 mb-2"><i class="bi bi-people-fill"></i></div>
+                        <p>This project is being developed and mainted by Drexel Students with help of Drexel's faculty
+                            members</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 mx-auto text-center" style="padding: 2rem;">
+                <h3>BENEFITS</h3>
+            </div>
+            
+            <div class="col-lg-4 col-sm-6">
+                <div class="service card-effect bounceInUp">
+                        <h4 class="mt-4 mb-2">Ease of Access</h4>
+                        <p>Ability to compare a variety of crime data between the largest U.S. cities</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-sm-6">
+                    <div class="service card-effect bounceInUp">
+                        <h4 class="mt-4 mb-2">Safety</h4>
+                        <p>Safety score will help figure out which U.S. cities are more safe and also we can check
+                            safety scores of specific addresses.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-sm-6">
+                    <div class="service card-effect bounceInUp">
+                        <h4 class="mt-4 mb-2">Awareness</h4>
+                        <p>Spread awareness of crimes occuring in a specific area and see changes in crime levels over
+                            the years</p>
+                    </div>
+                </div>
+            
+        </div>
+    </div>
+</section>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#formButton").click(function () {
+            var value = $("#cities-select").val()
+            console.log(value)
+            window.location.href = "/analysis/" + value + "/data"
+        });
+    })
+</script>
+
+{% endblock %}

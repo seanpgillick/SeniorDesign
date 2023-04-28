@@ -139,6 +139,12 @@ class NpzFile(Mapping):
         Additional keyword arguments to pass on to pickle.load.
         These are only useful when loading object arrays saved on
         Python 2 when using Python 3.
+    max_header_size : int, optional
+        Maximum allowed size of the header.  Large headers may not be safe
+        to load securely and thus require explicitly passing a larger value.
+        See :py:meth:`ast.literal_eval()` for details.
+        This option is ignored when `allow_pickle` is passed.  In that case
+        the file is by definition trusted and the limit is unnecessary.
 
     Parameters
     ----------
@@ -174,13 +180,15 @@ class NpzFile(Mapping):
     fid = None
 
     def __init__(self, fid, own_fid=False, allow_pickle=False,
-                 pickle_kwargs=None):
+                 pickle_kwargs=None, *,
+                 max_header_size=format._MAX_HEADER_SIZE):
         # Import is postponed to here since zipfile depends on gzip, an
         # optional component of the so-called standard library.
         _zip = zipfile_factory(fid)
         self._files = _zip.namelist()
         self.files = []
         self.allow_pickle = allow_pickle
+        self.max_header_size = max_header_size
         self.pickle_kwargs = pickle_kwargs
         for x in self._files:
             if x.endswith('.npy'):
@@ -244,7 +252,8 @@ class NpzFile(Mapping):
                 bytes = self.zip.open(key)
                 return format.read_array(bytes,
                                          allow_pickle=self.allow_pickle,
-                                         pickle_kwargs=self.pickle_kwargs)
+                                         pickle_kwargs=self.pickle_kwargs,
+                                         max_header_size=self.max_header_size)
             else:
                 return self.zip.read(key)
         else:
@@ -253,7 +262,7 @@ class NpzFile(Mapping):
 
 @set_module('numpy')
 def load(file, mmap_mode=None, allow_pickle=False, fix_imports=True,
-         encoding='ASCII'):
+         encoding='ASCII', *, max_header_size=format._MAX_HEADER_SIZE):
     """
     Load arrays or pickled objects from ``.npy``, ``.npz`` or pickled files.
 
@@ -297,6 +306,12 @@ def load(file, mmap_mode=None, allow_pickle=False, fix_imports=True,
         npy/npz files containing object arrays. Values other than 'latin1',
         'ASCII', and 'bytes' are not allowed, as they can corrupt numerical
         data. Default: 'ASCII'
+    max_header_size : int, optional
+        Maximum allowed size of the header.  Large headers may not be safe
+        to load securely and thus require explicitly passing a larger value.
+        See :py:meth:`ast.literal_eval()` for details.
+        This option is ignored when `allow_pickle` is passed.  In that case
+        the file is by definition trusted and the limit is unnecessary.
 
     Returns
     -------
@@ -403,15 +418,20 @@ def load(file, mmap_mode=None, allow_pickle=False, fix_imports=True,
             # Potentially transfer file ownership to NpzFile
             stack.pop_all()
             ret = NpzFile(fid, own_fid=own_fid, allow_pickle=allow_pickle,
-                          pickle_kwargs=pickle_kwargs)
+                          pickle_kwargs=pickle_kwargs,
+                          max_header_size=max_header_size)
             return ret
         elif magic == format.MAGIC_PREFIX:
             # .npy file
             if mmap_mode:
-                return format.open_memmap(file, mode=mmap_mode)
+                if allow_pickle:
+                    max_header_size = 2**64
+                return format.open_memmap(file, mode=mmap_mode,
+                                          max_header_size=max_header_size)
             else:
                 return format.read_array(fid, allow_pickle=allow_pickle,
-                                         pickle_kwargs=pickle_kwargs)
+                                         pickle_kwargs=pickle_kwargs,
+                                         max_header_size=max_header_size)
         else:
             # Try a pickle
             if not allow_pickle:
@@ -1067,8 +1087,6 @@ def loadtxt(fname, dtype=float, comments='#', delimiter=None,
     r"""
     Load data from a text file.
 
-    Each row in the text file must have the same number of values.
-
     Parameters
     ----------
     fname : file, str, pathlib.Path, list of str, generator
@@ -1095,12 +1113,10 @@ def loadtxt(fname, dtype=float, comments='#', delimiter=None,
            cannot be used as the delimiter.
 
     converters : dict or callable, optional
-        A function to parse all columns strings into the desired value, or
-        a dictionary mapping column number to a parser function.
-        E.g. if column 0 is a date string: ``converters = {0: datestr2num}``.
-        Converters can also be used to provide a default value for missing
-        data, e.g. ``converters = lambda s: float(s.strip() or 0)`` will
-        convert empty fields to 0.
+        Converter functions to customize value parsing. If `converters` is
+        callable, the function is applied to all columns, else it must be a
+        dict that maps column number to a parser function.
+        See examples for further details.
         Default: None.
 
         .. versionchanged:: 1.23.0
@@ -1180,6 +1196,11 @@ def loadtxt(fname, dtype=float, comments='#', delimiter=None,
     This function aims to be a fast reader for simply formatted files.  The
     `genfromtxt` function provides more sophisticated handling of, e.g.,
     lines with missing values.
+
+    Each row in the input text file must have the same number of values to be
+    able to read all values. If all rows do not have same number of values, a
+    subset of up to n columns (where n is the least number of values present
+    in all rows) can be read by specifying the columns via `usecols`.
 
     .. versionadded:: 1.10.0
 
@@ -1282,12 +1303,29 @@ def loadtxt(fname, dtype=float, comments='#', delimiter=None,
     array([('alpha, #42', 10.), ('beta, #64',  2.)],
           dtype=[('label', '<U12'), ('value', '<f8')])
 
+    Quoted fields can be separated by multiple whitespace characters:
+
+    >>> s = StringIO('"alpha, #42"       10.0\n"beta, #64" 2.0\n')
+    >>> dtype = np.dtype([("label", "U12"), ("value", float)])
+    >>> np.loadtxt(s, dtype=dtype, delimiter=None, quotechar='"')
+    array([('alpha, #42', 10.), ('beta, #64',  2.)],
+          dtype=[('label', '<U12'), ('value', '<f8')])
+
     Two consecutive quote characters within a quoted field are treated as a
     single escaped character:
 
     >>> s = StringIO('"Hello, my name is ""Monty""!"')
     >>> np.loadtxt(s, dtype="U", delimiter=",", quotechar='"')
     array('Hello, my name is "Monty"!', dtype='<U26')
+
+    Read subset of columns when all rows do not contain equal number of values:
+
+    >>> d = StringIO("1 2\n2 4\n3 9 12\n4 16 20")
+    >>> np.loadtxt(d, usecols=(0, 1))
+    array([[ 1.,  2.],
+           [ 2.,  4.],
+           [ 3.,  9.],
+           [ 4., 16.]])
 
     """
 

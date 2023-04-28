@@ -1,0 +1,63 @@
+{% block content %}
+  
+    <div id="selections" class="flex-container">
+        <div class="text-center mb-2">
+            <i class="text-muted">Select a city, year or crime type to get a detailed map of specific crimes in each city</i>
+        </div>
+        <form class="row g-1 w-50 mx-auto" action="/analysis/{{city}}/{{tab}}">
+            <br>
+                <div id="year-select" class="col-sm-4">
+                    <label for="years-select">Select a Year</label>
+                    <select name="year" id="years-select" class="form-select" single>
+                        <option value="All" selected>All</option>
+                        {% for o in years %}
+                            <option value="{{ o }}">{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="crime-select" class="col-sm-4">
+                    <label for="crimes-select">Select a Crime Type</label>
+                    <select name="crime" id="crimes-select" class="form-select" single>
+                        <option value="All" selected>All</option>
+                        <option value="Violent">Violent</option>
+                        <option value="Property">Propety</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            <br>
+            <div class="col-sm-4 d-flex align-items-end">
+                <button class="btn btn-primary no-pad">Update Heatmap</button>
+            </div>
+        </form>
+        <div id="frameContainer" class="d-flex justify-content-center">
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="text/javascript">
+    window.onload = function() {
+        updateSrc();
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById("years-select").value = urlParams.get('year');
+        document.getElementById("crimes-select").value = urlParams.get('crime');
+        console.log(urlParams.get('crime'));
+    }
+        function updateSrc() {
+            let myIframe = document.createElement('iframe');
+            myIframe.width=1350;
+            myIframe.height=900;
+            document.getElementById("frameContainer").innerHTML="";
+            let url_string = "/mapGen";
+            const urlParams = new URLSearchParams(window.location.search);
+            const city = "{{city}}";
+            const year = urlParams.get('year');
+            const crime = urlParams.get('crime');
+
+            let adsURL = url_string+"city="+city+"year="+year+"crime="+crime;
+            console.log(adsURL);
+            myIframe.src = adsURL;
+            document.getElementById("frameContainer").appendChild(myIframe);
+        }
+    </script>
+{% endblock %}

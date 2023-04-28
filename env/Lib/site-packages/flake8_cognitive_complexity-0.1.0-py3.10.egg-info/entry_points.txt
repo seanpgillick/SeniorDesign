@@ -1,0 +1,3 @@
+[flake8.extension]
+CCR = flake8_cognitive_complexity.checker:CognitiveComplexityChecker
+

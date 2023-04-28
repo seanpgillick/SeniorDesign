@@ -1,0 +1,8 @@
+
+[lint]
+flake8
+
+[test]
+pytest
+pytest-cov
+PyHamcrest
