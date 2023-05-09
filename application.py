@@ -337,9 +337,7 @@ def sunGraph(city=None, year=None):
         dfSunburst = pd.DataFrame(
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
-        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount',color= "SpecificCrime",
-                          color_continuous_scale='RdBu',
-                  )
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             
