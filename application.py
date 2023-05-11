@@ -13,6 +13,7 @@ from flaskext.mysql import MySQL
 from unicodedata import decimal
 import folium
 from folium.plugins import HeatMap
+from folium.features import DivIcon
 import markupsafe
 import numpy as np
 import math
@@ -493,7 +494,7 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
     crimeTypes = cursor.fetchall()
 
     #heat map
-    mapObj = folium.Map([lat, lng], zoom_start=16)
+    mapObj = folium.Map([lat, lng], zoom_start=14)
     circleRad = kmRadius * 1010
 
     violent = 0
@@ -523,8 +524,11 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
     longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
 
     folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
+    folium.map.Marker(location=[float(lat)+latChange,float(lng)+longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(property))).add_to(mapObj)
     folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
+    folium.map.Marker(location=[float(lat)+latChange,float(lng)-longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(violent))).add_to(mapObj)
     folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
+    folium.map.Marker(location=[float(lat)-latChange,float(lng)+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(other))).add_to(mapObj)
     circleObj.add_to(mapObj)
 
     # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
