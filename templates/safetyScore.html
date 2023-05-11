@@ -61,7 +61,10 @@
                 <button type="button" id="calculate-score" class="btn btn-primary d-flex align-items-end no-pad" 
                     data-address="{{ inputValue }}" data-lat="{{ latitude }}" data-lng="{{ longitude }}">Calculate</button>
             </div>
-        </div>   
+        </div>  
+        <div class="text-center mb-2">
+            <i class="text-danger" id="radius_error"></i>
+        </div> 
         {% if(status and status == "failed") %}
             <div class="text-center">
                 <p id="error-score" class="text-danger">The selected address is not located within {{city}}</p>
@@ -176,7 +179,8 @@
        $("#calculate-score").on("click", function (){
             let selectedAddress = $(this).data("address");    
             let radius = $("#radius-input").val();
-
+            let unit = $("#radius_unit").find(":selected").val();
+            let radiusCheck = true;
             if(!selectedAddress){
                 $("#address-input").addClass("is-invalid");
             }
@@ -184,11 +188,20 @@
                 $("#radius-input").addClass("is-invalid");
             }
 
-            if(selectedAddress && radius){
+            if(unit=="mi" && radius > 2){
+                $("#radius-input").addClass("is-invalid");
+                $("#radius_error").html("Radius can not be greater than 2 miles");
+                radiusCheck = false;
+            } else if (unit =="km" && radius > 3){
+                $("#radius-input").addClass("is-invalid");
+                $("#radius_error").html("Radius can not be greater than 3 kilometers");
+                radiusCheck = false;
+            }
+
+            if(selectedAddress && radius && radiusCheck){
                 $("#calculating-score").text("Calculating safety score...");
                 let latitude = $(this).data("lat");
                 let longitude = $(this).data("lng");
-                let unit = $("#radius_unit").find(":selected").val();
 
                 window.location.href = "/analysis/{{ city }}/safety?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city={{ city }}&unit="+unit;
             }
