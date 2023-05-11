@@ -19,7 +19,7 @@ import math
 from flask_caching import Cache
 import random
 
-application = Flask(__name__) # This needs to be named `application`
+application = Flask(__name__,static_folder='html') # This needs to be named `application`
 
 
 #   host: "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com",
@@ -39,6 +39,9 @@ cache = Cache()
 mysql.init_app(application)
 cache.init_app(application)
 # cursor = mysql.get_db().cursor()
+
+primary_color= '#f5b611'
+dark_color = '#21252f'
 
 @application.route('/')
 @cache.cached(timeout=3600)
@@ -337,6 +340,10 @@ def sunGraph(city=None, year=None):
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
         fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            
+        )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         return [graphJSON]
@@ -374,7 +381,7 @@ def lineGraph(city=None, compCity=None):
 
 
         fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city')
-
+        fig.update_traces(line_color=primary_color, line_width=2)
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
@@ -402,12 +409,14 @@ def barGraph(city=None):
 
         dfLineChart = df.groupby(df['city']).aggregate(agg_functionsLine).reset_index()
         # plotDF=dfLineChart[['city', 'total', 'year']].copy()
-        color_discrete_map = {city: 'rgb(0,255,0)'}
+        color_discrete_map = {city: primary_color}
 
-        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=['blue'])
+        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=[dark_color])
         fig.update_layout(
             xaxis_title="Cities",
             yaxis_title="Num. of Crimes (2019-2021)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis={'categoryorder':'total ascending'}
         )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
         # return fig1.to_html(full_html=False, include_plotlyjs=False)

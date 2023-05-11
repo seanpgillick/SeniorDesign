@@ -176,7 +176,27 @@ def array_function_dispatch(dispatcher, module=None, verify=True,
 
         @functools.wraps(implementation)
         def public_api(*args, **kwargs):
-            relevant_args = dispatcher(*args, **kwargs)
+            try:
+                relevant_args = dispatcher(*args, **kwargs)
+            except TypeError as exc:
+                # Try to clean up a signature related TypeError.  Such an
+                # error will be something like:
+                #     dispatcher.__name__() got an unexpected keyword argument
+                #
+                # So replace the dispatcher name in this case.  In principle
+                # TypeErrors may be raised from _within_ the dispatcher, so
+                # we check that the traceback contains a string that starts
+                # with the name.  (In principle we could also check the
+                # traceback length, as it would be deeper.)
+                msg = exc.args[0]
+                disp_name = dispatcher.__name__
+                if not isinstance(msg, str) or not msg.startswith(disp_name):
+                    raise
+
+                # Replace with the correct name and re-raise:
+                new_msg = msg.replace(disp_name, public_api.__name__)
+                raise TypeError(new_msg) from None
+
             return implement_array_function(
                 implementation, public_api, relevant_args, args, kwargs)
 
