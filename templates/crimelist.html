@@ -4,44 +4,74 @@
             Crimelist
         </h1>
     </div>
-    <div class="text-center">
+    <!-- <div class="text-center">
         <i id="loadingSymbol"></i>
-    </div>
-    <table id="example" class="d-none" style="width:80%">
-        <thead>
-            <tr>
-            <th scope="col">id</th>
-            <th scope="col">Date</th>
-            <th scope="col">Category</th>
-            <th scope="col">Specific Crime</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for o in crimeData %}
+    </div> -->
+    {% include 'paginationTab.html' %}
+    <div id="tablePage" class="text-center">Viewing page {{pageNumber+1}} out of {{pages+1}}</div>
+    <div class="d-flex justify-content-center">
+        <table id="example" class="table table-bordered table-striped" style="width:80%">
+            <thead>
                 <tr>
-                <th scope="row">{{o[0]}}</th>
-                <td>{{o[3]}}</td>
-                <td>{{o[2]}}</td>
-                <td>{{o[1]}}</td>
+                <th scope="col">#</th>
+                <th scope="col">Date</th>
+                <th scope="col">Category</th>
+                <th scope="col">Specific Crime</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for o in crimeData %}
+                    <tr>
+                    <th scope="row">{{o[0]}}</th>
+                    <td>{{o[3]}}</td>
+                    <td>{{o[2]}}</td>
+                    <td>{{o[1]}}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'paginationTab.html' %}
+
 
   
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script type="text/javascript">
-        $("#loadingSymbol").text('Loading Table... ');
+        //$("#loadingSymbol").text('Loading Table... ');
 
         $(document).ready(function() {
-            $('#example').dataTable({
+            $(".pageNext").on("click", function (){
+                let pageView = "{{pageNumber}}"
+                let increase=parseInt(pageView)+1
+                window.location.href = "/analysis/{{ city }}/crimelist?pageNumber="+increase;  
+            })
+            $(".pagePrev").on("click", function (){
+                let pageView = "{{pageNumber}}"
+                if(pageView>0){
+                    let decrease=parseInt(pageView)-1
+                    window.location.href = "/analysis/{{ city }}/crimelist?pageNumber="+decrease;  
+                }
+            })
+            $(".pageFirst").on("click", function (){
+                window.location.href = "/analysis/{{ city }}/crimelist?pageNumber=0";  
+            })
+            $(".pageLast").on("click", function (){
+                let lastPage = "{{pages}}"
+                console.log(lastPage)
+                window.location.href = "/analysis/{{ city }}/crimelist?pageNumber="+lastPage;  
+            })
+            
+
+            /*$('#example').dataTable({
                 "fnInitComplete": function (oSettings, json)
                     {
                         $('#loadingSymbol').text('')
                         $('#example').removeClass("d-none")
                     }
-            });
+            });*/
+            //$('#loadingSymbol').text('')
+            //$('#example').removeClass("d-none")
         });
     </script>
 {% endblock %}

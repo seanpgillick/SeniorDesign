@@ -2,6 +2,33 @@
     <div class="mt-2" id="graph-results">
         <div id="cityRenderStatus" >
         </div>
+
+        <!-- FACTS -->
+        <div class="row container-center text-center">
+            <div class="col card">
+                <div class="card-header">             
+                    <h2>{{city}} Crime Rate By Year</h2>
+                </div>
+                {% for o in crimeRates %}
+                    {% if o.year=="total" %}
+                        <h2 value="{{ o }}">{{o.rate}}</h2><h6>/100 get crimed in a given year</h6>
+                    
+                    {% endif %}
+
+                {% endfor %}
+                
+            </div>
+            <div class="col card">
+                <div class="card-header">
+                    <h2>{{city}} Facts</h2>
+                </div>
+                <div id="chart4Load"></div>
+                <div id="chart4"></div>
+            </div>
+        </div>
+
+    
+        <!--BIG GRAPH-->
         <div class="col card">
             <div class="card-header">             
                 <h2>{{city}} Compared to Top Cities in U.S.</h2>
@@ -12,6 +39,8 @@
             <br/>
             
         </div>
+
+        <!--little graphs-->
         <div class="row container-center text-center">
             <div class="col card">
                 <div class="card-header">             
@@ -90,6 +119,8 @@
             var graphs3 = {{ graph3JSON | safe}};
             Plotly.plot("chart3", graphs3,{});
 
+            var graphs4 = {{ graph4JSON | safe}};
+            Plotly.plot("chart4", graphs4,{});
             
             $("#updateYearsComp").click(function() {
                 yearsSelected=$('.yearsCheck:checkbox:checked')

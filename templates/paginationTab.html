@@ -1,0 +1,38 @@
+<div class="d-flex justify-content-around">
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+        <li class="page-item"><a class="page-link pageFirst" id="paginationFirst">First</a></li>
+        <li class="page-item"><a class="page-link pagePrev" id="paginationPrev">Previous</a></li>
+            {% if pageNumber==0 %}
+                {% for n in range(pageNumber, pageNumber+5) %}
+                    {% if pageNumber==n %}
+                        <li class="page-item active"><a class="page-link" href="/analysis/{{ city }}/crimelist?pageNumber={{n}}">{{n+1}}</a></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="/analysis/{{ city }}/crimelist?pageNumber={{n}}">{{n+1}}</a></li>
+                    {% endif %}
+                {% endfor %}
+            {% elif pageNumber==1 %}
+                {% for n in range(pageNumber-1, pageNumber+4) %}
+                    {% if pageNumber==n %}
+                        <li class="page-item active"><a class="page-link" href="/analysis/{{ city }}/crimelist?pageNumber={{n}}">{{n+1}}</a></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="/analysis/{{ city }}/crimelist?pageNumber={{n}}">{{n+1}}</a></li>
+                    {% endif %}
+                {% endfor %}
+            {% elif pageNumber>=2 %}
+                {% for n in range(pageNumber-2, pageNumber+3) %}
+                    {% if n-1<pages %}
+                        {% if pageNumber==n %}
+                            <li class="page-item active"><a class="page-link" href="/analysis/{{ city }}/crimelist?pageNumber={{n}}">{{n+1}}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="/analysis/{{ city }}/crimelist?pageNumber={{n}}">{{n+1}}</a></li>
+                        {% endif %}
+                    {% endif %}
+
+                {% endfor %}
+            {% endif %}
+        <li class="page-item"><a class="page-link pageNext" id="paginationNext">Next</a></li>
+        <li class="page-item"><a class="page-link pageLast" id="paginationLast">Last</a></li>
+        </ul>
+    </nav>
+</div>
