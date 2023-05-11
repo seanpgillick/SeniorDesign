@@ -1,3 +1,5 @@
+from tokenize import String
+from turtle import circle, color
 from flask import Flask, jsonify, render_template, request
 
 import json
@@ -17,7 +19,7 @@ import math
 from flask_caching import Cache
 import random
 
-application = Flask(__name__) # This needs to be named `application`
+application = Flask(__name__,static_folder='html') # This needs to be named `application`
 
 
 #   host: "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com",
@@ -37,6 +39,9 @@ cache = Cache()
 mysql.init_app(application)
 cache.init_app(application)
 # cursor = mysql.get_db().cursor()
+
+primary_color= '#f5b611'
+dark_color = '#21252f'
 
 @application.route('/')
 @cache.cached(timeout=3600)
@@ -201,9 +206,12 @@ def safetyScore(city):
     cityLat = cityLatLng[0][0]
     cityLng = cityLatLng[0][1]
     graphJSON = None
+    splitAddress = []
+    if(address is not None):
+        splitAddress = address.split(',')
 
     if(address and latitude and longitude and radius):
-        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1)):
+        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1) or not(splitAddress[1].strip() == city)):
             return {"safetyScore": overalSafetyScore, "address": address, "status": "failed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
             "cityLat": cityLat, "cityLng": cityLng, "scoresByYear": safetyScoresByYear, "graph": graphJSON}
@@ -275,7 +283,6 @@ def safetyScore(city):
         fig.update_layout(yaxis_range=[0,5])
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
     
     return {"safetyScore": overalSafetyScore, "address": address, "status":"passed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
@@ -335,6 +342,10 @@ def sunGraph(city=None, year=None):
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
         fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            
+        )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         return [graphJSON]
@@ -372,7 +383,7 @@ def lineGraph(city=None, compCity=None):
 
 
         fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city')
-
+        fig.update_traces(line_color=primary_color, line_width=2)
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
@@ -400,12 +411,14 @@ def barGraph(city=None):
 
         dfLineChart = df.groupby(df['city']).aggregate(agg_functionsLine).reset_index()
         # plotDF=dfLineChart[['city', 'total', 'year']].copy()
-        color_discrete_map = {city: 'rgb(0,255,0)'}
+        color_discrete_map = {city: primary_color}
 
-        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=['blue'])
+        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=[dark_color])
         fig.update_layout(
             xaxis_title="Cities",
             yaxis_title="Num. of Crimes (2019-2021)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis={'categoryorder':'total ascending'}
         )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
@@ -420,19 +433,101 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
         kmRadius = float(radius) 
 
     cursor = mysql.get_db().cursor()
+    cursor.execute("SELECT latitude, longitude, crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+
+    totalCrimeLatLng = cursor.fetchall()
+
+    colorDict = {
+        "VIOLENT": "Red",
+        "PROPERTY": "Blue",
+        "OTHER": "Yellow"
+    }
+    #heat map
+    lgd_txt = '<span style="color: {col};">{txt}</span>'
+    fgR = folium.FeatureGroup(name= lgd_txt.format( txt= 'VIOLENT', col= 'red'))
+    fgB = folium.FeatureGroup(name= lgd_txt.format( txt= 'PROPERTY', col= 'blue'))
+    fgY = folium.FeatureGroup(name= lgd_txt.format( txt= 'OTHER', col= 'yellow'))
+    mapObj = folium.Map([lat, lng], zoom_start=16)
+    for point in totalCrimeLatLng:
+        if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
+            colorpoint = folium.Circle(
+                location=[point[0], point[1]],
+                popup=point[2],
+                radius = 10,
+                fill = True,
+                fill_opacity = 1, 
+                fill_color = colorDict.get(point[2]),
+                color = colorDict.get(point[2])
+            )
+        if (colorDict.get(point[2])=="Red"):
+            fgR.add_child(colorpoint)
+        elif (colorDict.get(point[2])=="Blue"):
+            fgB.add_child(colorpoint)
+        else:
+            fgY.add_child(colorpoint)
+
+    mapObj.add_child(fgR)
+    mapObj.add_child(fgB)
+    mapObj.add_child(fgY)
+
+    folium.map.LayerControl('topleft', collapsed= False).add_to(mapObj)
+
+    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
+    
+    return mapObj._repr_html_()
+
+@application.route('/mapGenSafetyLabelcity=<city>lat=<lat>lng=<lng>radius=<radius>unit=<unit>', methods=['GET', 'POST'])
+def safetyScoreLabel(city, lat, lng, radius, unit):
+    # Get crimes withing selected area 
+    if(unit == "km"):
+        kmRadius = float(radius) * 0.621371
+    else:
+        kmRadius = float(radius) 
+
+    cursor = mysql.get_db().cursor()
     cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
     totalCrimeLatLng = cursor.fetchall()
 
+    cursor.execute("SELECT crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    crimeTypes = cursor.fetchall()
+
     #heat map
     mapObj = folium.Map([lat, lng], zoom_start=16)
-    data = []
-    for point in totalCrimeLatLng:
-        if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
-            data.append([point[0], point[1], 3])
-        
+    circleRad = kmRadius * 1010
 
-    HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
+    violent = 0
+    property = 0
+    other = 0
+
+    # data = []
+    # for point in totalCrimeLatLng:
+    #     if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
+    #         data.append([point[0], point[1], 3])
+
+    for crime in crimeTypes:
+        if(crime[0] == "PROPERTY"):
+            property+=1
+        elif(crime[0] == "VIOLENT"):
+            violent+=1
+        else:
+            other+=1
+
+    circleObj = folium.Circle(
+        radius = circleRad,
+        location = [lat, lng],
+        color='blue',
+        fill=False,)
+
+    latChange = (kmRadius/3)/110.574
+    longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
+
+    folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
+    folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
+    folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
+    circleObj.add_to(mapObj)
+
+    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
     return mapObj._repr_html_()
 

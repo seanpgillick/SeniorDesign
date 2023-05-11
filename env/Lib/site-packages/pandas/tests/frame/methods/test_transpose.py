@@ -6,12 +6,25 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    IntervalIndex,
     date_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
 
 class TestTranspose:
+    def test_transpose_td64_intervals(self):
+        # GH#44917
+        tdi = timedelta_range("0 Days", "3 Days")
+        ii = IntervalIndex.from_breaks(tdi)
+        ii = ii.insert(-1, np.nan)
+        df = DataFrame(ii)
+
+        result = df.T
+        expected = DataFrame({i: ii[i : i + 1] for i in range(len(ii))})
+        tm.assert_frame_equal(result, expected)
+
     def test_transpose_empty_preserves_datetimeindex(self):
         # GH#41382
         df = DataFrame(index=DatetimeIndex([]))
@@ -73,7 +86,6 @@ class TestTranspose:
         assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()
 
     def test_transpose_uint64(self, uint64_frame):
-
         result = uint64_frame.T
         expected = DataFrame(uint64_frame.values.T)
         expected.index = ["A", "B"]
@@ -98,14 +110,17 @@ class TestTranspose:
             assert s.dtype == np.object_
 
     @td.skip_array_manager_invalid_test
-    def test_transpose_get_view(self, float_frame):
+    def test_transpose_get_view(self, float_frame, using_copy_on_write):
         dft = float_frame.T
-        dft.values[:, 5:10] = 5
+        dft.iloc[:, 5:10] = 5
 
-        assert (float_frame.values[5:10] == 5).all()
+        if using_copy_on_write:
+            assert (float_frame.values[5:10] != 5).all()
+        else:
+            assert (float_frame.values[5:10] == 5).all()
 
     @td.skip_array_manager_invalid_test
-    def test_transpose_get_view_dt64tzget_view(self):
+    def test_transpose_get_view_dt64tzget_view(self, using_copy_on_write):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         arr = dti._data.reshape(3, 2)
         df = DataFrame(arr)
@@ -115,4 +130,7 @@ class TestTranspose:
         assert result._mgr.nblocks == 1
 
         rtrip = result._mgr.blocks[0].values
-        assert np.shares_memory(arr._ndarray, rtrip._ndarray)
+        if using_copy_on_write:
+            assert np.shares_memory(df._mgr.blocks[0].values._ndarray, rtrip._ndarray)
+        else:
+            assert np.shares_memory(arr._ndarray, rtrip._ndarray)
