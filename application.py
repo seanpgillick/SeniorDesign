@@ -1,5 +1,5 @@
 from tokenize import String
-from turtle import circle
+from turtle import circle, color
 from flask import Flask, jsonify, render_template, request
 
 import json
@@ -432,10 +432,14 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
         "OTHER": "Yellow"
     }
     #heat map
+    lgd_txt = '<span style="color: {col};">{txt}</span>'
+    fgR = folium.FeatureGroup(name= lgd_txt.format( txt= 'VIOLENT', col= 'red'))
+    fgB = folium.FeatureGroup(name= lgd_txt.format( txt= 'PROPERTY', col= 'blue'))
+    fgY = folium.FeatureGroup(name= lgd_txt.format( txt= 'OTHER', col= 'yellow'))
     mapObj = folium.Map([lat, lng], zoom_start=16)
     for point in totalCrimeLatLng:
         if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
-            folium.Circle(
+            colorpoint = folium.Circle(
                 location=[point[0], point[1]],
                 popup=point[2],
                 radius = 10,
@@ -443,8 +447,19 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
                 fill_opacity = 1, 
                 fill_color = colorDict.get(point[2]),
                 color = colorDict.get(point[2])
-            ).add_to(mapObj)
-        
+            )
+        if (colorDict.get(point[2])=="Red"):
+            fgR.add_child(colorpoint)
+        elif (colorDict.get(point[2])=="Blue"):
+            fgB.add_child(colorpoint)
+        else:
+            fgY.add_child(colorpoint)
+
+    mapObj.add_child(fgR)
+    mapObj.add_child(fgB)
+    mapObj.add_child(fgY)
+
+    folium.map.LayerControl('topleft', collapsed= False).add_to(mapObj)
 
     # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
