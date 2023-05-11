@@ -278,7 +278,6 @@ def safetyScore(city):
         fig.update_layout(yaxis_range=[0,5])
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
     
     return {"safetyScore": overalSafetyScore, "address": address, "status":"passed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,

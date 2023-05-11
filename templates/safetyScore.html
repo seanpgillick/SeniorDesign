@@ -96,10 +96,13 @@
                 </div>
             </div>
             <div class="row g-1">
-                <div class="col-md-6" id="chart1"></div>
-                <div class="col-md-6" id="frameContainer"></div>
-            </div>
-            
+                <div class="col-md-6">
+                    <div id="chart1"></div>
+                </div>
+                <div class="col-md-6">
+                    <div id="frameContainer"></div>
+                </div>
+            </div>           
         </div>
     {% endif %}
 </div>
@@ -142,7 +145,7 @@
     $( document ).ready(function() {
         if("{{ graph }}" != "None"){
             var newGraph = {{ graph | safe}};
-            Plotly.plot("chart1", newGraph,{});
+            Plotly.plot("chart1", newGraph, {});
         }
         
         if("{{address}}"){
