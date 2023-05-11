@@ -206,9 +206,12 @@ def safetyScore(city):
     cityLat = cityLatLng[0][0]
     cityLng = cityLatLng[0][1]
     graphJSON = None
+    splitAddress = []
+    if(address is not None):
+        splitAddress = address.split(',')
 
     if(address and latitude and longitude and radius):
-        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1)):
+        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1) or not(splitAddress[1].strip() == city)):
             return {"safetyScore": overalSafetyScore, "address": address, "status": "failed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
             "cityLat": cityLat, "cityLng": cityLng, "scoresByYear": safetyScoresByYear, "graph": graphJSON}
