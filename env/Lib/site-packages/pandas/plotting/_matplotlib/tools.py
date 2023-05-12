@@ -9,8 +9,8 @@ from typing import (
 )
 import warnings
 
-from matplotlib import ticker
 import matplotlib.table
+import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.util._exceptions import find_stack_level
@@ -21,6 +21,8 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+
+from pandas.plotting._matplotlib import compat
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -35,14 +37,14 @@ if TYPE_CHECKING:
     )
 
 
-def do_adjust_figure(fig: Figure) -> bool:
+def do_adjust_figure(fig: Figure):
     """Whether fig has constrained_layout enabled."""
     if not hasattr(fig, "get_constrained_layout"):
         return False
     return not fig.get_constrained_layout()
 
 
-def maybe_adjust_figure(fig: Figure, *args, **kwargs) -> None:
+def maybe_adjust_figure(fig: Figure, *args, **kwargs):
     """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
     if do_adjust_figure(fig):
         fig.subplots_adjust(*args, **kwargs)
@@ -75,9 +77,10 @@ def table(
 
     cellText = data.values
 
-    return matplotlib.table.table(
+    table = matplotlib.table.table(
         ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
     )
+    return table
 
 
 def _get_layout(
@@ -314,7 +317,7 @@ def create_subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis: Axis) -> None:
+def _remove_labels_from_axis(axis: Axis):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -388,12 +391,15 @@ def handle_shared_axes(
     ncols: int,
     sharex: bool,
     sharey: bool,
-) -> None:
+):
     if nplots > 1:
         row_num = lambda x: x.get_subplotspec().rowspan.start
         col_num = lambda x: x.get_subplotspec().colspan.start
 
-        is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        if compat.mpl_ge_3_4_0():
+            is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        else:
+            is_first_col = lambda x: x.is_first_col()
 
         if nrows > 1:
             try:
@@ -415,7 +421,10 @@ def handle_shared_axes(
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
-                is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                if compat.mpl_ge_3_4_0():
+                    is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                else:
+                    is_last_row = lambda x: x.is_last_row()
                 for ax in axarr:
                     if is_last_row(ax):
                         continue

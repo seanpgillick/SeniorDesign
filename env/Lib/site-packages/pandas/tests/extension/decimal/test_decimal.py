@@ -111,14 +111,12 @@ class TestMissing(base.BaseMissingTests):
 
 class Reduce:
     def check_reduce(self, s, op_name, skipna):
-        if op_name in ["median", "skew", "kurt", "sem"]:
+
+        if op_name in ["median", "skew", "kurt"]:
             msg = r"decimal does not support the .* operation"
             with pytest.raises(NotImplementedError, match=msg):
                 getattr(s, op_name)(skipna=skipna)
-        elif op_name == "count":
-            result = getattr(s, op_name)()
-            expected = len(s) - s.isna().sum()
-            tm.assert_almost_equal(result, expected)
+
         else:
             result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(np.asarray(s), op_name)()
@@ -160,7 +158,8 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestGroupby(base.BaseGroupbyTests):
-    pass
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
 
 
 class TestSetitem(base.BaseSetitemTests):
@@ -285,7 +284,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
-    @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         raise KeyError("For the test")
 
@@ -444,8 +442,7 @@ def test_groupby_agg_ea_method(monkeypatch):
     result = df.groupby("id")["decimals"].agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
     s = pd.Series(DecimalArray(data))
-    grouper = np.array([0, 0, 0, 1, 1], dtype=np.int64)
-    result = s.groupby(grouper).agg(lambda x: x.values.my_sum())
+    result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
 
 
@@ -482,14 +479,3 @@ def test_to_numpy_keyword():
 
     result = pd.Series(a).to_numpy(decimals=2)
     tm.assert_numpy_array_equal(result, expected)
-
-
-def test_array_copy_on_write(using_copy_on_write):
-    df = pd.DataFrame({"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype="object")
-    df2 = df.astype(DecimalDtype())
-    df.iloc[0, 0] = 0
-    if using_copy_on_write:
-        expected = pd.DataFrame(
-            {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
-        )
-        tm.assert_equal(df2.values, expected.values)

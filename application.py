@@ -16,6 +16,9 @@ import numpy as np
 import math
 from flask_caching import Cache
 import random
+import plotly.io as pio
+import branca.colormap as branca_folium_cm
+
 
 application = Flask(__name__,static_folder='html') # This needs to be named `application`
 
@@ -40,6 +43,8 @@ cache.init_app(application)
 
 primary_color= '#f5b611'
 dark_color = '#21252f'
+current_template = 'simple_white'
+graph_height = 300
 
 @application.route('/')
 @cache.cached(timeout=3600)
@@ -73,13 +78,11 @@ def crimeAnalysis(city=None, tab=None):
     if(tab=="data"):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
-        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city, citiesSelect=citiesSQL)
+        df=getCrimeList(city)
+        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city, citiesSelect=citiesSQL,crimeData=np.array(df))
     elif(tab=="heatmap"):
         cityInfo=getHeatMapDrops(city)
         return render_template('crimeAnalysis.html', years=cityInfo['years'], tab="heatmap", city=city, citiesSelect=citiesSQL)
-    elif(tab=="crimelist"):
-        df=getCrimeList(city)
-        return render_template("crimeAnalysis.html", tab="crimelist", city=city, crimeData=np.array(df), citiesSelect=citiesSQL)
     elif(tab=="safety"):
         cityInfo = safetyScore(city)
 
@@ -92,7 +95,7 @@ def crimeAnalysis(city=None, tab=None):
 
     return render_template("crimeAnalysis.html")
 
-@application.route('/analysis/<city>/<tab>/enhanceGraphs/pieYears=<pieYears>')
+""" @application.route('/analysis/<city>/<tab>/enhanceGraphs/pieYears=<pieYears>')
 @application.route('/analysis/<city>/<tab>/enhanceGraphs/compCity=<compCity>')
 @application.route('/analysis/<city>/<tab>/enhanceGraphs/pieYears=<pieYears>compCity=<compCity>')
 def dataGraphsUpdate(city=None, tab=None, pieYears=None, compCity=None):
@@ -111,6 +114,22 @@ def dataGraphsUpdate(city=None, tab=None, pieYears=None, compCity=None):
     graph3JSON=jsonData[2]
 
     return render_template("crimeAnalysis.html", graph1JSON=graph1JSON, graph2JSON=graph2JSON, graph3JSON=graph3JSON, years=cityInfo['years'], pieYears=pieYears, compCity=compCity, cities=cityInfo['cities'], tab="data", city=city)
+ """
+@application.route('/analysis/<city>/<tab>/enhanceGraphs/pieYears=<pieYears>',methods=['GET'])
+@application.route('/analysis/<city>/<tab>/enhanceGraphs/compCity=<compCity>',methods=['GET'])
+@application.route('/analysis/<city>/<tab>/enhanceGraphs/pieYears=<pieYears>compCity=<compCity>',methods=['GET'])
+def dataGraphsUpdate(city=None, tab=None, pieYears=None, compCity=None):
+    graph1JSON = None
+    if(pieYears!=None and pieYears!="None"):
+        graph1JSON=sunGraph(city, pieYears)[0]
+    
+    if(compCity!=None):
+        graph1JSON=lineGraph(city, compCity)[0]
+
+    if(compCity=="Yearly" ):
+        graph1JSON=lineGraph(city, None)[0]
+    
+    return graph1JSON
 
 
 @application.route('/cityDrops', methods=['GET', 'POST'])
@@ -274,8 +293,9 @@ def safetyScore(city):
                 safetyScoresByYear["scores"] += [tempSafetyScore]
 
         safetyScoreDf = pd.DataFrame.from_dict(safetyScoresByYear)
-        fig = px.line(safetyScoreDf, x='years', y='scores', title="Safety score over the years")
-        fig.update_layout(yaxis_range=[0,5])
+        fig = px.line(safetyScoreDf, x='years', y='scores', title="Safety score over the years",template=current_template,height=graph_height)
+        fig.update_layout(yaxis_range=[0,5], xaxis={'showgrid' :True},
+            yaxis={ 'showgrid' :True},margin=dict(l=20, r=20, t=30, b=20))
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
@@ -337,11 +357,12 @@ def sunGraph(city=None, year=None):
         dfSunburst = pd.DataFrame(
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
-        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount',color= "SpecificCrime",
-                          color_continuous_scale='RdBu',
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount',color= "SpecificCrime",height=graph_height
+                          
                   )
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
+            margin=dict(l=20, r=20, t=25, b=20),
             
         )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
@@ -380,8 +401,9 @@ def lineGraph(city=None, compCity=None):
         plotDF=plotDF.sort_values(by='year')
 
 
-        fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city')
-        fig.update_traces(line_color=primary_color, line_width=2)
+        fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city',template=current_template,height=graph_height)
+        fig.update_layout( xaxis={'showgrid' :True},
+            yaxis={ 'showgrid' :True}, margin=dict(l=20, r=20, t=30, b=20))
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
@@ -411,12 +433,15 @@ def barGraph(city=None):
         # plotDF=dfLineChart[['city', 'total', 'year']].copy()
         color_discrete_map = {city: primary_color}
 
-        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=[dark_color])
+        fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=[dark_color],template=current_template,height=graph_height)
         fig.update_layout(
             xaxis_title="Cities",
             yaxis_title="Num. of Crimes (2019-2021)",
             paper_bgcolor='rgba(0,0,0,0)',
-            xaxis={'categoryorder':'total ascending'}
+            xaxis={'categoryorder':'total ascending',  'showgrid' :True},
+            yaxis={ 'showgrid' :True},
+            margin=dict(l=20, r=20, t=25, b=20),
+           
         )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
@@ -491,8 +516,18 @@ def heatmapGen(city, year, crime):
         startingPoint = cursor.fetchall()
 
         df = pd.DataFrame(cityData, columns=["city", "year", "latitude", "longitude"])
+        z_min = 0.25
+        z_max = 1
         if(len(startingPoint) > 0):
             mapObj = folium.Map([startingPoint[0][0], startingPoint[0][1]], zoom_start=11)
+            ## Add BRANCA colormap ##
+            
+            #colormap = branca_folium_cm.linear.Reds_05.scale(z_min, z_max)
+            #colormap.caption = "Bla bla"  # how do I change fontsize and color here?
+            colormap = branca_folium_cm.LinearColormap(colors=['blue','green', 'yellow','red'], 
+                                                       caption = "Criminal Activity Legend",
+                                                       vmin=0, vmax=100)
+            mapObj.add_child(colormap)
         else:
             mapObj = folium.Map([39.9526, -75.1652], zoom_start=9)
         data = []
@@ -507,7 +542,7 @@ def heatmapGen(city, year, crime):
         if(len(data)<1):
             htmlCode = '<html><br><h3 style="text-align: center">Failed to retrieve location data for ' + cityString + '</h3></html>'
             return htmlCode
-
+        
         HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=10, min_opacity=.25, max=1.0).add_to(mapObj)
         return mapObj._repr_html_()
 
@@ -543,3 +578,6 @@ def heatmapInputs(city=None, year=None):
 
 if __name__ == "__main__":
     application.run(port=2000, debug=True)
+
+#if __name__ == '__main__':
+    #application.run(host='0.0.0.0', port=8080, debug=True)

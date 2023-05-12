@@ -2,11 +2,9 @@ import numpy as np
 import pytest
 
 from pandas import (
-    NA,
     DataFrame,
     MultiIndex,
     Series,
-    array,
 )
 import pandas._testing as tm
 
@@ -48,8 +46,14 @@ class TestMultiIndexSorted:
         df2 = df.set_index(["col1", "col2"])
         df2_original = df2.copy()
 
-        df2.index = df2.index.set_levels(["b", "d", "a"], level="col1")
-        df2.index = df2.index.set_codes([0, 1, 0, 2], level="col1")
+        with tm.assert_produces_warning(FutureWarning):
+            return_value = df2.index.set_levels(
+                ["b", "d", "a"], level="col1", inplace=True
+            )
+        assert return_value is None
+        with tm.assert_produces_warning(FutureWarning):
+            return_value = df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
+        assert return_value is None
         assert not df2.index.is_monotonic_increasing
 
         assert df2_original.index.equals(df2.index)
@@ -79,36 +83,6 @@ class TestMultiIndexSorted:
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         expected = DataFrame(range(8), index=index)
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_argsort_with_na(self):
-        # GH48495
-        arrays = [
-            array([2, NA, 1], dtype="Int64"),
-            array([1, 2, 3], dtype="Int64"),
-        ]
-        index = MultiIndex.from_arrays(arrays)
-        result = index.argsort()
-        expected = np.array([2, 0, 1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_sort_values_with_na(self):
-        # GH48495
-        arrays = [
-            array([2, NA, 1], dtype="Int64"),
-            array([1, 2, 3], dtype="Int64"),
-        ]
-        index = MultiIndex.from_arrays(arrays)
-        index = index.sort_values()
-        result = DataFrame(range(3), index=index)
-
-        arrays = [
-            array([1, 2, NA], dtype="Int64"),
-            array([3, 1, 2], dtype="Int64"),
-        ]
-        index = MultiIndex.from_arrays(arrays)
-        expected = DataFrame(range(3), index=index)
 
         tm.assert_frame_equal(result, expected)
 

@@ -16,6 +16,7 @@ from pandas._typing import (
 cache_readonly = property
 
 class AxisProperty:
+
     axis: int
     def __init__(self, axis: int = ..., doc: str = ...) -> None: ...
     @overload

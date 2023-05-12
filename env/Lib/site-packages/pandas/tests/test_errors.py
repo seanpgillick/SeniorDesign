@@ -11,37 +11,33 @@ import pandas as pd
 @pytest.mark.parametrize(
     "exc",
     [
-        "AttributeConflictWarning",
-        "CSSWarning",
-        "CategoricalConversionWarning",
-        "ClosedFileError",
-        "DataError",
-        "DatabaseError",
-        "DtypeWarning",
-        "EmptyDataError",
-        "IncompatibilityWarning",
-        "IndexingError",
-        "InvalidColumnName",
-        "InvalidComparison",
-        "InvalidVersion",
-        "LossySetitemError",
-        "MergeError",
-        "NoBufferPresent",
-        "NumExprClobberingError",
-        "NumbaUtilError",
-        "OptionError",
+        "UnsupportedFunctionCall",
+        "UnsortedIndexError",
         "OutOfBoundsDatetime",
         "ParserError",
-        "ParserWarning",
         "PerformanceWarning",
-        "PossibleDataLossError",
-        "PossiblePrecisionLoss",
-        "PyperclipException",
+        "DtypeWarning",
+        "EmptyDataError",
+        "ParserWarning",
+        "MergeError",
+        "OptionError",
+        "NumbaUtilError",
+        "DataError",
+        "SpecificationError",
         "SettingWithCopyError",
         "SettingWithCopyWarning",
-        "SpecificationError",
-        "UnsortedIndexError",
-        "UnsupportedFunctionCall",
+        "NumExprClobberingError",
+        "IndexingError",
+        "PyperclipException",
+        "CSSWarning",
+        "ClosedFileError",
+        "PossibleDataLossError",
+        "IncompatibilityWarning",
+        "AttributeConflictWarning",
+        "DatabaseError",
+        "PossiblePrecisionLoss",
+        "CategoricalConversionWarning",
+        "InvalidColumnName",
         "ValueLabelTypeMismatch",
     ],
 )
@@ -62,9 +58,9 @@ def test_exception_importable(exc):
 def test_catch_oob():
     from pandas import errors
 
-    msg = "Cannot cast 1500-01-01 00:00:00 to unit='ns' without overflow"
+    msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
     with pytest.raises(errors.OutOfBoundsDatetime, match=msg):
-        pd.Timestamp("15000101").as_unit("ns")
+        pd.Timestamp("15000101")
 
 
 @pytest.mark.parametrize(

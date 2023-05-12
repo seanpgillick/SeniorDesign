@@ -6,7 +6,7 @@
     <div class="row container-center text-center g-4">
         <div class="col-md-12 card">
             <div class="card-header text-center">
-                <h2>{{city}} Compared to Top Cities in U.S.</h2>
+                <h3>{{city}} Compared to Top Cities in U.S.</h3>
             </div>
             <div class="blog-post card-effect text-center">
                 <div id="chart3Load"></div>
@@ -22,7 +22,7 @@
     <div class="row container-center text-center g-4">
         <div class="col-md-6 card">
             <div class="card-header">
-                <h2>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h2>
+                <h3>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h3>
             </div>
             <div class="blog-post card-effect">
                 <div id="chart1Load"></div>
@@ -32,37 +32,38 @@
                     <label for="years-select">Select Years: </label>
                     {% for o in years %}
                     <div class="form-check form-check-inline">
-                        {% if pieYears and o in pieYears %}
+                        
                         <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}" checked>
-                        {% else %}
-                        <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}">
-                        {% endif %}
+                        
 
                         <label class="form-check-label" for="inlineCheckbox1">{{o}}</label>
                     </div>
                     {% endfor %}
 
-                    <button class="btn btn-primary no-pad" type="button" id="updateYearsComp">
+                    <!--<button class="btn btn-primary no-pad" type="button" id="updateYearsComp">
                         Set Years
-                    </button>
+                    </button>-->
                 </div>
                 <p>Each slice of the pie represents a category of crime, and the size of the slice corresponds to the
                     proportion of that category in relation to the total.
-                    This represents the types of crimes are most common in the city. Please select year if you want to see yearly type of crimes data.
+                    This represents the types of crimes are most common in the city. Please select year if you want to
+                    see yearly type of crimes data.
                 </p>
             </div>
         </div>
         <div class="col-md-6 card">
             <div class="card-header">
-                {% if compCity %}
-                <h2>Comparing {{city}} to {{compCity}}</h2>
-                {% else %}
-                <h2>{{city}} Crime Count for each year</h2>
-                {% endif %}
+
+                <h3 id="compareTitle" class="hidden">Comparing {{city}} to {{compCity}}</h3>
+
+                <h3 id="yearlyTitle">{{city}} Yearly Crime Count</h3>
+
             </div>
+
             <div class="blog-post card-effect">
+
                 <div id="chart2Load"></div>
-                <div id="chart2"></div>
+                <div id="chart2" ></div>
                 <br />
                 <div id="city-select">
                     <label for="cities-comp-select">Select a City to Compare: </label>
@@ -72,25 +73,29 @@
                         {% endfor %}
                     </select>
                     <button class="btn btn-primary no-pad" type="button" id="updateCityComp">
-                        Submit
+                        Compare
                     </button>
                 </div>
 
 
-                {% if compCity %}
 
-                <p>Comparing crime rates between two cities can provide valuable information about the relative
+
+                <p id="compareText" class="hidden">Comparing crime rates between two cities can provide valuable
+                    information about the relative
                     safety of each city.
                     By analyzing crime data from both cities, we can identify patterns and trends that may indicate
                     areas of concern or success
                     in each city's approach to crime prevention.</p>
-                {% else %}
-                <p>Crime counts for each year can provide important information about trends in crime over time.
+
+                <p id="yearlyText">Yearly crimes can provide important information about trends in crime
+                    over time.
                     By tracking the number of crimes committed each year, we can identify patterns and changes in
                     the prevalence of different
                     types of crimes, as well as changes in the overall level of crime.</p>
-                {% endif %}
+
+
             </div>
+            <a href="#" class="link-primary hidden no-pad" id="yearly_count">Go back to Yearly count</a>
         </div>
     </div>
 
@@ -102,20 +107,38 @@
 
 
 
+    var layout = {
+        autosize: false,
+        width: 200,
+        height: 0,
+        margin: {
+            l: 0,
+            r: 0,
+            b: 10,
+            t: 10,
+            pad: 4
+        },
+        
+    };
+
+    var config = { responsive: true }
+
     $(document).ready(function () {
         var graphs1 = {{ graph1JSON | safe
     }};
-    Plotly.plot("chart1", graphs1, {});
+    Plotly.newPlot("chart1", graphs1, layout, config);
 
     var graphs2 = {{ graph2JSON | safe}};
-    Plotly.plot("chart2", graphs2, {});
+    Plotly.newPlot("chart2", graphs2, layout, config);
 
     var graphs3 = {{ graph3JSON | safe}};
-    Plotly.plot("chart3", graphs3, {});
+    Plotly.newPlot("chart3", graphs3, layout, config);
 
 
-    $("#updateYearsComp").click(function () {
+    $(".yearsCheck").click(function () {
+        $('#chart1').empty();
         yearsSelected = $('.yearsCheck:checkbox:checked')
+        
         let years = []
         if (yearsSelected.length > 0) {
             for (let x = 0; x < yearsSelected.length; x++) {
@@ -124,10 +147,12 @@
             }
         }
         else {
-            yearsSelected = $('.yearsCheck:checkbox')
+            document.getElementById("chart1Load").innerHTML = `<div>Please select a year</div>`
+            return;
+            /*yearsSelected = $('.yearsCheck:checkbox')
             for (let x = 0; x < yearsSelected.length; x++) {
                 years.push(yearsSelected[x].value)
-            }
+            }*/
         }
 
         document.getElementById("chart1Load").innerHTML = `<div>Loading Graphs...</div>`
@@ -138,8 +163,14 @@
             url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears=" + years
         }
 
+        $.get(url, null, (graph) => {
 
-        fetch(url)
+            $('#chart1Load').empty();
+            var graphs1 = JSON.parse(graph);
+            Plotly.newPlot("chart1", graphs1, {});
+        });
+
+        /*fetch(url)
             .then((res) => {
                 if (!res.ok) {
                     throw new Error("HTTP error " + res.status)
@@ -153,7 +184,7 @@
                 console.log(err);
                 document.getElementById("chart1").innerHTML = `<div>Error loading graphs</div>`
 
-            });
+            });*/
 
     });
 
@@ -168,22 +199,42 @@
         } else {
             url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=" + cityComp
         }
+        $('#chart2').empty();
+        $.get(url, null, (graph) => {
 
-        fetch(url)
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error("HTTP error " + res.status)
-                }
-                console.log(res)
-                window.location.replace(res.url)
-                //document.getElementById("chart2Load").innerHTML=``
+            $('#chart2Load').empty();
+            var graphs1 = JSON.parse(graph);
+            Plotly.newPlot("chart2", graphs1, {});
 
-            })
-            .catch((err) => {
-                console.log(err);
-                document.getElementById("chart2").innerHTML = `<div>Error loading graphs</div>`
+            $('#yearlyTitle').hide();
+            $('#yearlyText').hide();
 
-            });
+            $('#compareTitle').show().text("Comparing {{city}} to " + cityComp);
+            $('#compareText').show();
+            $('#yearly_count').show();
+        });
+
+    });
+
+    $("#yearly_count").click(function () {
+
+        url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=Yearly"
+
+        $('#chart2').empty();
+        $.get(url, null, (graph) => {
+
+            $('#chart2Load').empty();
+            var graphs1 = JSON.parse(graph);
+            Plotly.newPlot("chart2", graphs1, {});
+
+            $('#yearlyTitle').show();
+            $('#yearlyText').show();
+
+            $('#compareTitle').hide()
+            $('#compareText').hide();
+            $('#yearly_count').hide();
+        });
+
     });
             
         });

@@ -41,7 +41,9 @@ def to_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function.
-        Also accepts URL. URL has to be of S3 or GCS.
+
+        .. versionchanged:: 1.0.0
+           Accept URL. URL has to be of S3 or GCS.
     {compression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -99,8 +101,15 @@ def to_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
-        # letting pickle write directly to the buffer is more memory-efficient
-        pickle.dump(obj, handles.handle, protocol=protocol)
+        if handles.compression["method"] in ("bz2", "xz") and protocol >= 5:
+            # some weird TypeError GH#39002 with pickle 5: fallback to letting
+            # pickle create the entire object and then write it to the buffer.
+            # "zip" would also be here if pandas.io.common._BytesZipFile
+            # wouldn't buffer write calls
+            handles.handle.write(pickle.dumps(obj, protocol=protocol))
+        else:
+            # letting pickle write directly to the buffer is more memory-efficient
+            pickle.dump(obj, handles.handle, protocol=protocol)
 
 
 @doc(
@@ -125,7 +134,9 @@ def read_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``readlines()`` function.
-        Also accepts URL. URL is not limited to S3 and GCS.
+
+        .. versionchanged:: 1.0.0
+           Accept URL. URL is not limited to S3 and GCS.
 
     {decompression_options}
 
@@ -137,7 +148,7 @@ def read_pickle(
 
     Returns
     -------
-    same type as object stored in file
+    unpickled : same type as object stored in file
 
     See Also
     --------
@@ -183,6 +194,7 @@ def read_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
+
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes
         # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError

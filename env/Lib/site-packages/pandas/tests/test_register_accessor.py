@@ -1,5 +1,4 @@
 import contextlib
-from typing import Generator
 
 import pytest
 
@@ -24,7 +23,7 @@ def test_dirname_mixin():
 
 
 @contextlib.contextmanager
-def ensure_removed(obj, attr) -> Generator[None, None, None]:
+def ensure_removed(obj, attr):
     """Ensure that an attribute added to 'obj' during the test is
     removed when we're done
     """
@@ -98,6 +97,7 @@ def test_overwrite_warns():
 
 
 def test_raises_attribute_error():
+
     with ensure_removed(pd.Series, "bad"):
 
         @pd.api.extensions.register_series_accessor("bad")

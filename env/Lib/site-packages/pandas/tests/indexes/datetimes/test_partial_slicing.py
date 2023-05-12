@@ -295,10 +295,12 @@ class TestSlicing:
                     expected = df["a"][theslice]
                     tm.assert_series_equal(result, expected)
 
-                    # pre-2.0 df[ts_string] was overloaded to interpret this
-                    #  as slicing along index
-                    with pytest.raises(KeyError, match=ts_string):
-                        df[ts_string]
+                    # Frame should return slice as well
+                    with tm.assert_produces_warning(FutureWarning):
+                        # GH#36179 deprecated this indexing
+                        result = df[ts_string]
+                    expected = df[theslice]
+                    tm.assert_frame_equal(result, expected)
 
             # Timestamp with resolution more precise than index
             # Compatible with existing key
@@ -325,6 +327,7 @@ class TestSlicing:
                     df[ts_string]
 
     def test_partial_slicing_with_multiindex(self):
+
         # GH 4758
         # partial string indexing with a multi-index buggy
         df = DataFrame(
@@ -375,24 +378,23 @@ class TestSlicing:
         result = df2.loc[Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
 
-    def test_partial_slice_requires_monotonicity(self):
-        # Disallowed since 2.0 (GH 37819)
+    def test_partial_slice_doesnt_require_monotonicity(self):
+        # For historical reasons.
         ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
         nonmonotonic = ser[[3, 5, 4]]
+        expected = nonmonotonic.iloc[:0]
         timestamp = Timestamp("2014-01-10")
-        with pytest.raises(
-            KeyError, match="Value based partial slicing on non-monotonic"
-        ):
-            nonmonotonic["2014-01-10":]
+        with tm.assert_produces_warning(FutureWarning):
+            result = nonmonotonic["2014-01-10":]
+        tm.assert_series_equal(result, expected)
 
         with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
             nonmonotonic[timestamp:]
 
-        with pytest.raises(
-            KeyError, match="Value based partial slicing on non-monotonic"
-        ):
-            nonmonotonic.loc["2014-01-10":]
+        with tm.assert_produces_warning(FutureWarning):
+            result = nonmonotonic.loc["2014-01-10":]
+        tm.assert_series_equal(result, expected)
 
         with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
             nonmonotonic.loc[timestamp:]

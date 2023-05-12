@@ -131,6 +131,7 @@ class TestCategoricalIndex:
         tm.assert_series_equal(result, expected)
 
     def test_slicing_and_getting_ops(self):
+
         # systematically test the slicing operations:
         #  for all slicing ops:
         #   - returning a dataframe
@@ -252,6 +253,7 @@ class TestCategoricalIndex:
         assert is_categorical_dtype(res_df["cats"].dtype)
 
     def test_slicing_doc_examples(self):
+
         # GH 7918
         cats = Categorical(
             ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c"]
@@ -423,6 +425,7 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
 
     def test_ix_categorical_index_non_unique(self):
+
         # non-unique
         df = DataFrame(np.random.randn(3, 3), index=list("ABA"), columns=list("XYX"))
         cdf = df.copy()

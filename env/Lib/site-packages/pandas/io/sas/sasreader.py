@@ -7,7 +7,6 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -19,7 +18,10 @@ from pandas._typing import (
     FilePath,
     ReadBuffer,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -46,19 +48,13 @@ class ReaderBase(metaclass=ABCMeta):
     def __enter__(self) -> ReaderBase:
         return self
 
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
 
 @overload
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
-    *,
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -72,7 +68,6 @@ def read_sas(
 @overload
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
-    *,
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -83,10 +78,10 @@ def read_sas(
     ...
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
-    *,
     format: str | None = None,
     index: Hashable | None = None,
     encoding: str | None = None,
@@ -104,7 +99,7 @@ def read_sas(
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
-        ``file://localhost/path/to/table.sas7bdat``.
+        ``file://localhost/path/to/table.sas``.
     format : str {{'xport', 'sas7bdat'}} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.

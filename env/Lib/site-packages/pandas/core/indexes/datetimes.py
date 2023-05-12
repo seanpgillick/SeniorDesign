@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-import datetime as dt
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    tzinfo,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Literal,
 )
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs import (
     NaT,
@@ -19,32 +25,33 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    BaseOffset,
     Resolution,
     periods_per_day,
     timezones,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    Frequency,
     IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
+    IntervalLeftRight,
     npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import (
@@ -54,6 +61,7 @@ from pandas.core.arrays.datetimes import (
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
+    get_unanimous_names,
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
@@ -61,9 +69,11 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas.core.api import (
+    from pandas import (
         DataFrame,
+        Float64Index,
         PeriodIndex,
+        TimedeltaIndex,
     )
 
 
@@ -110,7 +120,7 @@ def _new_DatetimeIndex(cls, d):
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(["is_normalized"], DatetimeArray, cache=True)
+@inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
 @inherit_names(
     [
         "tz",
@@ -132,11 +142,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Represented internally as int64, and which can be boxed to Timestamp objects
     that are subclasses of datetime and carry metadata.
-
-    .. versionchanged:: 2.0.0
-        The various numeric date/time attributes (:attr:`~DatetimeIndex.day`,
-        :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) now have dtype
-        ``int32``. Previously they had dtype ``int64``.
 
     Parameters
     ----------
@@ -222,6 +227,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     floor
     ceil
     to_period
+    to_perioddelta
     to_pydatetime
     to_series
     to_frame
@@ -254,7 +260,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return libindex.DatetimeEngine
 
     _data: DatetimeArray
-    tz: dt.tzinfo | None
+    inferred_freq: str | None
+    tz: tzinfo | None
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -267,15 +274,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> DatetimeIndex:
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name, refs=self._references)
+        return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.tz_localize)
-    def tz_localize(
-        self,
-        tz,
-        ambiguous: TimeAmbiguous = "raise",
-        nonexistent: TimeNonexistent = "raise",
-    ) -> DatetimeIndex:
+    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeIndex:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -286,19 +288,24 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
+    @doc(DatetimeArray.to_perioddelta)
+    def to_perioddelta(self, freq) -> TimedeltaIndex:
+        from pandas.core.indexes.api import TimedeltaIndex
+
+        arr = self._data.to_perioddelta(freq)
+        return TimedeltaIndex._simple_new(arr, name=self.name)
+
     @doc(DatetimeArray.to_julian_date)
-    def to_julian_date(self) -> Index:
+    def to_julian_date(self) -> Float64Index:
+        from pandas.core.indexes.api import Float64Index
+
         arr = self._data.to_julian_date()
-        return Index._simple_new(arr, name=self.name)
+        return Float64Index._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.isocalendar)
     def isocalendar(self) -> DataFrame:
         df = self._data.isocalendar()
         return df.set_index(self)
-
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        return self._data._resolution_obj
 
     # --------------------------------------------------------------------
     # Constructors
@@ -306,19 +313,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq: Frequency | lib.NoDefault = lib.no_default,
-        tz=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
+        tz=None,
         normalize: bool = False,
         closed=None,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous="raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
     ) -> DatetimeIndex:
+
         if is_scalar(data):
-            cls._raise_scalar_data_error(data)
+            raise cls._scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -327,11 +335,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is lib.no_default
+            and tz is None
             and dtype is None
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
             # Note in this particular case we retain non-nano.
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name)
+        elif (
+            isinstance(data, DatetimeArray)
+            and freq is lib.no_default
+            and tz is None
+            and is_dtype_equal(data.dtype, dtype)
+        ):
+            # Reached via Index.__new__ when we call .astype
+            # TODO(2.0): special casing can be removed once _from_sequence_not_strict
+            #  no longer chokes on non-nano
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
@@ -346,11 +366,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
-        refs = None
-        if not copy and isinstance(data, (Index, ABCSeries)):
-            refs = data._references
 
-        subarr = cls._simple_new(dtarr, name=name, refs=refs)
+        subarr = cls._simple_new(dtarr, name=name)
         return subarr
 
     # --------------------------------------------------------------------
@@ -392,7 +409,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _formatter_func(self):
         from pandas.io.formats.format import get_format_datetime64
 
-        formatter = get_format_datetime64(is_dates_only_=self._is_dates_only)
+        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: f"'{formatter(x)}'"
 
     # --------------------------------------------------------------------
@@ -415,6 +432,55 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return False
         return super()._can_range_setop(other)
 
+    def union_many(self, others):
+        """
+        A bit of a hack to accelerate unioning a collection of indexes.
+        """
+        warnings.warn(
+            "DatetimeIndex.union_many is deprecated and will be removed in "
+            "a future version. Use obj.union instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        this = self
+
+        for other in others:
+            if not isinstance(this, DatetimeIndex):
+                this = Index.union(this, other)
+                continue
+
+            if not isinstance(other, DatetimeIndex):
+                try:
+                    other = DatetimeIndex(other)
+                except TypeError:
+                    pass
+
+            this, other = this._maybe_utc_convert(other)
+
+            if len(self) and len(other) and this._can_fast_union(other):
+                # union already has fastpath handling for empty cases
+                this = this._fast_union(other)
+            else:
+                this = Index.union(this, other)
+
+        res_name = get_unanimous_names(self, *others)[0]
+        if this.name != res_name:
+            return this.rename(res_name)
+        return this
+
+    def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
+        this = self
+
+        if isinstance(other, DatetimeIndex):
+            if (self.tz is None) ^ (other.tz is None):
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
+            if not timezones.tz_compare(self.tz, other.tz):
+                this = self.tz_convert("UTC")
+                other = other.tz_convert("UTC")
+        return this, other
+
     # --------------------------------------------------------------------
 
     def _get_time_micros(self) -> npt.NDArray[np.int64]:
@@ -427,24 +493,103 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        ppd = periods_per_day(self._data._creso)
+        reso = self._data._reso
+        ppd = periods_per_day(reso)
 
         frac = values % ppd
-        if self.unit == "ns":
+        if reso == NpyDatetimeUnit.NPY_FR_ns.value:
             micros = frac // 1000
-        elif self.unit == "us":
+        elif reso == NpyDatetimeUnit.NPY_FR_us.value:
             micros = frac
-        elif self.unit == "ms":
+        elif reso == NpyDatetimeUnit.NPY_FR_ms.value:
             micros = frac * 1000
-        elif self.unit == "s":
+        elif reso == NpyDatetimeUnit.NPY_FR_s.value:
             micros = frac * 1_000_000
         else:  # pragma: no cover
-            raise NotImplementedError(self.unit)
+            raise NotImplementedError(reso)
 
         micros[self._isnan] = -1
         return micros
 
-    def snap(self, freq: Frequency = "S") -> DatetimeIndex:
+    def to_series(self, keep_tz=lib.no_default, index=None, name=None):
+        """
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
+
+        Parameters
+        ----------
+        keep_tz : optional, defaults True
+            Return the data keeping the timezone.
+
+            If keep_tz is True:
+
+              If the timezone is not set, the resulting
+              Series will have a datetime64[ns] dtype.
+
+              Otherwise the Series will have an datetime64[ns, tz] dtype; the
+              tz will be preserved.
+
+            If keep_tz is False:
+
+              Series will have a datetime64[ns] dtype. TZ aware
+              objects will have the tz removed.
+
+            .. versionchanged:: 1.0.0
+                The default value is now True.  In a future version,
+                this keyword will be removed entirely.  Stop passing the
+                argument to obtain the future behavior and silence the warning.
+
+        index : Index, optional
+            Index of resulting Series. If None, defaults to original index.
+        name : str, optional
+            Name of resulting Series. If None, defaults to name of original
+            index.
+
+        Returns
+        -------
+        Series
+        """
+        from pandas import Series
+
+        if index is None:
+            index = self._view()
+        if name is None:
+            name = self.name
+
+        if keep_tz is not lib.no_default:
+            if keep_tz:
+                warnings.warn(
+                    "The 'keep_tz' keyword in DatetimeIndex.to_series "
+                    "is deprecated and will be removed in a future version. "
+                    "You can stop passing 'keep_tz' to silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "Specifying 'keep_tz=False' is deprecated and this "
+                    "option will be removed in a future release. If "
+                    "you want to remove the timezone information, you "
+                    "can do 'idx.tz_convert(None)' before calling "
+                    "'to_series'.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            keep_tz = True
+
+        if keep_tz and self.tz is not None:
+            # preserve the tz & copy
+            values = self.copy(deep=True)
+        else:
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "DatetimeIndex")
+            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
+
+        return Series(values, index=index, name=name)
+
+    def snap(self, freq="S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
 
@@ -473,13 +618,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: dt.datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
         Parameters
         ----------
-        reso : Resolution
+        reso : str
             Resolution provided by parsed string.
         parsed : datetime
             Datetime from parsed string.
@@ -504,36 +649,37 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "The index must be timezone aware when indexing "
                     "with a date string with a UTC offset"
                 )
-        # The flipped case with parsed.tz is None and self.tz is not None
-        #  is ruled out bc parsed and reso are produced by _parse_with_reso,
-        #  which localizes parsed.
+        start = self._maybe_cast_for_get_loc(start)
+        end = self._maybe_cast_for_get_loc(end)
         return start, end
 
-    def _parse_with_reso(self, label: str):
-        parsed, reso = super()._parse_with_reso(label)
-
-        parsed = Timestamp(parsed)
-
-        if self.tz is not None and parsed.tzinfo is None:
-            # we special-case timezone-naive strings and timezone-aware
-            #  DatetimeIndex
-            # https://github.com/pandas-dev/pandas/pull/36148#issuecomment-687883081
-            parsed = parsed.tz_localize(self.tz)
-
-        return parsed, reso
-
-    def _disallow_mismatched_indexing(self, key) -> None:
-        """
-        Check for mismatched-tzawareness indexing and re-raise as KeyError.
-        """
+    def _deprecate_mismatched_indexing(self, key, one_way: bool = False) -> None:
+        # GH#36148
         # we get here with isinstance(key, self._data._recognized_scalars)
         try:
-            # GH#36148
             self._data._assert_tzawareness_compat(key)
-        except TypeError as err:
-            raise KeyError(key) from err
+        except TypeError:
+            if self.tz is None:
+                msg = (
+                    "Indexing a timezone-naive DatetimeIndex with a "
+                    "timezone-aware datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-naive object instead."
+                )
+            elif one_way:
+                # we special-case timezone-naive strings and timezone-aware
+                #  DatetimeIndex
+                return
+            else:
+                msg = (
+                    "Indexing a timezone-aware DatetimeIndex with a "
+                    "timezone-naive datetime is deprecated and will "
+                    "raise KeyError in a future version. "
+                    "Use a timezone-aware object instead."
+                )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
 
@@ -549,31 +695,37 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
-            self._disallow_mismatched_indexing(key)
-            key = Timestamp(key)
+            self._deprecate_mismatched_indexing(key)
+            key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
+
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except (ValueError, pytz.NonExistentTimeError) as err:
+            except ValueError as err:
                 raise KeyError(key) from err
-            self._disallow_mismatched_indexing(parsed)
+            self._deprecate_mismatched_indexing(parsed, one_way=True)
 
             if self._can_partial_date_slice(reso):
                 try:
                     return self._partial_date_slice(reso, parsed)
                 except KeyError as err:
-                    raise KeyError(key) from err
+                    if method is None:
+                        raise KeyError(key) from err
 
-            key = parsed
+            key = self._maybe_cast_for_get_loc(key)
 
-        elif isinstance(key, dt.timedelta):
+        elif isinstance(key, timedelta):
             # GH#20464
             raise TypeError(
                 f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
-        elif isinstance(key, dt.time):
+        elif isinstance(key, time):
+            if method is not None:
+                raise NotImplementedError(
+                    "cannot yet lookup inexact labels when key is a time object"
+                )
             return self.indexer_at_time(key)
 
         else:
@@ -581,23 +733,42 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError(key)
 
         try:
-            return Index.get_loc(self, key)
+            return Index.get_loc(self, key, method, tolerance)
         except KeyError as err:
             raise KeyError(orig_key) from err
 
+    def _maybe_cast_for_get_loc(self, key) -> Timestamp:
+        # needed to localize naive datetimes or dates (GH 35690)
+        try:
+            key = Timestamp(key)
+        except ValueError as err:
+            # FIXME(dateutil#1180): we get here because parse_with_reso
+            #  doesn't raise on "t2m"
+            if not isinstance(key, str):
+                # Not expected to be reached, but check to be sure
+                raise  # pragma: no cover
+            raise KeyError(key) from err
+
+        if key.tzinfo is None:
+            key = key.tz_localize(self.tz)
+        else:
+            key = key.tz_convert(self.tz)
+        return key
+
     @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+
         # GH#42855 handle date here instead of get_slice_bound
-        if isinstance(label, dt.date) and not isinstance(label, dt.datetime):
+        if isinstance(label, date) and not isinstance(label, datetime):
             # Pandas supports slicing with dates, treated as datetimes at midnight.
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
 
-        label = super()._maybe_cast_slice_bound(label, side)
-        self._data._assert_tzawareness_compat(label)
-        return Timestamp(label)
+        label = super()._maybe_cast_slice_bound(label, side, kind=kind)
+        self._deprecate_mismatched_indexing(label)
+        return self._maybe_cast_for_get_loc(label)
 
-    def slice_indexer(self, start=None, end=None, step=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=lib.no_default):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -611,18 +782,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           value-based selection in non-monotonic cases.
 
         """
+        self._deprecated_arg(kind, "kind", "slice_indexer")
+
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
-        if isinstance(start, dt.time) and isinstance(end, dt.time):
+        if isinstance(start, time) and isinstance(end, time):
             if step is not None and step != 1:
                 raise ValueError("Must have step size of 1 with time slices")
             return self.indexer_between_time(start, end)
 
-        if isinstance(start, dt.time) or isinstance(end, dt.time):
+        if isinstance(start, time) or isinstance(end, time):
             raise KeyError("Cannot mix time and non-time slice keys")
 
-        def check_str_or_none(point) -> bool:
+        def check_str_or_none(point):
             return point is not None and not isinstance(point, str)
 
         # GH#33146 if start and end are combinations of str and None and Index is not
@@ -633,24 +806,27 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             or check_str_or_none(end)
             or self.is_monotonic_increasing
         ):
-            return Index.slice_indexer(self, start, end, step)
+            return Index.slice_indexer(self, start, end, step, kind=kind)
 
         mask = np.array(True)
-        raise_mask = np.array(True)
+        deprecation_mask = np.array(True)
         if start is not None:
             start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
-            raise_mask = start_casted == self
+            deprecation_mask = start_casted == self
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
-            raise_mask = (end_casted == self) | raise_mask
+            deprecation_mask = (end_casted == self) | deprecation_mask
 
-        if not raise_mask.any():
-            raise KeyError(
+        if not deprecation_mask.any():
+            warnings.warn(
                 "Value based partial slicing on non-monotonic DatetimeIndexes "
-                "with non-existing keys is not allowed.",
+                "with non-existing keys is deprecated and will raise a "
+                "KeyError in a future Version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -763,9 +939,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    inclusive: IntervalClosedType = "both",
-    *,
-    unit: str | None = None,
+    closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -788,32 +963,35 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str, datetime.timedelta, or DateOffset, default 'D'
+    freq : str or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
     tz : str or tzinfo, optional
         Time zone name for returning localized DatetimeIndex, for example
         'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is
-        timezone-naive unless timezone-aware datetime-likes are passed.
+        timezone-naive.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     name : str, default None
         Name of the resulting DatetimeIndex.
+    closed : {None, 'left', 'right'}, optional
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None, the default).
+
+        .. deprecated:: 1.4.0
+           Argument `closed` has been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
 
         .. versionadded:: 1.4.0
-    unit : str, default None
-        Specify the desired resolution of the result.
-
-        .. versionadded:: 2.0.0
     **kwargs
         For compatibility. Has no effect on the result.
 
     Returns
     -------
-    DatetimeIndex
+    rng : DatetimeIndex
 
     See Also
     --------
@@ -845,18 +1023,6 @@ def date_range(
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
-
-    Specify timezone-aware `start` and `end`, with the default daily frequency.
-
-    >>> pd.date_range(
-    ...     start=pd.to_datetime("1/1/2018").tz_localize("Europe/Berlin"),
-    ...     end=pd.to_datetime("1/08/2018").tz_localize("Europe/Berlin"),
-    ... )
-    DatetimeIndex(['2018-01-01 00:00:00+01:00', '2018-01-02 00:00:00+01:00',
-                   '2018-01-03 00:00:00+01:00', '2018-01-04 00:00:00+01:00',
-                   '2018-01-05 00:00:00+01:00', '2018-01-06 00:00:00+01:00',
-                   '2018-01-07 00:00:00+01:00', '2018-01-08 00:00:00+01:00'],
-                  dtype='datetime64[ns, Europe/Berlin]', freq='D')
 
     Specify `start` and `periods`, the number of periods (days).
 
@@ -930,15 +1096,29 @@ def date_range(
     >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
-
-    **Specify a unit**
-
-    >>> pd.date_range(start="2017-01-01", periods=10, freq="100AS", unit="s")
-    DatetimeIndex(['2017-01-01', '2117-01-01', '2217-01-01', '2317-01-01',
-                   '2417-01-01', '2517-01-01', '2617-01-01', '2717-01-01',
-                   '2817-01-01', '2917-01-01'],
-                  dtype='datetime64[s]', freq='100AS-JAN')
     """
+    if inclusive is not None and closed is not lib.no_default:
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed"
+            "if argument `inclusive` is not None"
+        )
+    elif closed is not lib.no_default:
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either 'left', 'right' or None"
+            )
+    elif inclusive is None:
+        inclusive = "both"
+
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
@@ -950,7 +1130,6 @@ def date_range(
         tz=tz,
         normalize=normalize,
         inclusive=inclusive,
-        unit=unit,
         **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, name=name)
@@ -960,13 +1139,14 @@ def bdate_range(
     start=None,
     end=None,
     periods: int | None = None,
-    freq: Frequency = "B",
+    freq="B",
     tz=None,
     normalize: bool = True,
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    inclusive: IntervalClosedType = "both",
+    closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -980,9 +1160,8 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'B'
-        Frequency strings can have multiples, e.g. '5H'. The default is
-        business daily ('B').
+    freq : str or DateOffset, default 'B' (business daily)
+        Frequency strings can have multiples, e.g. '5H'.
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing.
@@ -998,6 +1177,13 @@ def bdate_range(
         Dates to exclude from the set of valid business days, passed to
         ``numpy.busdaycalendar``, only used when custom frequency strings
         are passed.
+    closed : str, default None
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None).
+
+        .. deprecated:: 1.4.0
+           Argument `closed` has been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
 
@@ -1054,11 +1240,12 @@ def bdate_range(
         tz=tz,
         normalize=normalize,
         name=name,
+        closed=closed,
         inclusive=inclusive,
         **kwargs,
     )
 
 
-def _time_to_micros(time_obj: dt.time) -> int:
+def _time_to_micros(time_obj: time) -> int:
     seconds = time_obj.hour * 60 * 60 + 60 * time_obj.minute + time_obj.second
     return 1_000_000 * seconds + time_obj.microsecond

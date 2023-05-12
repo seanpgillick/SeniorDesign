@@ -3,21 +3,16 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
+from shutil import rmtree
 import tempfile
 from typing import (
     IO,
     Any,
-    Generator,
+    Iterator,
 )
 import uuid
 
-from pandas._typing import (
-    BaseBuffer,
-    CompressionOptions,
-    FilePath,
-)
-from pandas.compat import PYPY
-from pandas.errors import ChainedAssignmentError
+import numpy as np
 
 from pandas import set_option
 
@@ -25,9 +20,7 @@ from pandas.io.common import get_handle
 
 
 @contextmanager
-def decompress_file(
-    path: FilePath | BaseBuffer, compression: CompressionOptions
-) -> Generator[IO[bytes], None, None]:
+def decompress_file(path, compression) -> Iterator[IO[bytes]]:
     """
     Open a compressed file and return a file object.
 
@@ -48,7 +41,7 @@ def decompress_file(
 
 
 @contextmanager
-def set_timezone(tz: str) -> Generator[None, None, None]:
+def set_timezone(tz: str) -> Iterator[None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -69,9 +62,10 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     ...
     'EST'
     """
+    import os
     import time
 
-    def setTZ(tz) -> None:
+    def setTZ(tz):
         if tz is None:
             try:
                 del os.environ["TZ"]
@@ -90,9 +84,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
 
 
 @contextmanager
-def ensure_clean(
-    filename=None, return_filelike: bool = False, **kwargs: Any
-) -> Generator[Any, None, None]:
+def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -135,7 +127,26 @@ def ensure_clean(
 
 
 @contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
+def ensure_clean_dir() -> Iterator[str]:
+    """
+    Get a temporary directory path and agrees to remove on close.
+
+    Yields
+    ------
+    Temporary directory path
+    """
+    directory_name = tempfile.mkdtemp(suffix="")
+    try:
+        yield directory_name
+    finally:
+        try:
+            rmtree(directory_name)
+        except OSError:
+            pass
+
+
+@contextmanager
+def ensure_safe_environment_variables() -> Iterator[None]:
     """
     Get a context manager to safely set environment variables
 
@@ -151,7 +162,7 @@ def ensure_safe_environment_variables() -> Generator[None, None, None]:
 
 
 @contextmanager
-def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name, **kwargs) -> Iterator[None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -185,7 +196,7 @@ def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
 
 
 @contextmanager
-def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
+def use_numexpr(use, min_elements=None) -> Iterator[None]:
     from pandas.core.computation import expressions as expr
 
     if min_elements is None:
@@ -202,18 +213,30 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error():
-    if PYPY:
-        from contextlib import nullcontext
+class RNGContext:
+    """
+    Context manager to set the numpy random number generator speed. Returns
+    to the original value upon exiting the context manager.
 
-        return nullcontext()
-    else:
-        from pandas._testing import assert_produces_warning
+    Parameters
+    ----------
+    seed : int
+        Seed for numpy.random.seed
 
-        return assert_produces_warning(
-            ChainedAssignmentError,
-            match=(
-                "A value is trying to be set on a copy of a DataFrame or Series "
-                "through chained assignment"
-            ),
-        )
+    Examples
+    --------
+    with RNGContext(42):
+        np.random.randn()
+    """
+
+    def __init__(self, seed) -> None:
+        self.seed = seed
+
+    def __enter__(self) -> None:
+
+        self.start_state = np.random.get_state()
+        np.random.seed(self.seed)
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+
+        np.random.set_state(self.start_state)

@@ -52,6 +52,13 @@ show_counts_sub = dedent(
         shows the counts, and False never shows the counts."""
 )
 
+null_counts_sub = dedent(
+    """
+    null_counts : bool, optional
+        .. deprecated:: 1.2.0
+            Use show_counts instead."""
+)
+
 
 frame_examples_sub = dedent(
     """\
@@ -152,6 +159,7 @@ frame_sub_kwargs = {
     "type_sub": " and columns",
     "max_cols_sub": frame_max_cols_sub,
     "show_counts_sub": show_counts_sub,
+    "null_counts_sub": null_counts_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub,
     "version_added_sub": "",
@@ -165,7 +173,7 @@ series_examples_sub = dedent(
     >>> s = pd.Series(text_values, index=int_values)
     >>> s.info()
     <class 'pandas.core.series.Series'>
-    Index: 5 entries, 1 to 5
+    Int64Index: 5 entries, 1 to 5
     Series name: None
     Non-Null Count  Dtype
     --------------  -----
@@ -177,7 +185,7 @@ series_examples_sub = dedent(
 
     >>> s.info(verbose=False)
     <class 'pandas.core.series.Series'>
-    Index: 5 entries, 1 to 5
+    Int64Index: 5 entries, 1 to 5
     dtypes: object(1)
     memory usage: 80.0+ bytes
 
@@ -232,6 +240,7 @@ series_sub_kwargs = {
     "type_sub": "",
     "max_cols_sub": "",
     "show_counts_sub": show_counts_sub,
+    "null_counts_sub": "",
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
     "version_added_sub": "\n.. versionadded:: 1.4.0\n",
@@ -254,7 +263,7 @@ INFO_DOCSTRING = dedent(
     buf : writable buffer, defaults to sys.stdout
         Where to send the output. By default, the output is printed to
         sys.stdout. Pass a writable buffer if you need to further process
-        the output.
+        the output.\
     {max_cols_sub}
     memory_usage : bool, str, optional
         Specifies whether total memory usage of the {klass}
@@ -271,7 +280,7 @@ INFO_DOCSTRING = dedent(
         at the cost of computational resources. See the
         :ref:`Frequently Asked Questions <df-memory-usage>` for more
         details.
-    {show_counts_sub}
+    {show_counts_sub}{null_counts_sub}
 
     Returns
     -------
@@ -491,7 +500,10 @@ class DataFrameInfo(BaseInfo):
 
     @property
     def memory_usage_bytes(self) -> int:
-        deep = self.memory_usage == "deep"
+        if self.memory_usage == "deep":
+            deep = True
+        else:
+            deep = False
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     def render(
@@ -567,7 +579,10 @@ class SeriesInfo(BaseInfo):
         memory_usage_bytes : int
             Object's total memory usage in bytes.
         """
-        deep = self.memory_usage == "deep"
+        if self.memory_usage == "deep":
+            deep = True
+        else:
+            deep = False
         return self.data.memory_usage(index=True, deep=deep)
 
 

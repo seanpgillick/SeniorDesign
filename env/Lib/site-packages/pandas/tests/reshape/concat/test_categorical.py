@@ -50,6 +50,7 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_concat_dtypes(self):
+
         # GH8143
         index = ["cat", "obj", "num"]
         cat = Categorical(["a", "b", "c"])
@@ -92,6 +93,7 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(result, exp)
 
     def test_categorical_concat_preserve(self):
+
         # GH 8641  series concat not preserving category dtype
         # GH 13524 can concat different categories
         s = Series(list("abc"), dtype="category")
@@ -123,6 +125,7 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_index_preserver(self):
+
         a = Series(np.arange(6, dtype="int64"))
         b = Series(list("aabbca"))
 

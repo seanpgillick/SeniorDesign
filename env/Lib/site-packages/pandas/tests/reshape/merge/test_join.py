@@ -13,96 +13,82 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
-
-
-def get_test_data(ngroups=8, n=50):
-    unique_groups = list(range(ngroups))
-    arr = np.asarray(np.tile(unique_groups, n // ngroups))
-
-    if len(arr) < n:
-        arr = np.asarray(list(arr) + unique_groups[: n - len(arr)])
-
-    np.random.shuffle(arr)
-    return arr
+from pandas.tests.reshape.merge.test_merge import (
+    NGROUPS,
+    N,
+    get_test_data,
+)
 
 
 class TestJoin:
-    # aggregate multiple columns
-    @pytest.fixture
-    def df(self):
-        df = DataFrame(
+    def setup_method(self):
+        # aggregate multiple columns
+        self.df = DataFrame(
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.randn(50),
-                "data2": np.random.randn(50),
+                "data1": np.random.randn(N),
+                "data2": np.random.randn(N),
             }
         )
 
         # exclude a couple keys for fun
-        df = df[df["key2"] > 1]
-        return df
+        self.df = self.df[self.df["key2"] > 1]
 
-    @pytest.fixture
-    def df2(self):
-        return DataFrame(
+        self.df2 = DataFrame(
             {
-                "key1": get_test_data(n=10),
-                "key2": get_test_data(ngroups=4, n=10),
-                "value": np.random.randn(10),
+                "key1": get_test_data(n=N // 5),
+                "key2": get_test_data(ngroups=NGROUPS // 2, n=N // 5),
+                "value": np.random.randn(N // 5),
             }
         )
 
-    @pytest.fixture
-    def target_source(self):
         index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        self.target = DataFrame(data, index=index)
 
         # Join on string value
-
-        source = DataFrame(
+        self.source = DataFrame(
             {"MergedA": data["A"], "MergedD": data["D"]}, index=data["C"]
         )
-        return target, source
 
-    def test_left_outer_join(self, df, df2):
-        joined_key2 = merge(df, df2, on="key2")
-        _check_join(df, df2, joined_key2, ["key2"], how="left")
+    def test_left_outer_join(self):
+        joined_key2 = merge(self.df, self.df2, on="key2")
+        _check_join(self.df, self.df2, joined_key2, ["key2"], how="left")
 
-        joined_both = merge(df, df2)
-        _check_join(df, df2, joined_both, ["key1", "key2"], how="left")
+        joined_both = merge(self.df, self.df2)
+        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="left")
 
-    def test_right_outer_join(self, df, df2):
-        joined_key2 = merge(df, df2, on="key2", how="right")
-        _check_join(df, df2, joined_key2, ["key2"], how="right")
+    def test_right_outer_join(self):
+        joined_key2 = merge(self.df, self.df2, on="key2", how="right")
+        _check_join(self.df, self.df2, joined_key2, ["key2"], how="right")
 
-        joined_both = merge(df, df2, how="right")
-        _check_join(df, df2, joined_both, ["key1", "key2"], how="right")
+        joined_both = merge(self.df, self.df2, how="right")
+        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="right")
 
-    def test_full_outer_join(self, df, df2):
-        joined_key2 = merge(df, df2, on="key2", how="outer")
-        _check_join(df, df2, joined_key2, ["key2"], how="outer")
+    def test_full_outer_join(self):
+        joined_key2 = merge(self.df, self.df2, on="key2", how="outer")
+        _check_join(self.df, self.df2, joined_key2, ["key2"], how="outer")
 
-        joined_both = merge(df, df2, how="outer")
-        _check_join(df, df2, joined_both, ["key1", "key2"], how="outer")
+        joined_both = merge(self.df, self.df2, how="outer")
+        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="outer")
 
-    def test_inner_join(self, df, df2):
-        joined_key2 = merge(df, df2, on="key2", how="inner")
-        _check_join(df, df2, joined_key2, ["key2"], how="inner")
+    def test_inner_join(self):
+        joined_key2 = merge(self.df, self.df2, on="key2", how="inner")
+        _check_join(self.df, self.df2, joined_key2, ["key2"], how="inner")
 
-        joined_both = merge(df, df2, how="inner")
-        _check_join(df, df2, joined_both, ["key1", "key2"], how="inner")
+        joined_both = merge(self.df, self.df2, how="inner")
+        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="inner")
 
-    def test_handle_overlap(self, df, df2):
-        joined = merge(df, df2, on="key2", suffixes=(".foo", ".bar"))
+    def test_handle_overlap(self):
+        joined = merge(self.df, self.df2, on="key2", suffixes=(".foo", ".bar"))
 
         assert "key1.foo" in joined
         assert "key1.bar" in joined
 
-    def test_handle_overlap_arbitrary_key(self, df, df2):
+    def test_handle_overlap_arbitrary_key(self):
         joined = merge(
-            df,
-            df2,
+            self.df,
+            self.df2,
             left_on="key2",
             right_on="key1",
             suffixes=(".foo", ".bar"),
@@ -110,8 +96,9 @@ class TestJoin:
         assert "key1.foo" in joined
         assert "key2.bar" in joined
 
-    def test_join_on(self, target_source):
-        target, source = target_source
+    def test_join_on(self):
+        target = self.target
+        source = self.source
 
         merged = target.join(source, on="C")
         tm.assert_series_equal(merged["MergedA"], target["A"], check_names=False)
@@ -202,24 +189,22 @@ class TestJoin:
         with pytest.raises(TypeError, match=msg):
             merge(df, wrong_type, left_on="a", right_on="a")
 
-    def test_join_on_pass_vector(self, target_source):
-        target, source = target_source
-        expected = target.join(source, on="C")
+    def test_join_on_pass_vector(self):
+        expected = self.target.join(self.source, on="C")
         del expected["C"]
 
-        join_col = target.pop("C")
-        result = target.join(source, on=join_col)
+        join_col = self.target.pop("C")
+        result = self.target.join(self.source, on=join_col)
         tm.assert_frame_equal(result, expected)
 
-    def test_join_with_len0(self, target_source):
+    def test_join_with_len0(self):
         # nothing to merge
-        target, source = target_source
-        merged = target.join(source.reindex([]), on="C")
-        for col in source:
+        merged = self.target.join(self.source.reindex([]), on="C")
+        for col in self.source:
             assert col in merged
             assert merged[col].isna().all()
 
-        merged2 = target.join(source.reindex([]), on="C", how="inner")
+        merged2 = self.target.join(self.source.reindex([]), on="C", how="inner")
         tm.assert_index_equal(merged2.columns, merged.columns)
         assert len(merged2) == 0
 
@@ -245,10 +230,9 @@ class TestJoin:
 
         tm.assert_frame_equal(joined, expected)
 
-    def test_join_on_series(self, target_source):
-        target, source = target_source
-        result = target.join(source["MergedA"], on="C")
-        expected = target.join(source[["MergedA"]], on="C")
+    def test_join_on_series(self):
+        result = self.target.join(self.source["MergedA"], on="C")
+        expected = self.target.join(self.source[["MergedA"]], on="C")
         tm.assert_frame_equal(result, expected)
 
     def test_join_on_series_buglet(self):
@@ -420,20 +404,21 @@ class TestJoin:
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
 
-    def test_join_hierarchical_mixed_raises(self):
+    def test_join_hierarchical_mixed(self):
         # GH 2024
-        # GH 40993: For raising, enforced in 2.0
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": [np.mean, np.sum]})
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        with pytest.raises(
-            pd.errors.MergeError, match="Not allowed to merge between different levels"
-        ):
-            merge(new_df, other_df, left_index=True, right_index=True)
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = merge(new_df, other_df, left_index=True, right_index=True)
+        assert ("b", "mean") in result
+        assert "b" in result
 
     def test_join_float64_float32(self):
+
         a = DataFrame(np.random.randn(10, 2), columns=["a", "b"], dtype=np.float64)
         b = DataFrame(np.random.randn(10, 1), columns=["c"], dtype=np.float32)
         joined = a.join(b)
@@ -568,9 +553,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        with pytest.raises(TypeError, match="Could not convert"):
-            grouped.mean()
-        mn = grouped.mean(numeric_only=True)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mn = grouped.mean()
         cn = grouped.count()
 
         # it works!
@@ -615,6 +600,7 @@ class TestJoin:
         tm.assert_frame_equal(result, df)
 
     def test_join_dups(self):
+
         # joining dups
         df = concat(
             [
@@ -640,12 +626,11 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        # GH 40991: As of 2.0 causes duplicate columns
-        with pytest.raises(
-            pd.errors.MergeError,
-            match="Passing 'suffixes' which cause duplicate columns",
-        ):
-            dta.merge(w, left_index=True, right_index=True)
+        with tm.assert_produces_warning(FutureWarning):
+            dta = dta.merge(w, left_index=True, right_index=True)
+        expected = concat([x, y, z, w], axis=1)
+        expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
+        tm.assert_frame_equal(dta, expected)
 
     def test_join_multi_to_multi(self, join_type):
         # GH 20475
@@ -744,6 +729,7 @@ class TestJoin:
 
 
 def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix="_y"):
+
     # some smoke tests
     for c in join_col:
         assert result[c].notna().all()
@@ -930,6 +916,7 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
     ],
 )
 def test_join_empty(left_empty, how, exp):
+
     left = DataFrame({"A": [2, 1], "B": [3, 4]}, dtype="int64").set_index("A")
     right = DataFrame({"A": [1], "C": [5]}, dtype="int64").set_index("A")
 
@@ -947,48 +934,8 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
         expected = expected.set_index("A")
     elif exp == "empty":
-        expected = DataFrame(columns=["B", "C"], dtype="int64")
+        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
 
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "how, values",
-    [
-        ("inner", [0, 1, 2]),
-        ("outer", [0, 1, 2]),
-        ("left", [0, 1, 2]),
-        ("right", [0, 2, 1]),
-    ],
-)
-def test_join_multiindex_categorical_output_index_dtype(how, values):
-    # GH#50906
-    df1 = DataFrame(
-        {
-            "a": Categorical([0, 1, 2]),
-            "b": Categorical([0, 1, 2]),
-            "c": [0, 1, 2],
-        }
-    ).set_index(["a", "b"])
-
-    df2 = DataFrame(
-        {
-            "a": Categorical([0, 2, 1]),
-            "b": Categorical([0, 2, 1]),
-            "d": [0, 2, 1],
-        }
-    ).set_index(["a", "b"])
-
-    expected = DataFrame(
-        {
-            "a": Categorical(values),
-            "b": Categorical(values),
-            "c": values,
-            "d": values,
-        }
-    ).set_index(["a", "b"])
-
-    result = df1.join(df2, how=how)
     tm.assert_frame_equal(result, expected)

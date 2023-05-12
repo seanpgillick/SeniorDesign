@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Literal,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -15,15 +12,13 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
-    AxisInt,
     Dtype,
     Scalar,
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under1p01
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -57,11 +52,6 @@ from pandas.core.missing import isna
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
-
     from pandas import Series
 
 
@@ -69,6 +59,8 @@ if TYPE_CHECKING:
 class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
+
+    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -113,9 +105,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under7p0:
+        if storage == "pyarrow" and pa_version_under1p01:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -195,6 +187,7 @@ class StringDtype(StorageExtensionDtype):
 
             return ArrowStringArray(array)
         else:
+
             import pyarrow
 
             if isinstance(array, pyarrow.Array):
@@ -220,16 +213,14 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
-    @doc(ExtensionArray.tolist)
-    def tolist(self):
-        if self.ndim > 1:
-            return [x.tolist() for x in self]
-        return list(self.to_numpy())
+    pass
 
 
 class StringArray(BaseStringArray, PandasArray):
     """
     Extension array for string data.
+
+    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -269,7 +260,7 @@ class StringArray(BaseStringArray, PandasArray):
 
     See Also
     --------
-    :func:`pandas.array`
+    array
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
@@ -311,7 +302,7 @@ class StringArray(BaseStringArray, PandasArray):
     # undo the PandasArray hack
     _typ = "extension"
 
-    def __init__(self, values, copy: bool = False) -> None:
+    def __init__(self, values, copy=False) -> None:
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
@@ -336,7 +327,7 @@ class StringArray(BaseStringArray, PandasArray):
             lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
@@ -351,9 +342,6 @@ class StringArray(BaseStringArray, PandasArray):
             result[na_values] = libmissing.NA
 
         else:
-            if hasattr(scalars, "type"):
-                # pyarrow array
-                scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 
@@ -366,7 +354,7 @@ class StringArray(BaseStringArray, PandasArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -412,19 +400,16 @@ class StringArray(BaseStringArray, PandasArray):
             if isna(value):
                 value = libmissing.NA
             elif not isinstance(value, str):
-                raise TypeError(
+                raise ValueError(
                     f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise TypeError("Must provide strings.")
+                raise ValueError("Must provide strings.")
 
-            mask = isna(value)
-            if mask.any():
-                value = value.copy()
-                value[isna(value)] = libmissing.NA
+            value[isna(value)] = libmissing.NA
 
         super().__setitem__(key, value)
 
@@ -455,8 +440,7 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            # Skip the PandasArray.astype method
-            return ExtensionArray.astype(self, dtype, copy)
+            return super().astype(dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
@@ -468,7 +452,7 @@ class StringArray(BaseStringArray, PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+        self, name: str, *, skipna: bool = True, axis: int | None = 0, **kwargs
     ):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna, axis=axis)
@@ -501,20 +485,6 @@ class StringArray(BaseStringArray, PandasArray):
         if deep:
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
-
-    @doc(ExtensionArray.searchsorted)
-    def searchsorted(
-        self,
-        value: NumpyValueArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
-    ) -> npt.NDArray[np.intp] | np.intp:
-        if self._hasna:
-            raise ValueError(
-                "searchsorted requires array to be sorted, which is impossible "
-                "with NAs present."
-            )
-        return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray

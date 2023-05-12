@@ -17,13 +17,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat import is_platform_windows
-from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
-import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 
@@ -97,16 +94,9 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
         # Period + Period is not defined.
         pass
 
-    @pytest.mark.parametrize("periods", [1, -2])
-    def test_diff(self, data, periods):
-        if is_platform_windows() and np_version_gte1p24:
-            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-                super().test_diff(data, periods)
-        else:
-            super().test_diff(data, periods)
-
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
+
     pass
 
 
@@ -152,12 +142,11 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         with pytest.raises(TypeError, match=msg):
             s + data
 
-    def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, data, frame_or_series
-    ):
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
         # Override to use __sub__ instead of __add__
         other = pd.Series(data)
-        if frame_or_series is pd.DataFrame:
+        if box is pd.DataFrame:
             other = other.to_frame()
 
         result = data.__sub__(other)

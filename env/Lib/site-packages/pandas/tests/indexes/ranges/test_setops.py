@@ -11,19 +11,21 @@ from hypothesis import (
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    RangeIndex,
-)
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Index,
+    Int64Index,
+    RangeIndex,
+    UInt64Index,
+)
 
 
 class TestRangeIndexSetOps:
-    @pytest.mark.parametrize("dtype", [None, "int64", "uint64"])
-    def test_intersection_mismatched_dtype(self, dtype):
+    @pytest.mark.parametrize("klass", [RangeIndex, Int64Index, UInt64Index])
+    def test_intersection_mismatched_dtype(self, klass):
         # check that we cast to float, not object
         index = RangeIndex(start=0, stop=20, step=2, name="foo")
-        index = Index(index, dtype=dtype)
+        index = klass(index)
 
         flt = index.astype(np.float64)
 
@@ -61,7 +63,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, index[:0].rename(names[2]), exact=True)
 
     def test_intersection(self, sort):
-        # intersect with Index with dtype int64
+        # intersect with Int64Index
         index = RangeIndex(start=0, stop=20, step=2)
         other = Index(np.arange(1, 6))
         result = index.intersection(other, sort=sort)
@@ -132,7 +134,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, expected)
 
     def test_union_noncomparable(self, sort):
-        # corner case, Index with non-int64 dtype
+        # corner case, non-Int64Index
         index = RangeIndex(start=0, stop=20, step=2)
         other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
         result = index.union(other, sort=sort)
@@ -180,25 +182,25 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, 10, 2),
                 RangeIndex(1, 10, 2),
                 RangeIndex(0, 10, 1),
-                Index(list(range(0, 10, 2)) + list(range(1, 10, 2))),
+                Int64Index(list(range(0, 10, 2)) + list(range(1, 10, 2))),
             ),
             (
                 RangeIndex(0, 11, 2),
                 RangeIndex(1, 12, 2),
                 RangeIndex(0, 12, 1),
-                Index(list(range(0, 11, 2)) + list(range(1, 12, 2))),
+                Int64Index(list(range(0, 11, 2)) + list(range(1, 12, 2))),
             ),
             (
                 RangeIndex(0, 21, 4),
                 RangeIndex(-2, 24, 4),
                 RangeIndex(-2, 24, 2),
-                Index(list(range(0, 21, 4)) + list(range(-2, 24, 4))),
+                Int64Index(list(range(0, 21, 4)) + list(range(-2, 24, 4))),
             ),
             (
                 RangeIndex(0, -20, -2),
                 RangeIndex(-1, -21, -2),
                 RangeIndex(-19, 1, 1),
-                Index(list(range(0, -20, -2)) + list(range(-1, -21, -2))),
+                Int64Index(list(range(0, -20, -2)) + list(range(-1, -21, -2))),
             ),
             (
                 RangeIndex(0, 100, 5),
@@ -210,13 +212,13 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, -100, -5),
                 RangeIndex(5, -100, -20),
                 RangeIndex(-95, 10, 5),
-                Index(list(range(0, -100, -5)) + [5]),
+                Int64Index(list(range(0, -100, -5)) + [5]),
             ),
             (
                 RangeIndex(0, -11, -1),
                 RangeIndex(1, -12, -4),
                 RangeIndex(-11, 2, 1),
-                Index(list(range(0, -11, -1)) + [1, -11]),
+                Int64Index(list(range(0, -11, -1)) + [1, -11]),
             ),
             (RangeIndex(0), RangeIndex(0), RangeIndex(0), RangeIndex(0)),
             (
@@ -235,7 +237,7 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, -100, -2),
                 RangeIndex(-100, 50, 102),
                 RangeIndex(-100, 4, 2),
-                Index(list(range(0, -100, -2)) + [-100, 2]),
+                Int64Index(list(range(0, -100, -2)) + [-100, 2]),
             ),
             (
                 RangeIndex(0, -100, -1),
@@ -253,25 +255,25 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, 10, 5),
                 RangeIndex(-5, -6, -20),
                 RangeIndex(-5, 10, 5),
-                Index([0, 5, -5]),
+                Int64Index([0, 5, -5]),
             ),
             (
                 RangeIndex(0, 3, 1),
                 RangeIndex(4, 5, 1),
-                Index([0, 1, 2, 4]),
-                Index([0, 1, 2, 4]),
+                Int64Index([0, 1, 2, 4]),
+                Int64Index([0, 1, 2, 4]),
             ),
             (
                 RangeIndex(0, 10, 1),
-                Index([], dtype=np.int64),
+                Int64Index([]),
                 RangeIndex(0, 10, 1),
                 RangeIndex(0, 10, 1),
             ),
             (
                 RangeIndex(0),
-                Index([1, 5, 6]),
-                Index([1, 5, 6]),
-                Index([1, 5, 6]),
+                Int64Index([1, 5, 6]),
+                Int64Index([1, 5, 6]),
+                Int64Index([1, 5, 6]),
             ),
             # GH 43885
             (
@@ -291,7 +293,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(res1, expected_notsorted, exact=True)
 
         res2 = idx2.union(idx1, sort=None)
-        res3 = Index(idx1._values, name=idx1.name).union(idx2, sort=None)
+        res3 = Int64Index(idx1._values, name=idx1.name).union(idx2, sort=None)
         tm.assert_index_equal(res2, expected_sorted, exact=True)
         tm.assert_index_equal(res3, expected_sorted, exact="equiv")
 
@@ -301,7 +303,7 @@ class TestRangeIndexSetOps:
         right = RangeIndex(range(1, 21, 4))
 
         result = left.union(right)
-        expected = Index([0, 1, 4, 5, 8, 9, 12, 13, 16, 17])
+        expected = Int64Index([0, 1, 4, 5, 8, 9, 12, 13, 16, 17])
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_difference(self):
@@ -337,8 +339,8 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
 
         result = obj.difference(obj[2:6])
-        expected = Index([1, 2, 7, 8, 9], name="foo")
-        tm.assert_index_equal(result, expected, exact=True)
+        expected = Int64Index([1, 2, 7, 8, 9], name="foo")
+        tm.assert_index_equal(result, expected)
 
     def test_difference_sort(self):
         # GH#44085 ensure we respect the sort keyword
@@ -401,25 +403,25 @@ class TestRangeIndexSetOps:
 
         other = idx[3:4]
         result = idx.difference(other)
-        expected = Index([0, 1, 2, 4, 5, 6, 7, 8, 9])
+        expected = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 9])
         tm.assert_index_equal(result, expected, exact=True)
 
         # case with other.step / self.step > 2
         other = idx[::3]
         result = idx.difference(other)
-        expected = Index([1, 2, 4, 5, 7, 8])
+        expected = Int64Index([1, 2, 4, 5, 7, 8])
         tm.assert_index_equal(result, expected, exact=True)
 
         # cases with only reaching one end of left
         obj = Index(range(20))
         other = obj[:10:2]
         result = obj.difference(other)
-        expected = Index([1, 3, 5, 7, 9] + list(range(10, 20)))
+        expected = Int64Index([1, 3, 5, 7, 9] + list(range(10, 20)))
         tm.assert_index_equal(result, expected, exact=True)
 
         other = obj[1:11:2]
         result = obj.difference(other)
-        expected = Index([0, 2, 4, 6, 8, 10] + list(range(11, 20)))
+        expected = Int64Index([0, 2, 4, 6, 8, 10] + list(range(11, 20)))
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_symmetric_difference(self):
@@ -435,8 +437,8 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, left.rename(None))
 
         result = left[:-2].symmetric_difference(left[2:])
-        expected = Index([1, 2, 8, 9], name="foo")
-        tm.assert_index_equal(result, expected, exact=True)
+        expected = Int64Index([1, 2, 8, 9], name="foo")
+        tm.assert_index_equal(result, expected)
 
         right = RangeIndex.from_range(range(10, 15))
 
@@ -445,8 +447,8 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, expected)
 
         result = left.symmetric_difference(right[1:])
-        expected = Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14])
-        tm.assert_index_equal(result, expected, exact=True)
+        expected = Int64Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14])
+        tm.assert_index_equal(result, expected)
 
 
 def assert_range_or_not_is_rangelike(index):
@@ -469,7 +471,7 @@ def assert_range_or_not_is_rangelike(index):
 )
 def test_range_difference(start1, stop1, step1, start2, stop2, step2):
     # test that
-    #  a) we match Index[int64].difference and
+    #  a) we match Int64Index.difference and
     #  b) we return RangeIndex whenever it is possible to do so.
     assume(step1 != 0)
     assume(step2 != 0)
@@ -480,14 +482,11 @@ def test_range_difference(start1, stop1, step1, start2, stop2, step2):
     result = left.difference(right, sort=None)
     assert_range_or_not_is_rangelike(result)
 
-    left_int64 = Index(left.to_numpy())
-    right_int64 = Index(right.to_numpy())
-
-    alt = left_int64.difference(right_int64, sort=None)
+    alt = Int64Index(left).difference(Int64Index(right), sort=None)
     tm.assert_index_equal(result, alt, exact="equiv")
 
     result = left.difference(right, sort=False)
     assert_range_or_not_is_rangelike(result)
 
-    alt = left_int64.difference(right_int64, sort=False)
+    alt = Int64Index(left).difference(Int64Index(right), sort=False)
     tm.assert_index_equal(result, alt, exact="equiv")

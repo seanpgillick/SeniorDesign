@@ -16,6 +16,7 @@ from pandas import (
     DataFrame,
     Series,
     Timestamp,
+    compat,
     date_range,
     option_context,
 )
@@ -85,13 +86,13 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_modify_values(self, float_frame, using_copy_on_write):
-        if using_copy_on_write:
-            with pytest.raises(ValueError, match="read-only"):
-                float_frame.values[5] = 5
-            assert (float_frame.values[5] != 5).all()
-            return
+    def test_values_consolidate(self, float_frame):
+        float_frame["E"] = 7.0
+        assert not float_frame._mgr.is_consolidated()
+        _ = float_frame.values
+        assert float_frame._mgr.is_consolidated()
 
+    def test_modify_values(self, float_frame):
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
 
@@ -99,10 +100,10 @@ class TestDataFrameBlockInternals:
         float_frame["E"] = 7.0
         col = float_frame["E"]
         float_frame.values[6] = 6
-        # as of 2.0 .values does not consolidate, so subsequent calls to .values
-        #  does not share data
-        assert not (float_frame.values[6] == 6).all()
+        assert (float_frame.values[6] == 6).all()
 
+        # check that item_cache was cleared
+        assert float_frame["E"] is not col
         assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
@@ -213,26 +214,24 @@ class TestDataFrameBlockInternals:
         tm.assert_series_equal(result, expected)
 
     def test_construction_with_conversions(self):
-        # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
-        #  *not* convert
+
+        # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
         df = DataFrame(index=range(3))
         df["A"] = arr
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
-        tm.assert_numpy_array_equal(df["A"].to_numpy(), arr)
+        tm.assert_frame_equal(df, expected)
 
         expected = DataFrame(
             {
                 "dt1": Timestamp("20130101"),
-                "dt2": date_range("20130101", periods=3).astype("M8[s]"),
+                "dt2": date_range("20130101", periods=3),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
             },
             index=range(3),
         )
-        assert expected.dtypes["dt1"] == "M8[ns]"
-        assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))
         df["dt1"] = np.datetime64("2013-01-01")
@@ -257,15 +256,16 @@ class TestDataFrameBlockInternals:
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
-        # pre-2.0 these used to work (though results may be unexpected)
-        with pytest.raises(TypeError, match="argument must be"):
+        # these work (though results may be unexpected)
+        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             f("int64")
-        with pytest.raises(TypeError, match="argument must be"):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             f("float64")
 
         # 10822
-        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
-        with pytest.raises(ValueError, match=msg):
+        # invalid error message on dt inference
+        if not compat.is_platform_windows():
             f("M8[ns]")
 
     def test_pickle(self, float_string_frame, timezone_frame):
@@ -335,6 +335,7 @@ class TestDataFrameBlockInternals:
         assert float_string_frame._is_mixed_type
 
     def test_stale_cached_series_bug_473(self, using_copy_on_write):
+
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
@@ -344,11 +345,7 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            if using_copy_on_write:
-                with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.NaN
-            else:
-                Y["g"]["c"] = np.NaN
+            Y["g"]["c"] = np.NaN
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa

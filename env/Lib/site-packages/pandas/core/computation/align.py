@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 def _align_core_single_unary_op(
     term,
 ) -> tuple[partial | type[NDFrame], dict[str, Index] | None]:
+
     typ: partial | type[NDFrame]
     axes: dict[str, Index] | None = None
 

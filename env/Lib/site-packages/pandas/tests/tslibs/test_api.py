@@ -4,6 +4,7 @@ from pandas._libs import tslibs
 
 
 def test_namespace():
+
     submodules = [
         "base",
         "ccalendar",
@@ -55,8 +56,6 @@ def test_namespace():
         "periods_per_day",
         "periods_per_second",
         "is_supported_unit",
-        "get_supported_reso",
-        "npy_unit_to_abbrev",
     ]
 
     expected = set(submodules + api)
