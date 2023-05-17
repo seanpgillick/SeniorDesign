@@ -22,13 +22,17 @@ from pandas.util import _test_decorators as td
 @pytest.fixture
 def gcs_buffer(monkeypatch):
     """Emulate GCS using a binary buffer."""
-    import fsspec
+    from fsspec import (
+        AbstractFileSystem,
+        registry,
+    )
+
+    registry.target.clear()  # remove state
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
 
-    class MockGCSFileSystem(fsspec.AbstractFileSystem):
-        @staticmethod
+    class MockGCSFileSystem(AbstractFileSystem):
         def open(*args, **kwargs):
             gcs_buffer.seek(0)
             return gcs_buffer
@@ -37,8 +41,7 @@ def gcs_buffer(monkeypatch):
             # needed for pyarrow
             return [{"name": path, "type": "file"}]
 
-    # Overwrites the default implementation from gcsfs to our mock class
-    fsspec.register_implementation("gs", MockGCSFileSystem, clobber=True)
+    monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
 
     return gcs_buffer
 
@@ -51,6 +54,9 @@ def test_to_read_gcs(gcs_buffer, format):
 
     GH 33987
     """
+    from fsspec import registry
+
+    registry.target.clear()  # remove state
 
     df1 = DataFrame(
         {
@@ -67,7 +73,7 @@ def test_to_read_gcs(gcs_buffer, format):
         df1.to_csv(path, index=True)
         df2 = read_csv(path, parse_dates=["dt"], index_col=0)
     elif format == "excel":
-        path = "gs://test/test.xlsx"
+        path = "gs://test/test.xls"
         df1.to_excel(path)
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
@@ -125,6 +131,9 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     GH 35677 (to_csv, compression), GH 26124 (to_csv, encoding), and
     GH 32392 (read_csv, encoding)
     """
+    from fsspec import registry
+
+    registry.target.clear()  # remove state
     df = tm.makeDataFrame()
 
     # reference of compressed and encoded file
@@ -164,8 +173,12 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
 @td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    from fsspec import AbstractFileSystem
+    from fsspec import (
+        AbstractFileSystem,
+        registry,
+    )
 
+    registry.target.clear()  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],

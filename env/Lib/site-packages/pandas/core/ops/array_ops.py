@@ -18,14 +18,7 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
-from pandas._libs.tslibs import (
-    BaseOffset,
-    get_supported_reso,
-    get_unit_from_dtype,
-    is_supported_unit,
-    is_unitless,
-    npy_unit_to_abbrev,
-)
+from pandas._libs.tslibs import BaseOffset
 from pandas._typing import (
     ArrayLike,
     Shape,
@@ -54,7 +47,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.computation import expressions
+import pandas.core.computation.expressions as expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import (
     missing,
@@ -104,7 +97,8 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
-        ymask = notna(y)
+        else:
+            ymask = notna(y)
 
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
         #  we would get int64 dtype, see GH#19956
@@ -482,13 +476,7 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             from pandas.core.arrays import DatetimeArray
 
             # Avoid possible ambiguities with pd.NaT
-            # GH 52295
-            if is_unitless(obj.dtype):
-                obj = obj.astype("datetime64[ns]")
-            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
-                unit = get_unit_from_dtype(obj.dtype)
-                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
-                obj = obj.astype(f"datetime64[{closest_unit}]")
+            obj = obj.astype("datetime64[ns]")
             right = np.broadcast_to(obj, shape)
             return DatetimeArray(right)
 
@@ -501,13 +489,7 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
-            # GH 52295
-            if is_unitless(obj.dtype):
-                obj = obj.astype("timedelta64[ns]")
-            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
-                unit = get_unit_from_dtype(obj.dtype)
-                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
-                obj = obj.astype(f"timedelta64[{closest_unit}]")
+            obj = obj.astype("timedelta64[ns]")
             right = np.broadcast_to(obj, shape)
             return TimedeltaArray(right)
 

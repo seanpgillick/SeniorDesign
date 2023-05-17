@@ -1,11 +1,10 @@
 from collections import deque
-import re
 import string
 
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
@@ -87,7 +86,9 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
     name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
 
-    other = pd.Index(a2, name=name).astype("int64")
+    warn = None if not sparse else FutureWarning
+    with tm.assert_produces_warning(warn):
+        other = pd.Index(a2, name=name).astype("int64")
 
     array_args = (a1, a2)
     series_args = (series, other)  # ufunc(series, array)
@@ -275,10 +276,14 @@ class TestNumpyReductions:
         box = box_with_array
         values = values_for_np_reduce
 
-        with tm.assert_produces_warning(None):
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
             obj = box(values)
 
-        if isinstance(values, pd.core.arrays.SparseArray):
+        if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
             mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 
@@ -288,10 +293,11 @@ class TestNumpyReductions:
                 expected = obj.prod(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Index has no 'prod'
+                # Int64Index, Index has no 'prod'
                 expected = obj._values.prod()
                 assert result == expected
             else:
+
                 expected = obj.prod()
                 assert result == expected
         else:
@@ -309,7 +315,11 @@ class TestNumpyReductions:
         box = box_with_array
         values = values_for_np_reduce
 
-        with tm.assert_produces_warning(None):
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
             obj = box(values)
 
         if values.dtype.kind in "miuf":
@@ -318,7 +328,7 @@ class TestNumpyReductions:
                 expected = obj.sum(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Index has no 'sum'
+                # Int64Index, Index has no 'sum'
                 expected = obj._values.sum()
                 assert result == expected
             else:
@@ -344,7 +354,11 @@ class TestNumpyReductions:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-        with tm.assert_produces_warning(None):
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
             obj = box(values)
 
         result = np.maximum.reduce(obj)
@@ -368,7 +382,11 @@ class TestNumpyReductions:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-        with tm.assert_produces_warning(None):
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
             obj = box(values)
 
         result = np.minimum.reduce(obj)
@@ -427,40 +445,11 @@ def test_np_matmul():
     # GH26650
     df1 = pd.DataFrame(data=[[-1, 1, 10]])
     df2 = pd.DataFrame(data=[-1, 1, 10])
-    expected = pd.DataFrame(data=[102])
+    expected_result = pd.DataFrame(data=[102])
 
-    result = np.matmul(df1, df2)
-    tm.assert_frame_equal(expected, result)
-
-
-def test_array_ufuncs_for_many_arguments():
-    # GH39853
-    def add3(x, y, z):
-        return x + y + z
-
-    ufunc = np.frompyfunc(add3, 3, 1)
-    ser = pd.Series([1, 2])
-
-    result = ufunc(ser, ser, 1)
-    expected = pd.Series([3, 5], dtype=object)
-    tm.assert_series_equal(result, expected)
-
-    df = pd.DataFrame([[1, 2]])
-
-    msg = (
-        "Cannot apply ufunc <ufunc 'add3 (vectorized)'> "
-        "to mixed DataFrame and Series inputs."
+    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
+        result = np.matmul(df1, df2)
+    tm.assert_frame_equal(
+        expected_result,
+        result,
     )
-    with pytest.raises(NotImplementedError, match=re.escape(msg)):
-        ufunc(ser, ser, df)
-
-
-# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
-@td.skip_copy_on_write_not_yet_implemented
-def test_np_fix():
-    # np.fix is not a ufunc but is composed of several ufunc calls under the hood
-    # with `out` and `where` keywords
-    ser = pd.Series([-1.5, -0.5, 0.5, 1.5])
-    result = np.fix(ser)
-    expected = pd.Series([-1.0, -0.0, 0.0, 1.0])
-    tm.assert_series_equal(result, expected)

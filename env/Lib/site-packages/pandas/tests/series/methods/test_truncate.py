@@ -1,7 +1,5 @@
 from datetime import datetime
 
-import pytest
-
 import pandas as pd
 from pandas import (
     Series,
@@ -15,8 +13,8 @@ class TestTruncate:
         # GH 9243
         idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
         s = Series(range(len(idx)), index=idx)
-        with pytest.raises(TypeError, match="Cannot compare tz-naive"):
-            # GH#36148 as of 2.0 we require tzawareness compat
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#36148 in the future will require tzawareness compat
             s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
 
         lb = idx[1]

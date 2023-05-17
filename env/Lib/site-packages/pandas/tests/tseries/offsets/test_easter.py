@@ -8,12 +8,15 @@ from datetime import datetime
 
 import pytest
 
-from pandas.tests.tseries.offsets.common import assert_offset_equal
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    assert_offset_equal,
+)
 
 from pandas.tseries.offsets import Easter
 
 
-class TestEaster:
+class TestEaster(Base):
     @pytest.mark.parametrize(
         "offset,date,expected",
         [

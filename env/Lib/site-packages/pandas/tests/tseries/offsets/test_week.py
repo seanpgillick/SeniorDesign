@@ -19,16 +19,23 @@ from pandas._libs.tslibs.offsets import (
     LastWeekOfMonth,
     Week,
     WeekOfMonth,
+    WeekOfMonthMixin,
 )
 
 from pandas.tests.tseries.offsets.common import (
+    Base,
     WeekDay,
     assert_is_on_offset,
     assert_offset_equal,
 )
 
 
-class TestWeek:
+class TestWeek(Base):
+    _offset: type[Week] = Week
+    d = Timestamp(datetime(2008, 1, 2))
+    offset1 = _offset()
+    offset2 = _offset(2)
+
     def test_repr(self):
         assert repr(Week(weekday=0)) == "<Week: weekday=0>"
         assert repr(Week(n=-1, weekday=0)) == "<-1 * Week: weekday=0>"
@@ -114,7 +121,11 @@ class TestWeek:
 
         for day in range(1, 8):
             date = datetime(2008, 1, day)
-            expected = day % 7 == weekday
+
+            if day % 7 == weekday:
+                expected = True
+            else:
+                expected = False
         assert_is_on_offset(offset, date, expected)
 
     @pytest.mark.parametrize(
@@ -142,7 +153,11 @@ class TestWeek:
             offset + other
 
 
-class TestWeekOfMonth:
+class TestWeekOfMonth(Base):
+    _offset: type[WeekOfMonthMixin] = WeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
+
     def test_constructor(self):
         with pytest.raises(ValueError, match="^Week"):
             WeekOfMonth(n=1, week=4, weekday=0)
@@ -254,7 +269,11 @@ class TestWeekOfMonth:
         assert fast == slow
 
 
-class TestLastWeekOfMonth:
+class TestLastWeekOfMonth(Base):
+    _offset: type[WeekOfMonthMixin] = LastWeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
+
     def test_constructor(self):
         with pytest.raises(ValueError, match="^N cannot be 0"):
             LastWeekOfMonth(n=0, weekday=1)

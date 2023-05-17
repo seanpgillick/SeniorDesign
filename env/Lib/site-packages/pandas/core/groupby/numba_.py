@@ -105,6 +105,7 @@ def generate_numba_agg_func(
         num_columns: int,
         *args: Any,
     ) -> np.ndarray:
+
         assert len(begin) == len(end)
         num_groups = len(begin)
 
@@ -165,6 +166,7 @@ def generate_numba_transform_func(
         num_columns: int,
         *args: Any,
     ) -> np.ndarray:
+
         assert len(begin) == len(end)
         num_groups = len(begin)
 

@@ -54,7 +54,7 @@ def _split_into_full_short_caption(
     return full_caption, short_caption
 
 
-class RowStringConverter:
+class RowStringConverter(ABC):
     r"""Converter for dataframe rows into LaTeX strings.
 
     Parameters
@@ -160,7 +160,8 @@ class RowStringConverter:
             def pad_empties(x):
                 for pad in reversed(x):
                     if pad:
-                        return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
+                        break
+                return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
             gen = (pad_empties(i) for i in out)
 
@@ -179,7 +180,7 @@ class RowStringConverter:
         return strcols
 
     @property
-    def _empty_info_line(self) -> str:
+    def _empty_info_line(self):
         return (
             f"Empty {type(self.frame).__name__}\n"
             f"Columns: {self.frame.columns}\n"
@@ -210,7 +211,7 @@ class RowStringConverter:
         ncol = 1
         coltext = ""
 
-        def append_col() -> None:
+        def append_col():
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
@@ -772,7 +773,7 @@ class LatexFormatter:
         Right alignment for numbers and left - for strings.
         """
 
-        def get_col_type(dtype) -> str:
+        def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return "r"
             return "l"

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Collection,
     Literal,
     NamedTuple,
 )
@@ -11,7 +10,6 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
-from pandas._typing import MatplotlibColor
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
@@ -53,14 +51,14 @@ class BoxPlot(LinePlot):
         lines: dict[str, list[Line2D]]
 
     def __init__(self, data, return_type: str = "axes", **kwargs) -> None:
+        # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
 
         self.return_type = return_type
-        # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
 
-    def _args_adjust(self) -> None:
+    def _args_adjust(self):
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
             # column label
@@ -69,11 +67,8 @@ class BoxPlot(LinePlot):
             else:
                 self.sharey = False
 
-    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(  # type: ignore[override]
-        cls, ax, y, column_num=None, return_type: str = "axes", **kwds
-    ):
+    def _plot(cls, ax, y, column_num=None, return_type="axes", **kwds):
         if y.ndim == 2:
             y = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
@@ -122,14 +117,7 @@ class BoxPlot(LinePlot):
         self._medians_c = colors[2]
         self._caps_c = colors[0]
 
-    def _get_colors(
-        self,
-        num_colors=None,
-        color_kwds: dict[str, MatplotlibColor]
-        | MatplotlibColor
-        | Collection[MatplotlibColor]
-        | None = "color",
-    ) -> None:
+    def _get_colors(self, num_colors=None, color_kwds="color"):
         pass
 
     def maybe_color_bp(self, bp) -> None:
@@ -157,7 +145,7 @@ class BoxPlot(LinePlot):
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
 
-    def _make_plot(self) -> None:
+    def _make_plot(self):
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 
@@ -209,16 +197,16 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax: Axes, labels) -> None:
+    def _set_ticklabels(self, ax: Axes, labels):
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
             ax.set_yticklabels(labels)
 
-    def _make_legend(self) -> None:
+    def _make_legend(self):
         pass
 
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax, data):
         # GH 45465: make sure that the boxplot doesn't ignore xlabel/ylabel
         if self.xlabel:
             ax.set_xlabel(pprint_thing(self.xlabel))
@@ -226,7 +214,7 @@ class BoxPlot(LinePlot):
             ax.set_ylabel(pprint_thing(self.ylabel))
 
     @property
-    def orientation(self) -> Literal["horizontal", "vertical"]:
+    def orientation(self):
         if self.kwds.get("vert", True):
             return "vertical"
         else:
@@ -245,8 +233,8 @@ def _grouped_plot_by_column(
     data,
     columns=None,
     by=None,
-    numeric_only: bool = True,
-    grid: bool = False,
+    numeric_only=True,
+    grid=False,
     figsize=None,
     ax=None,
     layout=None,
@@ -288,7 +276,7 @@ def _grouped_plot_by_column(
         ax_values.append(re_plotf)
         ax.grid(grid)
 
-    result = pd.Series(ax_values, index=columns, copy=False)
+    result = pd.Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:
@@ -314,6 +302,7 @@ def boxplot(
     return_type=None,
     **kwds,
 ):
+
     import matplotlib.pyplot as plt
 
     # validate return_type:
@@ -353,7 +342,7 @@ def boxplot(
 
         return result
 
-    def maybe_color_bp(bp, **kwds) -> None:
+    def maybe_color_bp(bp, **kwds):
         # GH 30346, when users specifying those arguments explicitly, our defaults
         # for these four kwargs should be overridden; if not, use Pandas settings
         if not kwds.get("boxprops"):

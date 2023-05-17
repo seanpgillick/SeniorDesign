@@ -26,7 +26,6 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.array_algos import masked_accumulations
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -42,6 +41,8 @@ if TYPE_CHECKING:
 class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
+
+    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -244,6 +245,8 @@ class BooleanArray(BaseMaskedArray):
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
 
+    .. versionadded:: 1.0.0
+
     .. warning::
 
        BooleanArray is considered experimental. The implementation and
@@ -284,10 +287,8 @@ class BooleanArray(BaseMaskedArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
     # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "bool", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = True  # type: ignore[assignment]
-    _falsey_value = False  # type: ignore[assignment]
+    _truthy_value = True
+    _falsey_value = False
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
@@ -319,17 +320,17 @@ class BooleanArray(BaseMaskedArray):
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s) -> bool:
-            if s in true_values_union:
+        def map_string(s):
+            if isna(s):
+                return s
+            elif s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
-        scalars = np.array(strings, dtype=object)
-        mask = isna(scalars)
-        scalars[~mask] = list(map(map_string, scalars[~mask]))
+        scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
@@ -343,6 +344,7 @@ class BooleanArray(BaseMaskedArray):
         return coerce_to_array(value, copy=copy)
 
     def _logical_method(self, other, op):
+
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None
@@ -376,19 +378,3 @@ class BooleanArray(BaseMaskedArray):
 
         # i.e. BooleanArray
         return self._maybe_mask_result(result, mask)
-
-    def _accumulate(
-        self, name: str, *, skipna: bool = True, **kwargs
-    ) -> BaseMaskedArray:
-        data = self._data
-        mask = self._mask
-        if name in ("cummin", "cummax"):
-            op = getattr(masked_accumulations, name)
-            data, mask = op(data, mask, skipna=skipna, **kwargs)
-            return type(self)(data, mask, copy=False)
-        else:
-            from pandas.core.arrays import IntegerArray
-
-            return IntegerArray(data.astype(int), mask)._accumulate(
-                name, skipna=skipna, **kwargs
-            )

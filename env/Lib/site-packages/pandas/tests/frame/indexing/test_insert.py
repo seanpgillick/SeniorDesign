@@ -42,6 +42,7 @@ class TestDataFrameInsert:
         assert df.columns.name == "some_name"
 
     def test_insert_column_bug_4032(self):
+
         # GH#4032, inserting a column and renaming causing errors
         df = DataFrame({"b": [1.1, 2.2]})
 
@@ -71,7 +72,7 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self, using_array_manager, using_copy_on_write):
+    def test_insert_item_cache(self, using_array_manager):
         df = DataFrame(np.random.randn(4, 3))
         ser = df[0]
 
@@ -85,14 +86,9 @@ class TestDataFrameInsert:
             for n in range(100):
                 df[n + 3] = df[1] * n
 
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df[0][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df[0][0]
-            assert df.iloc[0, 0] == 99
+        ser.values[0] = 99
+
+        assert df.iloc[0, 0] == df[0][0]
 
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when

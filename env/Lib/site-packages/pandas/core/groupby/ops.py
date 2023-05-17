@@ -15,6 +15,7 @@ from typing import (
     Generic,
     Hashable,
     Iterator,
+    NoReturn,
     Sequence,
     final,
 )
@@ -29,7 +30,6 @@ import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
-    AxisInt,
     DtypeObj,
     NDFrameT,
     Shape,
@@ -54,7 +54,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
-    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -72,6 +71,9 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import FloatingDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -136,12 +138,28 @@ class WrappedCythonOp:
             "ohlc": "group_ohlc",
         },
         "transform": {
-            "cumprod": "group_cumprod",
+            "cumprod": "group_cumprod_float64",
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
             "rank": "group_rank",
         },
+    }
+
+    # "group_any" and "group_all" are also support masks, but don't go
+    #  through WrappedCythonOp
+    _MASKED_CYTHON_FUNCTIONS = {
+        "cummin",
+        "cummax",
+        "min",
+        "max",
+        "last",
+        "first",
+        "rank",
+        "sum",
+        "ohlc",
+        "cumsum",
+        "prod",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -153,6 +171,7 @@ class WrappedCythonOp:
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
+
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
@@ -168,7 +187,7 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            if "object" not in f.__signatures__:
+            elif "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
@@ -196,8 +215,8 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how == "median":
-            # median only has a float64 implementation
+        if how in ["median", "cumprod"]:
+            # these two only have float64 implementations
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
             values = ensure_float64(values)
@@ -206,11 +225,10 @@ class WrappedCythonOp:
             if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
-                # has_dropped_na check need for test_null_group_str_transformer
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "ohlc", "prod", "cumsum", "cumprod"]:
+            elif how in ["sum", "ohlc", "prod", "cumsum"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
@@ -226,10 +244,9 @@ class WrappedCythonOp:
 
         Raises
         ------
-        TypeError
-            This is not a valid operation for this dtype.
         NotImplementedError
-            This may be a valid operation, but does not have a cython implementation.
+            This is either not a valid function for this dtype, or
+            valid but not implemented in cython.
         """
         how = self.how
 
@@ -238,29 +255,28 @@ class WrappedCythonOp:
             return
 
         if isinstance(dtype, CategoricalDtype):
+            # NotImplementedError for methods that can fall back to a
+            #  non-cython implementation.
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
-            if how in ["min", "max", "rank"] and not dtype.ordered:
-                # raise TypeError instead of NotImplementedError to ensure we
-                #  don't go down a group-by-group path, since in the empty-groups
-                #  case that would fail to raise
-                raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-            if how not in ["rank"]:
+            elif how not in ["rank"]:
                 # only "rank" is implemented in cython
+                raise NotImplementedError(f"{dtype} dtype not supported")
+            elif not dtype.ordered:
+                # TODO: TypeError?
                 raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
+            # categoricals are only 1d, so we
+            #  are not setup for dim transforming
             raise NotImplementedError(f"{dtype} dtype not supported")
         elif is_datetime64_any_dtype(dtype):
-            # Adding/multiplying datetimes is not valid
+            # TODO: same for period_dtype?  no for these methods with Period
+            # we raise NotImplemented if this is an invalid operation
+            #  entirely, e.g. adding datetimes
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
-        elif is_period_dtype(dtype):
-            # Adding/multiplying Periods is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
-                raise TypeError(f"Period type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
-            # timedeltas we can add but not multiply
             if how in ["prod", "cumprod"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
@@ -272,7 +288,7 @@ class WrappedCythonOp:
 
         out_shape: Shape
         if how == "ohlc":
-            out_shape = (ngroups, arity)
+            out_shape = (ngroups, 4)
         elif arity > 1:
             raise NotImplementedError(
                 "arity of more than 1 is not supported for the 'how' argument"
@@ -311,7 +327,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["sum", "cumsum", "sum", "prod", "cumprod"]:
+        if how in ["sum", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var"]:
@@ -320,6 +336,9 @@ class WrappedCythonOp:
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
         return dtype
+
+    def uses_mask(self) -> bool:
+        return self.how in self._MASKED_CYTHON_FUNCTIONS
 
     @final
     def _ea_wrap_cython_operation(
@@ -334,7 +353,7 @@ class WrappedCythonOp:
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
         """
-        if isinstance(values, BaseMaskedArray):
+        if isinstance(values, BaseMaskedArray) and self.uses_mask():
             return self._masked_ea_wrap_cython_operation(
                 values,
                 min_count=min_count,
@@ -343,7 +362,7 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        elif isinstance(values, Categorical):
+        elif isinstance(values, Categorical) and self.uses_mask():
             assert self.how == "rank"  # the only one implemented ATM
             assert values.ordered  # checked earlier
             mask = values.isna()
@@ -374,7 +393,7 @@ class WrappedCythonOp:
         )
 
         if self.how in self.cast_blocklist:
-            # i.e. how in ["rank"], since other cast_blocklist methods don't go
+            # i.e. how in ["rank"], since other cast_blocklist methods dont go
             #  through cython_operation
             return res_values
 
@@ -387,6 +406,12 @@ class WrappedCythonOp:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             npvalues = values._ndarray.view("M8[ns]")
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
+            # IntegerArray or BooleanArray
+            npvalues = values.to_numpy("float64", na_value=np.nan)
+        elif isinstance(values.dtype, FloatingDtype):
+            # FloatingArray
+            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
         elif isinstance(values.dtype, StringDtype):
             # StringArray
             npvalues = values.to_numpy(object, na_value=np.nan)
@@ -409,6 +434,12 @@ class WrappedCythonOp:
             dtype = values.dtype
             string_array_cls = dtype.construct_array_type()
             return string_array_cls._from_sequence(res_values, dtype=dtype)
+
+        elif isinstance(values.dtype, BaseMaskedDtype):
+            new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
+            dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
+            masked_array_cls = dtype.construct_array_type()
+            return masked_array_cls._from_sequence(res_values, dtype=dtype)
 
         elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
             # In to_cython_values we took a view as M8[ns]
@@ -453,8 +484,7 @@ class WrappedCythonOp:
         )
 
         if self.how == "ohlc":
-            arity = self._cython_arity.get(self.how, 1)
-            result_mask = np.tile(result_mask, (arity, 1)).T
+            result_mask = np.tile(result_mask, (4, 1)).T
 
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
@@ -545,7 +575,7 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max", "mean", "last", "first", "sum"]:
+            if self.how in ["min", "max", "mean", "last", "first"]:
                 func(
                     out=result,
                     counts=counts,
@@ -556,7 +586,19 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["var", "ohlc", "prod", "median"]:
+            elif self.how in ["sum"]:
+                # We support datetimelike
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    min_count=min_count,
+                    is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["ohlc", "prod"]:
                 func(
                     result,
                     counts,
@@ -565,24 +607,33 @@ class WrappedCythonOp:
                     min_count=min_count,
                     mask=mask,
                     result_mask=result_mask,
+                )
+            else:
+                func(result, counts, values, comp_ids, min_count, **kwargs)
+        else:
+            # TODO: min_count
+            if self.uses_mask():
+                if self.how != "rank":
+                    # TODO: should rank take result_mask?
+                    kwargs["result_mask"] = result_mask
+                func(
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
+                    mask=mask,
                     **kwargs,
                 )
             else:
-                raise NotImplementedError(f"{self.how} is not implemented")
-        else:
-            # TODO: min_count
-            if self.how != "rank":
-                # TODO: should rank take result_mask?
-                kwargs["result_mask"] = result_mask
-            func(
-                out=result,
-                values=values,
-                labels=comp_ids,
-                ngroups=ngroups,
-                is_datetimelike=is_datetimelike,
-                mask=mask,
-                **kwargs,
-            )
+                func(
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
+                    **kwargs,
+                )
 
         if self.kind == "aggregate":
             # i.e. counts is defined.  Locations where count<min_count
@@ -593,7 +644,7 @@ class WrappedCythonOp:
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    if result_mask is not None:
+                    if result_mask is not None and self.uses_mask():
                         assert result_mask[empty_groups].all()
                     else:
                         # Note: this conversion could be lossy, see GH#40767
@@ -619,7 +670,7 @@ class WrappedCythonOp:
         self,
         *,
         values: ArrayLike,
-        axis: AxisInt,
+        axis: int,
         min_count: int = -1,
         comp_ids: np.ndarray,
         ngroups: int,
@@ -630,7 +681,7 @@ class WrappedCythonOp:
         """
         if values.ndim > 2:
             raise NotImplementedError("number of dimensions is currently limited to 2")
-        if values.ndim == 2:
+        elif values.ndim == 2:
             assert axis == 1, axis
         elif not is_1d_only_ea_dtype(values.dtype):
             # Note: it is *not* the case that axis is always 0 for 1-dim values,
@@ -677,6 +728,12 @@ class BaseGrouper:
         for example for grouper list to groupby, need to pass the list
     sort : bool, default True
         whether this grouper will give sorted result or not
+    group_keys : bool, default True
+    mutated : bool, default False
+    indexer : np.ndarray[np.intp], optional
+        the indexer created by Grouper
+        some groupers (TimeGrouper) will sort its axis and its
+        group_info is also sorted, so need the indexer to reorder
 
     """
 
@@ -687,6 +744,9 @@ class BaseGrouper:
         axis: Index,
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
+        group_keys: bool = True,
+        mutated: bool = False,
+        indexer: npt.NDArray[np.intp] | None = None,
         dropna: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
@@ -694,6 +754,9 @@ class BaseGrouper:
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
+        self.group_keys = group_keys
+        self.mutated = mutated
+        self.indexer = indexer
         self.dropna = dropna
 
     @property
@@ -712,7 +775,7 @@ class BaseGrouper:
         return len(self.groupings)
 
     def get_iterator(
-        self, data: NDFrameT, axis: AxisInt = 0
+        self, data: NDFrameT, axis: int = 0
     ) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
@@ -727,14 +790,23 @@ class BaseGrouper:
         yield from zip(keys, splitter)
 
     @final
-    def _get_splitter(self, data: NDFrame, axis: AxisInt = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
         """
         Returns
         -------
         Generator yielding subsetted objects
         """
         ids, _, ngroups = self.group_info
-        return _get_splitter(data, ids, ngroups, axis=axis)
+        return get_splitter(data, ids, ngroups, axis=axis)
+
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self.groupings[0].grouping_vector
 
     @final
     @cache_readonly
@@ -749,9 +821,9 @@ class BaseGrouper:
 
     @final
     def apply(
-        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
+        self, f: Callable, data: DataFrame | Series, axis: int = 0
     ) -> tuple[list, bool]:
-        mutated = False
+        mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self.group_keys_seq
         result_values = []
@@ -770,6 +842,7 @@ class BaseGrouper:
             result_values.append(res)
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) in [
+            "mad",
             "skew",
             "sum",
             "prod",
@@ -877,10 +950,17 @@ class BaseGrouper:
 
         return comp_ids, obs_group_ids, ngroups
 
+    @final
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
         ids, _, _ = self.group_info
+        if self.indexer is not None:
+            sorter = np.lexsort((ids, self.indexer))
+            ids = ids[sorter]
+            ids = ensure_platform_int(ids)
+            # TODO: if numpy annotates np.lexsort, this ensure_platform_int
+            #  may become unnecessary
         return ids
 
     @final
@@ -920,7 +1000,7 @@ class BaseGrouper:
 
     @final
     def get_group_levels(self) -> list[ArrayLike]:
-        # Note: only called from _insert_inaxis_grouper, which
+        # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
             return [self.groupings[0].group_arraylike]
@@ -943,7 +1023,7 @@ class BaseGrouper:
         kind: str,
         values,
         how: str,
-        axis: AxisInt,
+        axis: int,
         min_count: int = -1,
         **kwargs,
     ) -> ArrayLike:
@@ -984,14 +1064,21 @@ class BaseGrouper:
         # test_groupby_empty_with_category gets here with self.ngroups == 0
         #  and len(obj) > 0
 
-        if len(obj) > 0 and not isinstance(obj._values, np.ndarray):
+        if len(obj) == 0:
+            # SeriesGrouper would raise if we were to call _aggregate_series_fast
+            result = self._aggregate_series_pure_python(obj, func)
+
+        elif not isinstance(obj._values, np.ndarray):
+            result = self._aggregate_series_pure_python(obj, func)
+
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        result = self._aggregate_series_pure_python(obj, func)
+        else:
+            result = self._aggregate_series_pure_python(obj, func)
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
@@ -1004,12 +1091,14 @@ class BaseGrouper:
     def _aggregate_series_pure_python(
         self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
-        _, _, ngroups = self.group_info
+        ids, _, ngroups = self.group_info
 
+        counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
         initialized = False
 
-        splitter = self._get_splitter(obj, axis=0)
+        # equiv: splitter = self._get_splitter(obj, axis=0)
+        splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
             res = func(group)
@@ -1020,6 +1109,7 @@ class BaseGrouper:
                 libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
+            counts[i] = group.shape[0]
             result[i] = res
 
         return result
@@ -1033,10 +1123,8 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    indexer : np.ndarray[np.intp], optional
-        the indexer created by Grouper
-        some groupers (TimeGrouper) will sort its axis and its
-        group_info is also sorted, so need the indexer to reorder
+    mutated : bool, default False
+    indexer : np.ndarray[np.intp]
 
     Examples
     --------
@@ -1058,15 +1146,18 @@ class BinGrouper(BaseGrouper):
 
     bins: npt.NDArray[np.int64]
     binlabels: Index
+    mutated: bool
 
     def __init__(
         self,
         bins,
         binlabels,
+        mutated: bool = False,
         indexer=None,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
+        self.mutated = mutated
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series
@@ -1090,16 +1181,16 @@ class BinGrouper(BaseGrouper):
         # still matches len(self.groupings), but we can hard-code
         return 1
 
-    @cache_readonly
-    def codes_info(self) -> npt.NDArray[np.intp]:
-        # return the codes of items in original grouped axis
-        ids, _, _ = self.group_info
-        if self.indexer is not None:
-            sorter = np.lexsort((ids, self.indexer))
-            ids = ids[sorter]
-        return ids
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
 
-    def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self
+
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -1177,15 +1268,17 @@ class BinGrouper(BaseGrouper):
     @property
     def groupings(self) -> list[grouper.Grouping]:
         lev = self.binlabels
-        codes = self.group_info[0]
-        labels = lev.take(codes)
-        ping = grouper.Grouping(
-            labels, labels, in_axis=False, level=None, uniques=lev._values
-        )
+        ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
+        # -> np.ndarray[object]
+        raise NotImplementedError(
+            "This should not be reached; use _aggregate_series_pure_python"
+        )
 
-def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
+
+def _is_indexed_like(obj, axes, axis: int) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
@@ -1206,7 +1299,7 @@ class DataSplitter(Generic[NDFrameT]):
         data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
-        axis: AxisInt = 0,
+        axis: int = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
@@ -1216,7 +1309,7 @@ class DataSplitter(Generic[NDFrameT]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def _slabels(self) -> npt.NDArray[np.intp]:
+    def slabels(self) -> npt.NDArray[np.intp]:
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
@@ -1225,21 +1318,21 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self) -> Iterator:
-        sdata = self._sorted_data
+    def __iter__(self):
+        sdata = self.sorted_data
 
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
             return
 
-        starts, ends = lib.generate_slices(self._slabels, self.ngroups)
+        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         for start, end in zip(starts, ends):
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly
-    def _sorted_data(self) -> NDFrameT:
+    def sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
@@ -1266,8 +1359,8 @@ class FrameSplitter(DataSplitter):
         return df.__finalize__(sdata, method="groupby")
 
 
-def _get_splitter(
-    data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
+def get_splitter(
+    data: NDFrame, labels: np.ndarray, ngroups: int, axis: int = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter

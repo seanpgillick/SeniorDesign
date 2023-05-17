@@ -12,7 +12,6 @@ from io import (
 import mmap
 import os
 from pathlib import Path
-import pickle
 import tempfile
 
 import pytest
@@ -50,6 +49,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 # https://github.com/cython/cython/issues/1720
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -117,11 +117,11 @@ bar2,12,13,14,15
                 assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
-        with StringIO() as input_buffer:
-            with icom.get_handle(input_buffer, "r") as handles:
-                assert handles.handle == input_buffer
-            assert not input_buffer.closed
-        assert input_buffer.closed
+        input_buffer = StringIO()
+        with icom.get_handle(input_buffer, "r") as handles:
+            assert handles.handle == input_buffer
+        assert not input_buffer.closed
+        input_buffer.close()
 
     # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
     def test_bytesiowrapper_returns_correct_bytes(self):
@@ -147,7 +147,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow")
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
     def test_get_handle_pyarrow_compat(self):
         from pyarrow import csv
 
@@ -316,6 +316,12 @@ Look,a snake,🐍"""
             ),
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
+    )
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -330,11 +336,12 @@ Look,a snake,🐍"""
         else:
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
             ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
+            ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
@@ -344,8 +351,6 @@ Look,a snake,🐍"""
         ],
     )
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
-        if writer_name in ["to_latex"]:  # uses Styler implementation
-            pytest.importorskip("jinja2")
         p1 = tm.ensure_clean("string")
         p2 = tm.ensure_clean("fspath")
         df = pd.DataFrame({"A": [1, 2]})
@@ -356,19 +361,18 @@ Look,a snake,🐍"""
             writer = getattr(df, writer_name)
 
             writer(string, **writer_kwargs)
-            writer(mypath, **writer_kwargs)
-            with open(string, "rb") as f_str, open(fspath, "rb") as f_path:
-                if writer_name == "to_excel":
-                    # binary representation of excel contains time creation
-                    # data that causes flaky CI failures
-                    result = pd.read_excel(f_str, **writer_kwargs)
-                    expected = pd.read_excel(f_path, **writer_kwargs)
-                    tm.assert_frame_equal(result, expected)
-                else:
-                    result = f_str.read()
-                    expected = f_path.read()
-                    assert result == expected
+            with open(string, "rb") as f:
+                expected = f.read()
 
+            writer(mypath, **writer_kwargs)
+            with open(fspath, "rb") as f:
+                result = f.read()
+
+            assert result == expected
+
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -600,23 +604,3 @@ def test_close_on_error():
         with BytesIO() as buffer:
             with icom.get_handle(buffer, "rb") as handles:
                 handles.created_handles.append(TestError())
-
-
-@pytest.mark.parametrize(
-    "reader",
-    [
-        pd.read_csv,
-        pd.read_fwf,
-        pd.read_excel,
-        pd.read_feather,
-        pd.read_hdf,
-        pd.read_stata,
-        pd.read_sas,
-        pd.read_json,
-        pd.read_pickle,
-    ],
-)
-def test_pickle_reader(reader):
-    # GH 22265
-    with BytesIO() as buffer:
-        pickle.dump(reader, buffer)

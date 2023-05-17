@@ -46,9 +46,15 @@ img {
     font-size: 14px;
     font-weight: 700;
 }
-
+.table td{
+    font-size: small;
+    text-align: left;
+}
+.dataTables_filter {
+    margin-bottom: 5px;
+}
 .navbar .nav-link.active {
-    color: var(--dark) !important;
+    color: var(--primary) !important;
 }
 
 .link-primary {
@@ -80,6 +86,9 @@ img {
     border-color: #f5b611 !important;
 }
 
+.hidden {
+    display: none;
+}
 
 
 .hero {
@@ -131,6 +140,7 @@ section {
     box-shadow: var(--box-shadow);
     background-color: var(--white);
     padding: 25px;
+    padding-top:2px;
     transition: all 0.35s ease;
 }
 
@@ -198,9 +208,34 @@ section {
     min-height: 500px;
 }
 
-.project {
+.city-select {
+    background-image: url(../img/select-city.png);
+    background-position: center;
+    background-size: cover;
     position: relative;
-    overflow: hidden;
+    z-index: 2;
+}
+
+.view-charts {
+    background-image: url(../img/view-charts.png);
+    background-position: center;
+    background-size: cover;
+    position: relative;
+    z-index: 2;
+}
+.view-heatmap {
+    background-image: url(../img/view-heatmap.png);
+    background-position: center;
+    background-size: cover;
+    position: relative;
+    z-index: 2;
+}
+.generate-score {
+    background-image: url(../img/generate-score.png);
+    background-position: center;
+    background-size: cover;
+    position: relative;
+    z-index: 2;
 }
 
 .project .overlay {
@@ -214,36 +249,23 @@ section {
     display: flex;
     align-items: flex-end;
     transition: all 0.4s ease;
-    opacity: 0;
+    opacity: 1;
 }
 
 .project img {
-    transition: all 0.4s ease;   
+    transition: all 0.4s ease;
+    visibility: hidden;   
 }
 
 .project:hover .overlay{
-    opacity: 1;
+    opacity: 0.1;
 }
 
 .project:hover img {
     transform: scale(1.1);
+    visibility: visible;
 }
 
-
-.pricing i {
-    font-size: 20px;
-    color: var(--primary);
-}
-
-.pricing ul li {
-    margin-top: 8px;
-}
-
-.team-member img {
-    width: 125px;
-    height: 125px;
-    border-radius: 100px;
-}
 
 
 .social-icons {
@@ -300,3 +322,33 @@ form .form-control {
 .footer-bottom {
     background-color: #242933;
 }
+
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 15px;
+    border-radius: 5px;  
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%; 
+    background: var(--primary);
+    cursor: pointer;
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #04AA6D;
+    cursor: pointer;
+  }

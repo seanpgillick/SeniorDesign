@@ -11,13 +11,11 @@ from typing import (
     Sequence,
 )
 
-from pandas._libs import lib
 from pandas._typing import (
     TYPE_CHECKING,
     CompressionOptions,
     ConvertersArg,
     DtypeArg,
-    DtypeBackend,
     FilePath,
     ParseDatesArg,
     ReadBuffer,
@@ -29,8 +27,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
-from pandas.util._validators import check_dtype_backend
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -49,7 +49,10 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
-    from lxml import etree
+    from lxml.etree import (
+        _Element,
+        _XSLTResultTree,
+    )
 
     from pandas import DataFrame
 
@@ -209,7 +212,7 @@ class _XMLFrameParser:
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
-        if self.elems_only:
+        elif self.elems_only:
             if self.names:
                 dicts = [
                     {
@@ -283,7 +286,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
 
         return dicts
 
@@ -300,7 +303,7 @@ class _XMLFrameParser:
         TypeError
             * If `iterparse` is not a dict or its dict value is not list-like.
         ParserError
-            * If `path_or_buffer` is not a physical file on disk or file-like object.
+            * If `path_or_buffer` is not a physical, decompressed file on disk.
             * If no data is returned from selected items in `iterparse`.
 
         Notes
@@ -325,7 +328,7 @@ class _XMLFrameParser:
                 "for value in iterparse"
             )
 
-        if (not hasattr(self.path_or_buffer, "read")) and (
+        if (
             not isinstance(self.path_or_buffer, str)
             or is_url(self.path_or_buffer)
             or is_fsspec_url(self.path_or_buffer)
@@ -337,10 +340,6 @@ class _XMLFrameParser:
                 "local disk and not as compressed files or online sources."
             )
 
-        iterparse_repeats = len(self.iterparse[row_node]) != len(
-            set(self.iterparse[row_node])
-        )
-
         for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
             curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
@@ -349,13 +348,12 @@ class _XMLFrameParser:
                     row = {}
 
             if row is not None:
-                if self.names and iterparse_repeats:
+                if self.names:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
                             elem_val = elem.text.strip() if elem.text else None
-                            if elem_val not in row.values() and nm not in row:
+                            if row.get(nm) != elem_val and nm not in row:
                                 row[nm] = elem_val
-
                         if col in elem.attrib:
                             if elem.attrib[col] not in row.values() and nm not in row:
                                 row[nm] = elem.attrib[col]
@@ -385,11 +383,11 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
 
         return dicts
 
-    def _validate_path(self) -> list[Any]:
+    def _validate_path(self) -> None:
         """
         Validate xpath.
 
@@ -422,7 +420,7 @@ class _XMLFrameParser:
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> Element | etree._Element:
+    ) -> Element | _Element:
         """
         Build tree from path_or_buffer.
 
@@ -448,7 +446,8 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         if self.iterparse is None:
             self.xml_doc = self._parse_doc(self.path_or_buffer)
-            elems = self._validate_path()
+            self._validate_path()
+            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
 
         self._validate_names()
 
@@ -460,7 +459,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> list[Any]:
+    def _validate_path(self) -> None:
         """
         Notes
         -----
@@ -469,28 +468,18 @@ class _EtreeFrameParser(_XMLFrameParser):
         """
 
         msg = (
-            "xpath does not return any nodes or attributes. "
-            "Be sure to specify in `xpath` the parent nodes of "
-            "children and attributes to parse. "
+            "xpath does not return any nodes. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
         try:
-            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
-            children = [ch for el in elems for ch in el.findall("*")]
-            attrs = {k: v for el in elems for k, v in el.attrib.items()}
-
+            elems = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
             if elems is None:
                 raise ValueError(msg)
 
-            if elems is not None:
-                if self.elems_only and children == []:
-                    raise ValueError(msg)
-                if self.attrs_only and attrs == {}:
-                    raise ValueError(msg)
-                if children == [] and attrs == {}:
-                    raise ValueError(msg)
+            if elems is not None and elems.find("*") is None and elems.attrib is None:
+                raise ValueError(msg)
 
         except (KeyError, SyntaxError):
             raise SyntaxError(
@@ -498,8 +487,6 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "expression for etree library or you used an "
                 "undeclared namespace prefix."
             )
-
-        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -538,9 +525,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
-            document = parse(xml_data, parser=curr_parser)
+            doc = parse(xml_data, parser=curr_parser)
 
-        return document.getroot()
+        return doc.getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -567,7 +554,8 @@ class _LxmlFrameParser(_XMLFrameParser):
                 self.xsl_doc = self._parse_doc(self.stylesheet)
                 self.xml_doc = self._transform_doc()
 
-            elems = self._validate_path()
+            self._validate_path()
+            elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
 
         self._validate_names()
 
@@ -579,32 +567,25 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> list[Any]:
+    def _validate_path(self) -> None:
+
         msg = (
-            "xpath does not return any nodes or attributes. "
-            "Be sure to specify in `xpath` the parent nodes of "
-            "children and attributes to parse. "
+            "xpath does not return any nodes. "
+            "Be sure row level nodes are in xpath. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
 
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-        children = [ch for el in elems for ch in el.xpath("*")]
-        attrs = {k: v for el in elems for k, v in el.attrib.items()}
+        children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
+        attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
 
         if elems == []:
             raise ValueError(msg)
 
-        if elems != []:
-            if self.elems_only and children == []:
-                raise ValueError(msg)
-            if self.attrs_only and attrs == {}:
-                raise ValueError(msg)
-            if children == [] and attrs == {}:
-                raise ValueError(msg)
-
-        return elems
+        if elems != [] and attrs == [] and children == []:
+            raise ValueError(msg)
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -629,7 +610,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> etree._Element:
+    ) -> _Element:
         from lxml.etree import (
             XMLParser,
             fromstring,
@@ -652,15 +633,15 @@ class _LxmlFrameParser(_XMLFrameParser):
                         "Can not pass encoding None when input is StringIO."
                     )
 
-                document = fromstring(
+                doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                document = parse(xml_data, parser=curr_parser)
+                doc = parse(xml_data, parser=curr_parser)
 
-        return document
+        return doc
 
-    def _transform_doc(self) -> etree._XSLTResultTree:
+    def _transform_doc(self) -> _XSLTResultTree:
         """
         Transform original tree using stylesheet.
 
@@ -713,7 +694,10 @@ def get_data_from_filepath(
             storage_options=storage_options,
         ) as handle_obj:
             filepath_or_buffer = (
-                handle_obj.handle.read()
+                # error: Incompatible types in assignment (expression has type
+                # "Union[str, IO[str]]", variable has type "Union[Union[str,
+                # PathLike[str]], bytes, ReadBuffer[bytes], ReadBuffer[str]]")
+                handle_obj.handle.read()  # type: ignore[assignment]
                 if hasattr(handle_obj.handle, "read")
                 else handle_obj.handle
             )
@@ -778,7 +762,6 @@ def _parse(
     iterparse: dict[str, list[str]] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -848,18 +831,17 @@ def _parse(
         dtype=dtype,
         converters=converters,
         parse_dates=parse_dates,
-        dtype_backend=dtype_backend,
         **kwargs,
     )
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["path_or_buffer"])
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
 )
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
-    *,
     xpath: str = "./*",
     namespaces: dict[str, str] | None = None,
     elems_only: bool = False,
@@ -875,7 +857,6 @@ def read_xml(
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
-    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
     Read XML document into a ``DataFrame`` object.
@@ -986,16 +967,6 @@ def read_xml(
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
-
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
-
-        .. versionadded:: 2.0
 
     Returns
     -------
@@ -1113,7 +1084,6 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
     """
-    check_dtype_backend(dtype_backend)
 
     return _parse(
         path_or_buffer=path_or_buffer,
@@ -1131,5 +1101,4 @@ def read_xml(
         iterparse=iterparse,
         compression=compression,
         storage_options=storage_options,
-        dtype_backend=dtype_backend,
     )

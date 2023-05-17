@@ -233,8 +233,9 @@ def responder(request):
         if wait_time > kill_time:
             server_process.kill()
             break
-        wait_time += 0.1
-        time.sleep(0.1)
+        else:
+            wait_time += 0.1
+            time.sleep(0.1)
     server_process.close()
 
 

@@ -73,7 +73,7 @@ def _levels_to_axis(
 
     else:
         levels_values = lib.fast_zip(
-            [ss.index.get_level_values(lvl).to_numpy() for lvl in levels]
+            [ss.index.get_level_values(lvl).values for lvl in levels]
         )
         codes, ax_labels = factorize(levels_values, sort=sort_labels)
         ax_coords = codes[valid_ilocs]
@@ -177,7 +177,7 @@ def coo_to_sparse_series(
     A: scipy.sparse.coo_matrix, dense_index: bool = False
 ) -> Series:
     """
-    Convert a scipy.sparse.coo_matrix to a Series with type sparse.
+    Convert a scipy.sparse.coo_matrix to a SparseSeries.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def coo_to_sparse_series(
     from pandas import SparseDtype
 
     try:
-        ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)), copy=False)
+        ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
     except AttributeError as err:
         raise TypeError(
             f"Expected coo_matrix. Got {type(A).__name__} instead."
@@ -203,6 +203,9 @@ def coo_to_sparse_series(
     ser = ser.sort_index()
     ser = ser.astype(SparseDtype(ser.dtype))
     if dense_index:
-        ind = MultiIndex.from_product([A.row, A.col])
+        # is there a better constructor method to use here?
+        i = range(A.shape[0])
+        j = range(A.shape[1])
+        ind = MultiIndex.from_product([i, j])
         ser = ser.reindex(ind)
     return ser

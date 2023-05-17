@@ -12,6 +12,7 @@ import pandas._testing as tm
 
 
 def test_unique(tz_naive_fixture):
+
     idx = DatetimeIndex(["2017"] * 2, tz=tz_naive_fixture)
     expected = idx[:1]
 
@@ -54,7 +55,7 @@ def test_index_unique(rand_series_with_duplicate_datetimeindex):
 
 def test_index_unique2():
     # NaT, note this is excluded
-    arr = [1370745748 + t for t in range(20)] + [NaT._value]
+    arr = [1370745748 + t for t in range(20)] + [NaT.value]
     idx = DatetimeIndex(arr * 3)
     tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
     assert idx.nunique() == 20

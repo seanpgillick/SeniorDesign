@@ -30,7 +30,7 @@
 </div>
 <br />
 
-<div class="mx-auto align-items-center no-pad analysis-nav" style="width: 90%;">
+<div class="mx-auto align-items-center no-pad analysis-nav" style="width: 60%;">
     <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button"
@@ -44,11 +44,6 @@
                 Heatmap</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'crimelist' else '' }}" id="crimelist-tab" type="button"
-                aria-controls="crimelist-tab-pane" aria-selected="false" href="/analysis/{{ city }}/crimelist"><i
-                    class="bi-card-list"></i> Crime List</a>
-        </li>
-        <li class="nav-item" role="presentation">
             <a class="nav-link {{ 'active' if tab == 'safety' else '' }}" id="safety-tab" type="button"
                 aria-controls="safety-tab-pane" aria-selected="false" href="/analysis/{{ city }}/safety"><i
                     class="bi-calculator"></i> Safety Score</a>
@@ -56,12 +51,12 @@
 
     </ul>
 </div>
+
 {% if tab == "data" %}
 {% include "graphs.html" %}
+{% include "crimelist.html" %}
 {% elif tab == "heatmap" %}
 {% include "heatmap.html" %}
-{% elif tab == "crimelist" %}
-{% include "crimelist.html" %}
 {% elif tab == "safety" %}
 {% include "safetyScore.html" %}
 {% endif %}

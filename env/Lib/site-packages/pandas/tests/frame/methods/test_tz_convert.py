@@ -59,6 +59,7 @@ class TestTZConvert:
             l1 = l1.tz_localize("UTC")
 
         for idx in [l0, l1]:
+
             l0_expected = getattr(idx, fn)("US/Pacific")
             l1_expected = getattr(idx, fn)("US/Pacific")
 

@@ -44,10 +44,6 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
-    from pandas.arrays import (
-        DatetimeArray,
-        TimedeltaArray,
-    )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
@@ -92,7 +88,6 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
-TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
 # scalars
 
@@ -121,8 +116,7 @@ NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
-AxisInt = int
-Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
+Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = Tuple[int, ...]
@@ -193,14 +187,18 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-AnyStr_co = TypeVar("AnyStr_co", str, bytes, covariant=True)
-AnyStr_contra = TypeVar("AnyStr_contra", str, bytes, contravariant=True)
+AnyStr_cov = TypeVar("AnyStr_cov", str, bytes, covariant=True)
+AnyStr_con = TypeVar("AnyStr_con", str, bytes, contravariant=True)
 
 
 class BaseBuffer(Protocol):
     @property
     def mode(self) -> str:
         # for _get_filepath_or_buffer
+        ...
+
+    def fileno(self) -> int:
+        # for _MMapWrapper
         ...
 
     def seek(self, __offset: int, __whence: int = ...) -> int:
@@ -217,14 +215,14 @@ class BaseBuffer(Protocol):
         ...
 
 
-class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
-    def read(self, __n: int = ...) -> AnyStr_co:
+class ReadBuffer(BaseBuffer, Protocol[AnyStr_cov]):
+    def read(self, __n: int | None = ...) -> AnyStr_cov:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
-class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
-    def write(self, __b: AnyStr_contra) -> Any:
+class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
+    def write(self, __b: AnyStr_con) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -234,7 +232,7 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
-    def readline(self) -> bytes:
+    def readline(self) -> AnyStr_cov:
         ...
 
 
@@ -243,16 +241,12 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
         ...
 
 
-class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
-    def __iter__(self) -> Iterator[AnyStr_co]:
+class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
+    def __iter__(self) -> Iterator[AnyStr_cov]:
         # for engine=python
         ...
 
-    def fileno(self) -> int:
-        # for _MMapWrapper
-        ...
-
-    def readline(self) -> AnyStr_co:
+    def readline(self) -> AnyStr_cov:
         # for engine=python
         ...
 
@@ -324,9 +318,6 @@ WindowingRankType = Literal["average", "min", "max"]
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 
-# read_json engines
-JSONEngine = Literal["ujson", "pyarrow"]
-
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
 
@@ -347,27 +338,3 @@ QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "neares
 
 # plotting
 PlottingOrientation = Literal["horizontal", "vertical"]
-
-# dropna
-AnyAll = Literal["any", "all"]
-
-# merge
-MergeHow = Literal["left", "right", "inner", "outer", "cross"]
-
-# join
-JoinHow = Literal["left", "right", "inner", "outer"]
-
-MatplotlibColor = Union[str, Sequence[float]]
-TimeGrouperOrigin = Union[
-    "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]
-]
-TimeAmbiguous = Union[Literal["infer", "NaT", "raise"], "npt.NDArray[np.bool_]"]
-TimeNonexistent = Union[
-    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
-]
-DropKeep = Literal["first", "last", False]
-CorrelationMethod = Union[
-    Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
-]
-AlignJoin = Literal["outer", "inner", "left", "right"]
-DtypeBackend = Literal["pyarrow", "numpy_nullable"]

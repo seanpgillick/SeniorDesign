@@ -69,7 +69,7 @@ from pandas.util._exceptions import find_stack_level
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
 # and not load PyQt4 if it is absent.
-HAS_DISPLAY = os.getenv("DISPLAY")
+HAS_DISPLAY = os.getenv("DISPLAY", False)
 
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
@@ -282,7 +282,7 @@ def init_dev_clipboard_clipboard():
                 stacklevel=find_stack_level(),
             )
 
-        with open("/dev/clipboard", "w") as fd:
+        with open("/dev/clipboard", "wt") as fd:
             fd.write(text)
 
     def paste_dev_clipboard() -> str:
@@ -537,7 +537,7 @@ def determine_clipboard():
         if which("wslconfig.exe"):
             return init_wsl_clipboard()
 
-    # Setup for the macOS platform:
+    # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
             import AppKit
@@ -586,7 +586,7 @@ def set_clipboard(clipboard):
     the copy() and paste() functions interact with the operating system to
     implement the copy/paste feature. The clipboard parameter must be one of:
         - pbcopy
-        - pyobjc (default on macOS)
+        - pbobjc (default on Mac OS X)
         - qt
         - xclip
         - xsel
@@ -608,7 +608,7 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
-        allowed_clipboard_types = [repr(_) for _ in clipboard_types]
+        allowed_clipboard_types = [repr(_) for _ in clipboard_types.keys()]
         raise ValueError(
             f"Argument must be one of {', '.join(allowed_clipboard_types)}"
         )

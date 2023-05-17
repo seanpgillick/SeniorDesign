@@ -38,14 +38,14 @@ class TestTimestampArithmetic:
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp("2017-01-13 00:00:00").as_unit("ns")
+        stamp = Timestamp("2017-01-13 00:00:00")
         offset_overflow = 20169940 * offsets.Day(1)
         msg = (
             "the add operation between "
             r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
             "will overflow"
         )
-        lmsg2 = r"Cannot cast -?20169940 days \+?00:00:00 to unit='ns' without overflow"
+        lmsg2 = r"Cannot cast <-?20169940 \* Days> to unit=ns without overflow"
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp + offset_overflow
@@ -59,12 +59,10 @@ class TestTimestampArithmetic:
         # xref https://github.com/pandas-dev/pandas/issues/14080
         # used to crash, so check for proper overflow exception
 
-        stamp = Timestamp("2000/1/1").as_unit("ns")
+        stamp = Timestamp("2000/1/1")
         offset_overflow = to_offset("D") * 100**5
 
-        lmsg3 = (
-            r"Cannot cast -?10000000000 days \+?00:00:00 to unit='ns' without overflow"
-        )
+        lmsg3 = r"Cannot cast <-?10000000000 \* Days> to unit=ns without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             stamp + offset_overflow
 
@@ -77,8 +75,8 @@ class TestTimestampArithmetic:
     def test_overflow_timestamp_raises(self):
         # https://github.com/pandas-dev/pandas/issues/31774
         msg = "Result is too large"
-        a = Timestamp("2101-01-01 00:00:00").as_unit("ns")
-        b = Timestamp("1688-01-01 00:00:00").as_unit("ns")
+        a = Timestamp("2101-01-01 00:00:00")
+        b = Timestamp("1688-01-01 00:00:00")
 
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             a - b
@@ -158,7 +156,11 @@ class TestTimestampArithmetic:
         # objects
         dt = datetime(2014, 3, 4)
         td = timedelta(seconds=1)
-        ts = Timestamp(dt)
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            # freq deprecated
+            ts = Timestamp(dt, freq="D")
 
         msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
@@ -180,6 +182,34 @@ class TestTimestampArithmetic:
         assert type(ts - td64) == Timestamp
 
     @pytest.mark.parametrize(
+        "freq, td, td64",
+        [
+            ("S", timedelta(seconds=1), np.timedelta64(1, "s")),
+            ("min", timedelta(minutes=1), np.timedelta64(1, "m")),
+            ("H", timedelta(hours=1), np.timedelta64(1, "h")),
+            ("D", timedelta(days=1), np.timedelta64(1, "D")),
+            ("W", timedelta(weeks=1), np.timedelta64(1, "W")),
+            ("M", None, np.timedelta64(1, "M")),
+        ],
+    )
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
+    def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
+        ts = Timestamp("2014-03-05 00:00:00", freq=freq)
+        original_freq = ts.freq
+
+        assert (ts + 1 * original_freq).freq == original_freq
+        assert (ts - 1 * original_freq).freq == original_freq
+
+        if td is not None:
+            # timedelta does not support months as unit
+            assert (ts + td).freq == original_freq
+            assert (ts - td).freq == original_freq
+
+        assert (ts + td64).freq == original_freq
+        assert (ts - td64).freq == original_freq
+
+    @pytest.mark.parametrize(
         "td", [Timedelta(hours=3), np.timedelta64(3, "h"), timedelta(hours=3)]
     )
     def test_radd_tdscalar(self, td, fixed_now_ts):
@@ -197,14 +227,10 @@ class TestTimestampArithmetic:
         ],
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
-        now = datetime.utcnow()
-        ts = Timestamp(now).as_unit("ns")
+        ts = Timestamp(datetime.utcnow())
         result = ts + other
-        valdiff = result._value - ts._value
+        valdiff = result.value - ts.value
         assert valdiff == expected_difference
-
-        ts2 = Timestamp(now)
-        assert ts2 + other == result
 
     @pytest.mark.parametrize(
         "ts",
@@ -239,7 +265,7 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray(self, shape):
         # GH#33296
-        ts = Timestamp("2020-04-04 15:45").as_unit("ns")
+        ts = Timestamp("2020-04-04 15:45")
         other = np.arange(6).astype("m8[h]").reshape(shape)
 
         result = ts + other

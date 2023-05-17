@@ -6,18 +6,16 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
-    Resolution,
     Timedelta,
     to_offset,
 )
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
+    TD64NS_DTYPE,
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -114,12 +112,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
-    # error: Signature of "_resolution_obj" incompatible with supertype
-    # "DatetimeIndexOpsMixin"
-    @property
-    def _resolution_obj(self) -> Resolution | None:  # type: ignore[override]
-        return self._data._resolution_obj
-
     # -------------------------------------------------------------------
     # Constructors
 
@@ -129,14 +121,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         unit=None,
         freq=lib.no_default,
         closed=None,
-        dtype=None,
-        copy: bool = False,
+        dtype=TD64NS_DTYPE,
+        copy=False,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            cls._raise_scalar_data_error(data)
+            raise cls._scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -144,21 +136,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "represent unambiguous timedelta values durations."
             )
 
-        if (
-            isinstance(data, TimedeltaArray)
-            and freq is lib.no_default
-            and (dtype is None or is_dtype_equal(dtype, data.dtype))
-        ):
+        # FIXME: need to check for dtype/data match
+        if isinstance(data, TimedeltaArray) and freq is lib.no_default:
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        if (
-            isinstance(data, TimedeltaIndex)
-            and freq is lib.no_default
-            and name is None
-            and (dtype is None or is_dtype_equal(dtype, data.dtype))
-        ):
+        if isinstance(data, TimedeltaIndex) and freq is lib.no_default and name is None:
             if copy:
                 return data.copy()
             else:
@@ -169,11 +153,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        refs = None
-        if not copy and isinstance(data, (ABCSeries, Index)):
-            refs = data._references
-
-        return cls._simple_new(tdarr, name=name, refs=refs)
+        return cls._simple_new(tdarr, name=name)
 
     # -------------------------------------------------------------------
 
@@ -186,7 +166,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # -------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
 
@@ -201,7 +181,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         except TypeError as err:
             raise KeyError(key) from err
 
-        return Index.get_loc(self, key)
+        return Index.get_loc(self, key, method, tolerance)
 
     def _parse_with_reso(self, label: str):
         # the "with_reso" is a no-op for TimedeltaIndex
@@ -228,8 +208,6 @@ def timedelta_range(
     freq=None,
     name=None,
     closed=None,
-    *,
-    unit: str | None = None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -249,10 +227,6 @@ def timedelta_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
-    unit : str, default None
-        Specify the desired resolution of the result.
-
-        .. versionadded:: 2.0.0
 
     Returns
     -------
@@ -297,19 +271,10 @@ def timedelta_range(
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
                    dtype='timedelta64[ns]', freq=None)
-
-    **Specify a unit**
-
-    >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
-    TimedeltaIndex(['1 days 00:00:00', '100001 days 00:00:00',
-                    '200001 days 00:00:00'],
-                   dtype='timedelta64[s]', freq='100000D')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     freq, _ = dtl.maybe_infer_freq(freq)
-    tdarr = TimedeltaArray._generate_range(
-        start, end, periods, freq, closed=closed, unit=unit
-    )
+    tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
     return TimedeltaIndex._simple_new(tdarr, name=name)

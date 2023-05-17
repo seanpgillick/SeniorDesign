@@ -50,8 +50,10 @@ def test_read_csv(cleared_fs, df1):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
+    from fsspec import registry
     from fsspec.registry import known_implementations
 
+    registry.target.clear()
     with pytest.raises(ValueError, match="nosuchprotocol"):
         read_csv("nosuchprotocol://test/test.csv")
     err_msg = "test error message"
@@ -72,9 +74,13 @@ def test_to_csv(cleared_fs, df1):
     tm.assert_frame_equal(df1, df2)
 
 
-def test_to_excel(cleared_fs, df1):
-    pytest.importorskip("openpyxl")
-    ext = "xlsx"
+@pytest.mark.parametrize("ext", ["xls", "xlsx"])
+def test_to_excel(cleared_fs, ext, df1):
+    if ext == "xls":
+        pytest.importorskip("xlwt")
+    else:
+        pytest.importorskip("openpyxl")
+
     path = f"memory://test/test.{ext}"
     df1.to_excel(path, index=True)
 
@@ -89,18 +95,22 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
 
     path = "memory://test/test.csv"
     mode = "wb" if binary_mode else "w"
-    with fsspec.open(path, mode=mode).open() as fsspec_object:
-        df1.to_csv(fsspec_object, index=True)
-        assert not fsspec_object.closed
+    fsspec_object = fsspec.open(path, mode=mode).open()
+
+    df1.to_csv(fsspec_object, index=True)
+    assert not fsspec_object.closed
+    fsspec_object.close()
 
     mode = mode.replace("w", "r")
-    with fsspec.open(path, mode=mode) as fsspec_object:
-        df2 = read_csv(
-            fsspec_object,
-            parse_dates=["dt"],
-            index_col=0,
-        )
-        assert not fsspec_object.closed
+    fsspec_object = fsspec.open(path, mode=mode).open()
+
+    df2 = read_csv(
+        fsspec_object,
+        parse_dates=["dt"],
+        index_col=0,
+    )
+    assert not fsspec_object.closed
+    fsspec_object.close()
 
     tm.assert_frame_equal(df1, df2)
 
@@ -126,9 +136,12 @@ def test_read_table_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
-def test_excel_options(fsspectest):
-    pytest.importorskip("openpyxl")
-    extension = "xlsx"
+@pytest.mark.parametrize("extension", ["xlsx", "xls"])
+def test_excel_options(fsspectest, extension):
+    if extension == "xls":
+        pytest.importorskip("xlwt")
+    else:
+        pytest.importorskip("openpyxl")
 
     df = DataFrame({"a": [0]})
 
@@ -148,7 +161,7 @@ def test_to_parquet_new_file(cleared_fs, df1):
     )
 
 
-@td.skip_if_no("pyarrow")
+@td.skip_if_no("pyarrow", min_version="2")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
@@ -209,7 +222,7 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     tm.assert_equal(
-        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
+        read_csv("%s://pandas-test/tips.csv" % protocol, storage_options=s3so),
         read_csv(tips_file),
     )
 

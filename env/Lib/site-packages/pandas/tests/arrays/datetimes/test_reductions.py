@@ -10,10 +10,6 @@ from pandas.core.arrays import DatetimeArray
 
 
 class TestReductions:
-    @pytest.fixture(params=["s", "ms", "us", "ns"])
-    def unit(self, request):
-        return request.param
-
     @pytest.fixture
     def arr1d(self, tz_naive_fixture):
         """Fixture returning DatetimeArray with parametrized timezones"""
@@ -32,20 +28,17 @@ class TestReductions:
         )
         return arr
 
-    def test_min_max(self, arr1d, unit):
+    def test_min_max(self, arr1d):
         arr = arr1d
-        arr = arr.as_unit(unit)
         tz = arr.tz
 
         result = arr.min()
-        expected = pd.Timestamp("2000-01-02", tz=tz).as_unit(unit)
+        expected = pd.Timestamp("2000-01-02", tz=tz)
         assert result == expected
-        assert result.unit == expected.unit
 
         result = arr.max()
-        expected = pd.Timestamp("2000-01-05", tz=tz).as_unit(unit)
+        expected = pd.Timestamp("2000-01-05", tz=tz)
         assert result == expected
-        assert result.unit == expected.unit
 
         result = arr.min(skipna=False)
         assert result is NaT

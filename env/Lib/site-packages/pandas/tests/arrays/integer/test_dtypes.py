@@ -62,7 +62,8 @@ def test_astype_nansafe():
 
 @pytest.mark.parametrize("dropna", [True, False])
 def test_construct_index(all_data, dropna):
-    # ensure that we do not coerce to different Index dtype or non-index
+    # ensure that we do not coerce to Float64Index, rather
+    # keep as Index
 
     all_data = all_data[:10]
     if dropna:
@@ -88,7 +89,7 @@ def test_astype_index(all_data, dropna):
         other = all_data
 
     dtype = all_data.dtype
-    idx = pd.Index(np.array(other))
+    idx = pd.Index._with_infer(np.array(other))
     assert isinstance(idx, ABCIndex)
 
     result = idx.astype(dtype)
@@ -225,6 +226,7 @@ def test_astype_dt64():
 
 
 def test_construct_cast_invalid(dtype):
+
     msg = "cannot safely"
     arr = [1.2, 2.3, 3.7]
     with pytest.raises(TypeError, match=msg):

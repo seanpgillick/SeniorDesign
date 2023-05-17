@@ -150,25 +150,6 @@ def test_append_index():
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
-def test_append_names_match(name, exp):
-    # GH#48288
-    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
-    midx2 = MultiIndex.from_arrays([[3], [5]], names=["a", name])
-    result = midx.append(midx2)
-    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=["a", exp])
-    tm.assert_index_equal(result, expected)
-
-
-def test_append_names_dont_match():
-    # GH#48288
-    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
-    midx2 = MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
-    result = midx.append(midx2)
-    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
-    tm.assert_index_equal(result, expected)
-
-
 def test_repeat():
     reps = 2
     numbers = [1, 2, 3]
@@ -180,6 +161,7 @@ def test_repeat():
 
 
 def test_insert_base(idx):
+
     result = idx[1:4]
 
     # test 0th element
@@ -187,6 +169,7 @@ def test_insert_base(idx):
 
 
 def test_delete_base(idx):
+
     expected = idx[1:]
     result = idx.delete(0)
     assert result.equals(expected)
