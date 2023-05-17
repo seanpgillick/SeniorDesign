@@ -25,8 +25,10 @@ import pandas._testing as tm
 from pandas.io.formats.printing import pprint_thing
 
 
-def test_agg_partial_failure_raises():
-    # GH#43741
+def test_agg_api():
+    # GH 6337
+    # https://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
+    # different api for agg when passed custom function with mixed frame
 
     df = DataFrame(
         {
@@ -41,11 +43,19 @@ def test_agg_partial_failure_raises():
     def peak_to_peak(arr):
         return arr.max() - arr.min()
 
-    with pytest.raises(TypeError, match="unsupported operand type"):
-        grouped.agg([peak_to_peak])
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=r"\['key2'\] did not aggregate successfully",
+    ):
+        expected = grouped.agg([peak_to_peak])
+    expected.columns = ["data1", "data2"]
 
-    with pytest.raises(TypeError, match="unsupported operand type"):
-        grouped.agg(peak_to_peak)
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=r"\['key2'\] did not aggregate successfully",
+    ):
+        result = grouped.agg(peak_to_peak)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_datetimes_mixed():
@@ -292,7 +302,8 @@ def test_agg_item_by_item_raise_typeerror():
         raise TypeError("test")
 
     with pytest.raises(TypeError, match="test"):
-        df.groupby(0).agg(raiseException)
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+            df.groupby(0).agg(raiseException)
 
 
 def test_series_agg_multikey():
@@ -517,7 +528,6 @@ def test_sum_uint64_overflow():
     expected = DataFrame(
         {1: [9223372036854775809, 9223372036854775811, 9223372036854775813]},
         index=index,
-        dtype=object,
     )
 
     expected.index.name = 0

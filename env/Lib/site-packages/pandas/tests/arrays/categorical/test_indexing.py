@@ -32,6 +32,7 @@ class TestCategoricalIndexingWithFactor:
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
     def test_setitem(self, factor):
+
         # int/positional
         c = factor.copy()
         c[0] = "b"
@@ -103,6 +104,7 @@ class TestCategoricalIndexingWithFactor:
         assert cat[1] == (0, 1)
 
     def test_setitem_listlike(self):
+
         # GH#9469
         # properly coerce the input indexers
         np.random.seed(1)
@@ -129,6 +131,7 @@ class TestCategoricalIndexing:
         tm.assert_categorical_equal(sliced, expected)
 
     def test_getitem_listlike(self):
+
         # GH 9469
         # properly coerce the input indexers
         np.random.seed(1)
@@ -188,6 +191,14 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
         tm.assert_index_equal(cat3.categories, exp_idx)
 
+    def test_categories_assignments(self):
+        cat = Categorical(["a", "b", "c", "a"])
+        exp = np.array([1, 2, 3, 1], dtype=np.int64)
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            cat.categories = [1, 2, 3]
+        tm.assert_numpy_array_equal(cat.__array__(), exp)
+        tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
+
     @pytest.mark.parametrize(
         "null_val",
         [None, np.nan, NaT, NA, math.nan, "NaT", "nat", "NAT", "nan", "NaN", "NAN"],
@@ -206,8 +217,9 @@ class TestCategoricalIndexing:
             "new categories need to have the same number of items "
             "as the old categories!"
         )
-        with pytest.raises(ValueError, match=msg):
-            cat.rename_categories(new_categories)
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            with pytest.raises(ValueError, match=msg):
+                cat.categories = new_categories
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(
@@ -364,7 +376,6 @@ def non_coercible_categorical(monkeypatch):
     ValueError
         When Categorical.__array__ is called.
     """
-
     # TODO(Categorical): identify other places where this may be
     # useful and move to a conftest.py
     def array(self, dtype=None):

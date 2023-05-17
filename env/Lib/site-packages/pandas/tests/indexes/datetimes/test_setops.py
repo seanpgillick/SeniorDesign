@@ -16,6 +16,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 from pandas.tseries.offsets import (
     BMonthEnd,
@@ -24,6 +25,13 @@ from pandas.tseries.offsets import (
 )
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
+
+
+def test_union_many_deprecated():
+    dti = date_range("2016-01-01", periods=3)
+
+    with tm.assert_produces_warning(FutureWarning):
+        dti.union_many([dti, dti])
 
 
 class TestDatetimeIndexSetOps:
@@ -78,6 +86,7 @@ class TestDatetimeIndexSetOps:
             (rng2, other2, expected2, expected2_notsorted),
             (rng3, other3, expected3, expected3_notsorted),
         ]:
+
             result_union = rng.union(other, sort=sort)
             tm.assert_index_equal(result_union, exp)
 
@@ -182,7 +191,7 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(df.index, exp)
 
     def test_union_with_DatetimeIndex(self, sort):
-        i1 = Index(np.arange(0, 20, 2, dtype=np.int64))
+        i1 = Int64Index(np.arange(0, 20, 2))
         i2 = date_range(start="2012-01-03 00:00:00", periods=10, freq="D")
         # Works
         i1.union(i2, sort=sort)
@@ -225,7 +234,7 @@ class TestDatetimeIndexSetOps:
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
         expected4 = DatetimeIndex([], freq="D", name="idx")
 
-        for rng, expected in [
+        for (rng, expected) in [
             (rng2, expected2),
             (rng3, expected3),
             (rng4, expected4),
@@ -256,7 +265,7 @@ class TestDatetimeIndexSetOps:
         expected4 = DatetimeIndex([], tz=tz, name="idx")
         assert expected4.freq is None
 
-        for rng, expected in [
+        for (rng, expected) in [
             (rng2, expected2),
             (rng3, expected3),
             (rng4, expected4),
@@ -303,7 +312,8 @@ class TestDatetimeIndexSetOps:
         index_1 = date_range("1/1/2012", periods=4, freq="12H")
         index_2 = index_1 + DateOffset(hours=1)
 
-        result = index_1.intersection(index_2)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         assert len(result) == 0
 
     @pytest.mark.parametrize("tz", tz)

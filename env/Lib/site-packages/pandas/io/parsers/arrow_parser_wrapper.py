@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
-import pandas as pd
-from pandas import DataFrame
-
-from pandas.io._util import _arrow_dtype_mapping
 from pandas.io.parsers.base_parser import ParserBase
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class ArrowParserWrapper(ParserBase):
@@ -41,7 +42,7 @@ class ArrowParserWrapper(ParserBase):
             )
         self.na_values = list(self.kwds["na_values"])
 
-    def _get_pyarrow_options(self) -> None:
+    def _get_pyarrow_options(self):
         """
         Rename some arguments to pass to pyarrow
         """
@@ -50,7 +51,6 @@ class ArrowParserWrapper(ParserBase):
             "na_values": "null_values",
             "escapechar": "escape_char",
             "skip_blank_lines": "ignore_empty_lines",
-            "decimal": "decimal_point",
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
@@ -68,23 +68,16 @@ class ArrowParserWrapper(ParserBase):
             for option_name, option_value in self.kwds.items()
             if option_value is not None
             and option_name
-            in (
-                "include_columns",
-                "null_values",
-                "true_values",
-                "false_values",
-                "decimal_point",
-            )
+            in ("include_columns", "null_values", "true_values", "false_values")
         }
         self.read_options = {
             "autogenerate_column_names": self.header is None,
             "skip_rows": self.header
             if self.header is not None
             else self.kwds["skiprows"],
-            "encoding": self.encoding,
         }
 
-    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
+    def _finalize_output(self, frame: DataFrame) -> DataFrame:
         """
         Processes data read in based on kwargs.
 
@@ -102,7 +95,9 @@ class ArrowParserWrapper(ParserBase):
         multi_index_named = True
         if self.header is None:
             if self.names is None:
-                if self.header is None:
+                if self.prefix is not None:
+                    self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
+                elif self.header is None:
                     self.names = range(num_cols)
             if len(self.names) != num_cols:
                 # usecols is passed through to pyarrow, we only handle index col here
@@ -155,10 +150,6 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
-        if self.kwds["dtype_backend"] == "pyarrow":
-            frame = table.to_pandas(types_mapper=pd.ArrowDtype)
-        elif self.kwds["dtype_backend"] == "numpy_nullable":
-            frame = table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
-        else:
-            frame = table.to_pandas()
-        return self._finalize_pandas_output(frame)
+
+        frame = table.to_pandas()
+        return self._finalize_output(frame)

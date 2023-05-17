@@ -30,20 +30,18 @@ import pandas._testing as tm
 
 
 class TestAstypeAPI:
-    def test_astype_unitless_dt64_raises(self):
+    def test_astype_unitless_dt64_deprecated(self):
         # GH#47844
         ser = Series(["1970-01-01", "1970-01-01", "1970-01-01"], dtype="datetime64[ns]")
-        df = ser.to_frame()
 
-        msg = "Casting to unit-less dtype 'datetime64' is not supported"
-        with pytest.raises(TypeError, match=msg):
-            ser.astype(np.datetime64)
-        with pytest.raises(TypeError, match=msg):
-            df.astype(np.datetime64)
-        with pytest.raises(TypeError, match=msg):
-            ser.astype("datetime64")
-        with pytest.raises(TypeError, match=msg):
-            df.astype("datetime64")
+        msg = "Passing unit-less datetime64 dtype to .astype is deprecated and "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.astype(np.datetime64)
+        tm.assert_series_equal(ser, res)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.astype("datetime64")
+        tm.assert_series_equal(ser, res)
 
     def test_arg_for_errors_in_astype(self):
         # see GH#14878
@@ -97,20 +95,6 @@ class TestAstypeAPI:
 
 
 class TestAstype:
-    def test_astype_mixed_object_to_dt64tz(self):
-        # pre-2.0 this raised ValueError bc of tz mismatch
-        # xref GH#32581
-        ts = Timestamp("2016-01-04 05:06:07", tz="US/Pacific")
-        ts2 = ts.tz_convert("Asia/Tokyo")
-
-        ser = Series([ts, ts2], dtype=object)
-        res = ser.astype("datetime64[ns, Europe/Brussels]")
-        expected = Series(
-            [ts.tz_convert("Europe/Brussels"), ts2.tz_convert("Europe/Brussels")],
-            dtype="datetime64[ns, Europe/Brussels]",
-        )
-        tm.assert_series_equal(res, expected)
-
     @pytest.mark.parametrize("dtype", np.typecodes["All"])
     def test_astype_empty_constructor_equality(self, dtype):
         # see GH#15524
@@ -122,7 +106,8 @@ class TestAstype:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            as_type_empty = Series([]).astype(dtype)
+            with tm.assert_produces_warning(FutureWarning):
+                as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
     @pytest.mark.parametrize("dtype", [str, np.str_])
@@ -226,14 +211,15 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        msg = "Cannot use .astype to convert from timezone-naive"
-        with pytest.raises(TypeError, match=msg):
+        with tm.assert_produces_warning(FutureWarning):
             # dt64->dt64tz astype deprecated
-            Series(ser.values).astype("datetime64[ns, US/Eastern]")
+            result = Series(ser.values).astype("datetime64[ns, US/Eastern]")
+        tm.assert_series_equal(result, ser)
 
-        with pytest.raises(TypeError, match=msg):
+        with tm.assert_produces_warning(FutureWarning):
             # dt64->dt64tz astype deprecated
-            Series(ser.values).astype(ser.dtype)
+            result = Series(ser.values).astype(ser.dtype)
+        tm.assert_series_equal(result, ser)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))
@@ -281,7 +267,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow"),
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),
@@ -352,24 +338,13 @@ class TestAstype:
     def test_astype_float_to_uint_negatives_raise(
         self, float_numpy_dtype, any_unsigned_int_numpy_dtype
     ):
-        # GH#45151 We don't cast negative numbers to nonsense values
-        # TODO: same for EA float/uint dtypes, signed integers?
+        # GH#45151
+        # TODO: same for EA float/uint dtypes
         arr = np.arange(5).astype(float_numpy_dtype) - 3  # includes negatives
         ser = Series(arr)
 
-        msg = "Cannot losslessly cast from .* to .*"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match="losslessly"):
             ser.astype(any_unsigned_int_numpy_dtype)
-
-        with pytest.raises(ValueError, match=msg):
-            ser.to_frame().astype(any_unsigned_int_numpy_dtype)
-
-        with pytest.raises(ValueError, match=msg):
-            # We currently catch and re-raise in Index.astype
-            Index(ser).astype(any_unsigned_int_numpy_dtype)
-
-        with pytest.raises(ValueError, match=msg):
-            ser.array.astype(any_unsigned_int_numpy_dtype)
 
     def test_astype_cast_object_int(self):
         arr = Series(["1", "2", "3", "4"], dtype=object)
@@ -389,13 +364,7 @@ class TestAstype:
         former_encoding = None
 
         if sys.getdefaultencoding() == "utf-8":
-            # GH#45326 as of 2.0 Series.astype matches Index.astype by handling
-            #  bytes with obj.decode() instead of str(obj)
-            item = "野菜食べないとやばい"
-            ser = Series([item.encode()])
-            result = ser.astype("unicode")
-            expected = Series([item])
-            tm.assert_series_equal(result, expected)
+            test_series.append(Series(["野菜食べないとやばい".encode()]))
 
         for ser in test_series:
             res = ser.astype("unicode")
@@ -426,7 +395,10 @@ class TestAstype:
     def test_astype_ea_to_datetimetzdtype(self, dtype):
         # GH37553
         ser = Series([4, 0, 9], dtype=dtype)
-        result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
+        warn = FutureWarning if ser.dtype.kind == "f" else None
+        msg = "with a timezone-aware dtype and floating-dtype data"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
 
         expected = Series(
             {
@@ -435,6 +407,21 @@ class TestAstype:
                 2: Timestamp("1969-12-31 16:00:00.000000009-08:00", tz="US/Pacific"),
             }
         )
+
+        if dtype in tm.FLOAT_EA_DTYPES:
+            expected = Series(
+                {
+                    0: Timestamp(
+                        "1970-01-01 00:00:00.000000004-08:00", tz="US/Pacific"
+                    ),
+                    1: Timestamp(
+                        "1970-01-01 00:00:00.000000000-08:00", tz="US/Pacific"
+                    ),
+                    2: Timestamp(
+                        "1970-01-01 00:00:00.000000009-08:00", tz="US/Pacific"
+                    ),
+                }
+            )
 
         tm.assert_series_equal(result, expected)
 
@@ -471,7 +458,9 @@ class TestAstypeString:
     def test_astype_string_to_extension_dtype_roundtrip(
         self, data, dtype, request, nullable_string_dtype
     ):
-        if dtype == "boolean" or (dtype == "timedelta64[ns]" and NaT in data):
+        if dtype == "boolean" or (
+            dtype in ("datetime64[ns]", "timedelta64[ns]") and NaT in data
+        ):
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )

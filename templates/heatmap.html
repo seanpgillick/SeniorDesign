@@ -1,7 +1,9 @@
 {% block content %}
-  
-    <div id="selections" class="flex-container">
-        <div class="text-center mb-2">
+
+    
+    <div id="selections" class="flex-container mx-auto align-items-center no-pad row card" style="width: 90%;">
+        <div class="bg-light">
+        <div class="text-center mb-2 col-md-12">
             <i class="text-muted">Select a city, year or crime type to get a detailed map of specific crimes in each city</i>
         </div>
         <form class="row g-1 w-50 mx-auto" action="/analysis/{{city}}/{{tab}}">
@@ -29,9 +31,14 @@
                 <button class="btn btn-primary no-pad">Update Heatmap</button>
             </div>
         </form>
-        <div id="frameContainer" class="d-flex justify-content-center">
         </div>
-        
+        <div id="frameContainer" class="d-flex justify-content-center no-pad">
+        </div>
+        <p>A heatmap of crimes in a city is a graphical representation that displays the concentration of criminal incidents across 
+            different locations within a particular area. The map is created using geospatial data and is color-coded 
+            to represent the intensity of criminal activity in different parts of the city. 
+            In a crime heatmap, areas with a higher concentration of criminal incidents are usually represented by a darker shade of color, while areas with lower incidences are represented by lighter shades.
+        </p>
     </div>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -46,7 +53,11 @@
         function updateSrc() {
             let myIframe = document.createElement('iframe');
             myIframe.width=1350;
-            myIframe.height=900;
+            intval =  setInterval(function(){
+            
+                myIframe.height = myIframe.contentWindow.document.body.scrollHeight + "px";
+            
+            },800)
             document.getElementById("frameContainer").innerHTML="";
             let url_string = "/mapGen";
             const urlParams = new URLSearchParams(window.location.search);

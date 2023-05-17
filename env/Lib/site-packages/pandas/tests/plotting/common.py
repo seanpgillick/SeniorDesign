@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Sequence,
 )
+import warnings
 
 import numpy as np
 
@@ -46,7 +47,7 @@ class TestPlotBase:
 
     @cache_readonly
     def colorconverter(self):
-        from matplotlib import colors
+        import matplotlib.colors as colors
 
         return colors.colorConverter
 
@@ -186,6 +187,7 @@ class TestPlotBase:
 
         conv = self.colorconverter
         if linecolors is not None:
+
             if mapping is not None:
                 linecolors = self._get_colors_mapped(mapping, linecolors)
                 linecolors = linecolors[: len(collections)]
@@ -205,6 +207,7 @@ class TestPlotBase:
                 assert result == expected
 
         if facecolors is not None:
+
             if mapping is not None:
                 facecolors = self._get_colors_mapped(mapping, facecolors)
                 facecolors = facecolors[: len(collections)]
@@ -470,19 +473,18 @@ class TestPlotBase:
 
         spndx = 1
         for kind in kinds:
+
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=False)
             obj.plot(kind=kind, **kws)
             assert not is_grid_on()
-            self.plt.clf()
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=True)
             obj.plot(kind=kind, grid=False, **kws)
             assert not is_grid_on()
-            self.plt.clf()
 
             if kind not in ["pie", "hexbin", "scatter"]:
                 self.plt.subplot(1, 4 * len(kinds), spndx)
@@ -490,14 +492,12 @@ class TestPlotBase:
                 mpl.rc("axes", grid=True)
                 obj.plot(kind=kind, **kws)
                 assert is_grid_on()
-                self.plt.clf()
 
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc("axes", grid=False)
                 obj.plot(kind=kind, grid=True, **kws)
                 assert is_grid_on()
-                self.plt.clf()
 
     def _unpack_cycler(self, rcParams, field="color"):
         """
@@ -506,13 +506,21 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
     def get_x_axis(self, ax):
-        return ax._shared_axes["x"]
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
+
+        if mpl_ge_3_5_0():
+            return ax._shared_axes["x"]
+        return ax._shared_x_axes
 
     def get_y_axis(self, ax):
-        return ax._shared_axes["y"]
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
+
+        if mpl_ge_3_5_0():
+            return ax._shared_axes["y"]
+        return ax._shared_y_axes
 
 
-def _check_plot_works(f, default_axes=False, **kwargs):
+def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
     """
     Create plot and ensure that plot return object is valid.
 
@@ -520,6 +528,9 @@ def _check_plot_works(f, default_axes=False, **kwargs):
     ----------
     f : func
         Plotting function.
+    filterwarnings : str
+        Warnings filter.
+        See https://docs.python.org/3/library/warnings.html#warning-filter
     default_axes : bool, optional
         If False (default):
             - If `ax` not in `kwargs`, then create subplot(211) and plot there
@@ -547,20 +558,24 @@ def _check_plot_works(f, default_axes=False, **kwargs):
         gen_plots = _gen_two_subplots
 
     ret = None
-    try:
-        fig = kwargs.get("figure", plt.gcf())
-        plt.clf()
+    with warnings.catch_warnings():
+        warnings.simplefilter(filterwarnings)
+        try:
+            fig = kwargs.get("figure", plt.gcf())
+            plt.clf()
 
-        for ret in gen_plots(f, fig, **kwargs):
-            tm.assert_is_valid_plot_return_object(ret)
+            for ret in gen_plots(f, fig, **kwargs):
+                tm.assert_is_valid_plot_return_object(ret)
 
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
+            with tm.ensure_clean(return_filelike=True) as path:
+                plt.savefig(path)
 
-    finally:
-        tm.close(fig)
+        except Exception as err:
+            raise err
+        finally:
+            tm.close(fig)
 
-    return ret
+        return ret
 
 
 def _gen_default_plot(f, fig, **kwargs):

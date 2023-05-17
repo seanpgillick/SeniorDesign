@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Series
+from pandas.core.construction import create_series_with_explicit_dtype
 
 
 @pytest.mark.parametrize(
@@ -18,7 +19,7 @@ from pandas import Series
 )
 def test_is_unique(data, expected):
     # GH#11946 / GH#25180
-    ser = Series(data)
+    ser = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     assert ser.is_unique is expected
 
 

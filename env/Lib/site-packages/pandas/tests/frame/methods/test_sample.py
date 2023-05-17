@@ -11,13 +11,14 @@ import pandas.core.common as com
 
 
 class TestSample:
-    @pytest.fixture
-    def obj(self, frame_or_series):
-        if frame_or_series is Series:
+    @pytest.fixture(params=[Series, DataFrame])
+    def obj(self, request):
+        klass = request.param
+        if klass is Series:
             arr = np.random.randn(10)
         else:
             arr = np.random.randn(10, 10)
-        return frame_or_series(arr, dtype=None)
+        return klass(arr, dtype=None)
 
     @pytest.mark.parametrize("test", list(range(10)))
     def test_sample(self, test, obj):
@@ -306,6 +307,7 @@ class TestSampleDataFrame:
         )
 
     def test_sample_aligns_weights_with_frame(self):
+
         # Test that function aligns weights with frame
         df = DataFrame({"col1": [5, 6, 7], "col2": ["a", "b", "c"]}, index=[9, 5, 3])
         ser = Series([1, 0, 0], index=[3, 5, 9])

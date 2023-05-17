@@ -10,9 +10,7 @@ import csv
 from io import (
     BytesIO,
     StringIO,
-    TextIOWrapper,
 )
-from typing import Iterator
 
 import pytest
 
@@ -109,6 +107,8 @@ baz|7|8|9
 """
 
     if encoding is not None:
+        from io import TextIOWrapper
+
         data = data.encode(encoding)
         data = BytesIO(data)
         data = TextIOWrapper(data, encoding=encoding)
@@ -322,7 +322,7 @@ def test_python_engine_file_no_next(python_parser_only):
         def __init__(self, csv_data) -> None:
             self.data = csv_data
 
-        def __iter__(self) -> Iterator:
+        def __iter__(self):
             return self.data.__iter__()
 
         def read(self):

@@ -15,8 +15,10 @@ from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
     MonthBegin,
     MonthEnd,
+    MonthOffset,
     SemiMonthBegin,
     SemiMonthEnd,
+    SemiMonthOffset,
 )
 
 from pandas import (
@@ -26,12 +28,17 @@ from pandas import (
     date_range,
 )
 from pandas.tests.tseries.offsets.common import (
+    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
 
 
-class TestSemiMonthEnd:
+class TestSemiMonthEnd(Base):
+    _offset: type[SemiMonthOffset] = SemiMonthEnd
+    offset1 = _offset()
+    offset2 = _offset(2)
+
     def test_offset_whole_year(self):
         dates = (
             datetime(2007, 12, 31),
@@ -223,6 +230,10 @@ class TestSemiMonthEnd:
             result = offset + shift
         tm.assert_index_equal(result, exp)
 
+        with tm.assert_produces_warning(FutureWarning):
+            result = offset.apply_index(shift)
+        tm.assert_index_equal(result, exp)
+
     on_offset_cases = [
         (datetime(2007, 12, 31), True),
         (datetime(2007, 12, 15), True),
@@ -287,7 +298,11 @@ class TestSemiMonthEnd:
         tm.assert_equal(result2, exp)
 
 
-class TestSemiMonthBegin:
+class TestSemiMonthBegin(Base):
+    _offset: type[SemiMonthOffset] = SemiMonthBegin
+    offset1 = _offset()
+    offset2 = _offset(2)
+
     def test_offset_whole_year(self):
         dates = (
             datetime(2007, 12, 15),
@@ -523,7 +538,9 @@ class TestSemiMonthBegin:
         tm.assert_equal(result2, exp)
 
 
-class TestMonthBegin:
+class TestMonthBegin(Base):
+    _offset: type[MonthOffset] = MonthBegin
+
     offset_cases = []
     # NOTE: I'm not entirely happy with the logic here for Begin -ss
     # see thread 'offset conventions' on the ML
@@ -586,7 +603,9 @@ class TestMonthBegin:
             assert_offset_equal(offset, base, expected)
 
 
-class TestMonthEnd:
+class TestMonthEnd(Base):
+    _offset: type[MonthOffset] = MonthEnd
+
     def test_day_of_month(self):
         dt = datetime(2007, 1, 1)
         offset = MonthEnd()

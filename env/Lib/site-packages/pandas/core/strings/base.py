@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Callable  # noqa: PDF001
 import re
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Literal,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -39,22 +36,15 @@ class BaseStringArrayMethods(abc.ABC):
             return self._str_get(key)
 
     @abc.abstractmethod
-    def _str_count(self, pat, flags: int = 0):
+    def _str_count(self, pat, flags=0):
         pass
 
     @abc.abstractmethod
-    def _str_pad(
-        self,
-        width,
-        side: Literal["left", "right", "both"] = "left",
-        fillchar: str = " ",
-    ):
+    def _str_pad(self, width, side="left", fillchar=" "):
         pass
 
     @abc.abstractmethod
-    def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
-    ):
+    def _str_contains(self, pat, case=True, flags=0, na=None, regex=True):
         pass
 
     @abc.abstractmethod
@@ -98,19 +88,19 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_encode(self, encoding, errors: str = "strict"):
+    def _str_encode(self, encoding, errors="strict"):
         pass
 
     @abc.abstractmethod
-    def _str_find(self, sub, start: int = 0, end=None):
+    def _str_find(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_rfind(self, sub, start: int = 0, end=None):
+    def _str_rfind(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_findall(self, pat, flags: int = 0):
+    def _str_findall(self, pat, flags=0):
         pass
 
     @abc.abstractmethod
@@ -118,11 +108,11 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_index(self, sub, start: int = 0, end=None):
+    def _str_index(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def _str_rindex(self, sub, start: int = 0, end=None):
+    def _str_rindex(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
@@ -158,7 +148,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep="|"):
         pass
 
     @abc.abstractmethod
@@ -246,9 +236,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_split(
-        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
-    ):
+    def _str_split(self, pat=None, n=-1, expand=False):
         pass
 
     @abc.abstractmethod

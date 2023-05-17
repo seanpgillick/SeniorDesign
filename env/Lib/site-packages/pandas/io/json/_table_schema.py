@@ -1,7 +1,7 @@
 """
 Table Schema builders
 
-https://specs.frictionlessdata.io/table-schema/
+https://specs.frictionlessdata.io/json-table-schema/
 """
 from __future__ import annotations
 
@@ -12,8 +12,7 @@ from typing import (
 )
 import warnings
 
-from pandas._libs.json import loads
-from pandas._libs.tslibs import timezones
+import pandas._libs.json as json
 from pandas._typing import (
     DtypeObj,
     JSONSerializable,
@@ -42,6 +41,7 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
+loads = json.loads
 
 TABLE_SCHEMA_VERSION = "1.4.0"
 
@@ -141,11 +141,7 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
     elif is_period_dtype(dtype):
         field["freq"] = dtype.freq.freqstr
     elif is_datetime64tz_dtype(dtype):
-        if timezones.is_utc(dtype.tz):
-            # timezone.utc has no "zone" attr
-            field["tz"] = "UTC"
-        else:
-            field["tz"] = dtype.tz.zone
+        field["tz"] = dtype.tz.zone
     elif is_extension_array_dtype(dtype):
         field["extDtype"] = dtype.name
     return field
@@ -196,11 +192,11 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     if typ == "string":
         return "object"
     elif typ == "integer":
-        return field.get("extDtype", "int64")
+        return "int64"
     elif typ == "number":
-        return field.get("extDtype", "float64")
+        return "float64"
     elif typ == "boolean":
-        return field.get("extDtype", "bool")
+        return "bool"
     elif typ == "duration":
         return "timedelta64"
     elif typ == "datetime":
@@ -249,7 +245,7 @@ def build_table_schema(
 
     Returns
     -------
-    dict
+    schema : dict
 
     Notes
     -----
@@ -265,7 +261,6 @@ def build_table_schema(
 
     Examples
     --------
-    >>> from pandas.io.json._table_schema import build_table_schema
     >>> df = pd.DataFrame(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],

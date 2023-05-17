@@ -244,6 +244,7 @@ class TestAppend:
         tm.assert_frame_equal(result, expected)
 
     def test_append_dtype_coerce(self, sort):
+
         # GH 4993
         # appending with datetime will incorrectly convert datetime64
 

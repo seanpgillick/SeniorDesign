@@ -122,17 +122,10 @@ class TestDatetimeArrayConstructor:
     def test_copy(self):
         data = np.array([1, 2, 3], dtype="M8[ns]")
         arr = DatetimeArray(data, copy=False)
-        assert arr._ndarray is data
+        assert arr._data is data
 
         arr = DatetimeArray(data, copy=True)
-        assert arr._ndarray is not data
-
-    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-    def test_numpy_datetime_unit(self, unit):
-        data = np.array([1, 2, 3], dtype=f"M8[{unit}]")
-        arr = DatetimeArray(data)
-        assert arr.unit == unit
-        assert arr[0].unit == unit
+        assert arr._data is not data
 
 
 class TestSequenceToDT64NS:
@@ -141,15 +134,14 @@ class TestSequenceToDT64NS:
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         with pytest.raises(TypeError, match="data is already tz-aware"):
-            DatetimeArray._from_sequence_not_strict(
-                arr, dtype=DatetimeTZDtype(tz="UTC")
-            )
+            _sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
 
     def test_tz_dtype_matches(self):
-        dtype = DatetimeTZDtype(tz="US/Central")
-        arr = DatetimeArray._from_sequence(["2000"], dtype=dtype)
-        result = DatetimeArray._from_sequence_not_strict(arr, dtype=dtype)
-        tm.assert_equal(arr, result)
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
+        result, _, _ = _sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
+        tm.assert_numpy_array_equal(arr._data, result)
 
     @pytest.mark.parametrize("order", ["F", "C"])
     def test_2d(self, order):

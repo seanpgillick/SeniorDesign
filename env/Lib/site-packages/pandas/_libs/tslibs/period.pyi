@@ -8,6 +8,7 @@ from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     Frequency,
+    Timezone,
     npt,
 )
 
@@ -87,6 +88,7 @@ class Period(PeriodMixin):
         self,
         freq: str | BaseOffset | None = ...,
         how: str = ...,
+        tz: Timezone | None = ...,
     ) -> Timestamp: ...
     def asfreq(self, freq: str | BaseOffset, how: str = ...) -> Period: ...
     @property

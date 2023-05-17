@@ -123,6 +123,7 @@ def test_arith_zero_dim_ndarray(other):
 
 
 def test_error_invalid_values(data, all_arithmetic_operators):
+
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
@@ -161,10 +162,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "not all arguments converted during string formatting",
             "can't multiply sequence by non-int of type 'float'",
             "ufunc 'subtract' cannot use operands with types dtype",
-            (
-                "ufunc 'add' cannot use operands with types "
-                rf"dtype\('{tm.ENDIAN}M8\[ns\]'\)"
-            ),
+            r"ufunc 'add' cannot use operands with types dtype\('<M8\[ns\]'\)",
             r"ufunc 'add' cannot use operands with types dtype\('float\d{2}'\)",
             "cannot subtract DatetimeArray from ndarray",
         ]
@@ -178,6 +176,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 
 
 def test_cross_type_arithmetic():
+
     df = pd.DataFrame(
         {
             "A": pd.array([1, 2, np.nan], dtype="Float64"),

@@ -7,7 +7,6 @@ from collections import (
     defaultdict,
 )
 import copy
-import sys
 from typing import (
     Any,
     DefaultDict,
@@ -21,6 +20,7 @@ from pandas._typing import (
     IgnoreRaise,
     Scalar,
 )
+from pandas.util._decorators import deprecate
 
 import pandas as pd
 from pandas import DataFrame
@@ -64,6 +64,8 @@ def nested_to_record(
 
     max_level: int, optional, default: None
         The max depth to normalize.
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -110,9 +112,9 @@ def nested_to_record(
                     v = new_d.pop(k)
                     new_d[newkey] = v
                 continue
-
-            v = new_d.pop(k)
-            new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
+            else:
+                v = new_d.pop(k)
+                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
         new_ds.append(new_d)
 
     if singleton:
@@ -146,18 +148,13 @@ def _normalise_json(
     if isinstance(data, dict):
         for key, value in data.items():
             new_key = f"{key_string}{separator}{key}"
-
-            if not key_string:
-                if sys.version_info < (3, 9):
-                    from pandas.util._str_methods import removeprefix
-
-                    new_key = removeprefix(new_key, separator)
-                else:
-                    new_key = new_key.removeprefix(separator)
-
             _normalise_json(
                 data=value,
-                key_string=new_key,
+                # to avoid adding the separator to the start of every key
+                # GH#43831 avoid adding key if key_string blank
+                key_string=new_key
+                if new_key[: len(separator)] != separator
+                else new_key[len(separator) :],
                 normalized_dict=normalized_dict,
                 separator=separator,
             )
@@ -244,7 +241,7 @@ def _simple_json_normalize(
     return normalised_json_object
 
 
-def json_normalize(
+def _json_normalize(
     data: dict | list[dict],
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
@@ -285,6 +282,8 @@ def json_normalize(
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -404,7 +403,7 @@ def json_normalize(
                     f"Key {e} not found. If specifying a record_path, all elements of "
                     f"data should have the path."
                 ) from e
-            if errors == "ignore":
+            elif errors == "ignore":
                 return np.nan
             else:
                 raise KeyError(
@@ -486,7 +485,7 @@ def json_normalize(
     meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
-    def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
+    def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
@@ -534,3 +533,8 @@ def json_normalize(
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
+)

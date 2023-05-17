@@ -1,5 +1,5 @@
 {% block content %}
-<div class="mt-2" id="google_maps_div" data-city-lat="{{ cityLat }}" data-city-lng="{{ cityLng }}">
+<div class=" bg-light flex-container mx-auto align-items-center no-pad row card" style="width: 90%;" id="google_maps_div" data-city-lat="{{ cityLat }}" data-city-lng="{{ cityLng }}">
     {% set inputValue = "" %}
     {% set inputLatitude = "" %}
     {% set inputLongitude = "" %}
@@ -30,7 +30,7 @@
         <div class="text-center mb-2">
             <i class="text-muted">Enter an address and radius to check the safety score of a specific area of {{ city }}</i>
         </div>
-        <div class="row g-2 w-50 mx-auto">
+        <div class="row g-2 w-75 mx-auto">
 
             <div class="col-sm-5"> 
                 <input
@@ -38,26 +38,34 @@
                 list="addresses"
                 id="address-input"
                 type="text"
-                class="form-control"
-                value="{{ inputValue }}"/>
+                class="form-control text-center"
+                value="{{ inputValue }}"
+                style="background-color: #E9ECEF; "/>
             </div>
-
-            <div class="col-sm-3">
+            
+            <div class="col-sm-3 text-center">
+                
                 <input
                 placeholder="Radius"
                 id="radius-input"
-                type="number"
-                min="1"
-                class="form-control"
-                value="{{ inputRadius }}"/>
+                type="range"
+                min="0.1"
+                max="2.0"
+                class="slider align-bottom"
+                value="{{ inputRadius }}"
+                style="border:none; "
+                step="0.1"/>
+                
             </div>
-            <div class="col-sm-2">
-                <select class="form-select" id="radius_unit" style="background-color: #E9ECEF;">
-                    <option {{ milesSelected }} value="mi">mi</option>
-                    <option {{ kmSelected }} value="km">km</option>
+            <div class="col-sm-2 align-items-center">
+                <span id="radius-value" class=""></span>
+                <select class="form-select" id="radius_unit" style="background-color: #E9ECEF; display: inline; width: 80%;">
+                    <option {{ milesSelected }} value="mi">miles</option>
+                    <option {{ kmSelected }} value="km">kilometres</option>
                 </select>
             </div>
-            <div class="col-sm-2">                
+            
+            <div class="col-sm-1">                
                 <button type="button" id="calculate-score" class="btn btn-primary d-flex align-items-end no-pad" 
                     data-address="{{ inputValue }}" data-lat="{{ latitude }}" data-lng="{{ longitude }}">Calculate</button>
             </div>
@@ -98,12 +106,18 @@
                 <i class="text-muted">Note: This score was calculated using crime incident reports from 2019 through 2021</i>
                 </div>
             </div>
-            <div class="row g-1">
+            <div class="row g-1 card-effect">
+                <div class="col-md-6 blog-post" id="chart1"></div>
+                <div class="col-md-6 blog-post" id="frameContainer"></div>
+            </div>
+
+            <!-- <div class="row g-1">
                 <div class="col-md-6">
                     <div id="chart1"></div>
                 </div>
                 <div class="col-md-6" id="frameContainer"></div>
-            </div>           
+            </div> -->
+            
         </div>
     {% endif %}
 </div>
@@ -111,6 +125,7 @@
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCwhEnLg4K-Bhhuntc3zoMw7oVIhI0neqk&libraries=places&callback=initMap">
 </script>
 <script>
+    
     function initMap(){
         const cityLat = $("#google_maps_div").data("city-lat");
         const cityLng = $("#google_maps_div").data("city-lng");
@@ -144,6 +159,15 @@
     }
 
     $( document ).ready(function() {
+
+        var slider = document.getElementById("radius-input");
+        slider.value = 2;
+        var output = document.getElementById("radius-value");
+        output.innerHTML = slider.value;
+
+        slider.oninput = function() {
+            output.innerHTML = this.value+" ";
+        }
         if("{{ graph }}" != "None"){
             var newGraph = {{ graph | safe}};
             Plotly.plot("chart1", newGraph, {});

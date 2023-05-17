@@ -1,7 +1,4 @@
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -74,7 +71,7 @@ class TestJoin:
 
         result = left.join(right[:-5], how=join_type)
         assert isinstance(result, DatetimeIndex)
-        assert result.tz is timezone.utc
+        assert result.tz.zone == "UTC"
 
     def test_datetimeindex_union_join_empty(self, sort):
         dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")

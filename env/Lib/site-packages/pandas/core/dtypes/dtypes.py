@@ -23,13 +23,10 @@ from pandas._libs.tslibs import (
     NaTType,
     Period,
     Timestamp,
+    dtypes,
     timezones,
     to_offset,
     tz_compare,
-)
-from pandas._libs.tslibs.dtypes import (
-    PeriodDtypeBase,
-    abbrev_to_npy_unit,
 )
 from pandas._typing import (
     Dtype,
@@ -118,6 +115,8 @@ class CategoricalDtypeType(type):
     """
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
+
+    pass
 
 
 @register_extension_dtype
@@ -278,10 +277,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):
                 if dtype == "category":
-                    if ordered is None and cls.is_dtype(values):
-                        # GH#49309 preserve orderedness
-                        ordered = values.dtype.ordered
-
                     dtype = CategoricalDtype(categories, ordered)
                 else:
                     raise ValueError(f"Unknown dtype {repr(dtype)}")
@@ -337,6 +332,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return cls(ordered=None)
 
     def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
+
         if ordered is not None:
             self.validate_ordered(ordered)
 
@@ -529,10 +525,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        if not isinstance(categories, ABCIndex):
+        elif not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
+
             if categories.hasnans:
                 raise ValueError("Categorical categories cannot be null")
 
@@ -678,10 +675,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def na_value(self) -> NaTType:
         return NaT
 
-    # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
-    def str(self) -> str:  # type: ignore[override]
-        return f"|M8[{self.unit}]"
+    def str(self):
+        return f"|M8[{self._unit}]"
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
@@ -716,11 +712,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = tz
 
     @cache_readonly
-    def _creso(self) -> int:
+    def _reso(self) -> int:
         """
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
-        return abbrev_to_npy_unit(self.unit)
+        reso = {
+            "s": dtypes.NpyDatetimeUnit.NPY_FR_s,
+            "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
+            "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
+            "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
+        }[self._unit]
+        return reso.value
 
     @property
     def unit(self) -> str_type:
@@ -801,7 +803,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             if other.startswith("M8["):
-                other = f"datetime64[{other[3:]}"
+                other = "datetime64[" + other[3:]
             return other == self.name
 
         return (
@@ -819,7 +821,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
+class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -868,7 +870,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         elif freq is None:
             # empty constructor for pickle compat
             # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
-            u = PeriodDtypeBase.__new__(cls, -10_000)
+            u = dtypes.PeriodDtypeBase.__new__(cls, -10_000)
             u._freq = None
             return u
 
@@ -879,7 +881,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = PeriodDtypeBase.__new__(cls, dtype_code)
+            u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
             cls._cache_dtypes[freq.freqstr] = u
             return u
@@ -951,6 +953,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return other in [self.name, self.name.title()]
 
         elif isinstance(other, PeriodDtype):
+
             # For freqs that can be held by a PeriodDtype, this check is
             # equivalent to (and much faster than) self.freq == other.freq
             sfreq = self.freq
@@ -982,7 +985,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith("period[") or dtype.startswith("Period["):
                 try:
-                    return cls._parse_dtype_strict(dtype) is not None
+                    if cls._parse_dtype_strict(dtype) is not None:
+                        return True
+                    else:
+                        return False
                 except ValueError:
                     return False
             else:
@@ -1130,7 +1136,7 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
-        key = f"{subtype}{closed}"
+        key = str(subtype) + str(closed)
         try:
             return cls._cache_dtypes[key]
         except KeyError:
@@ -1247,7 +1253,10 @@ class IntervalDtype(PandasExtensionDtype):
         if isinstance(dtype, str):
             if dtype.lower().startswith("interval"):
                 try:
-                    return cls.construct_from_string(dtype) is not None
+                    if cls.construct_from_string(dtype) is not None:
+                        return True
+                    else:
+                        return False
                 except (ValueError, TypeError):
                     return False
             else:

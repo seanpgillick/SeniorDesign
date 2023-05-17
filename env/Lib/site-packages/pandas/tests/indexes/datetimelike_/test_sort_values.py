@@ -136,6 +136,7 @@ class TestSortValues:
         self.check_sort_values_with_freq(idx)
 
     def check_sort_values_without_freq(self, idx, expected):
+
         ordered = idx.sort_values(na_position="first")
         tm.assert_index_equal(ordered, expected)
         check_freq_nonmonotonic(ordered, idx)

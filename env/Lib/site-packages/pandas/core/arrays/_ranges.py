@@ -22,7 +22,6 @@ def generate_regular_range(
     end: Timestamp | Timedelta | None,
     periods: int | None,
     freq: BaseOffset,
-    unit: str = "ns",
 ) -> npt.NDArray[np.intp]:
     """
     Generate a range of dates or timestamps with the spans between dates
@@ -38,28 +37,14 @@ def generate_regular_range(
         Number of periods in produced date range.
     freq : Tick
         Describes space between dates in produced date range.
-    unit : str, default "ns"
-        The resolution the output is meant to represent.
 
     Returns
     -------
-    ndarray[np.int64]
-        Representing the given resolution.
+    ndarray[np.int64] Representing nanoseconds.
     """
-    istart = start._value if start is not None else None
-    iend = end._value if end is not None else None
-    freq.nanos  # raises if non-fixed frequency
-    td = Timedelta(freq)
-    try:
-        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
-            unit, round_ok=False
-        )
-    except ValueError as err:
-        raise ValueError(
-            f"freq={freq} is incompatible with unit={unit}. "
-            "Use a lower freq or a higher unit instead."
-        ) from err
-    stride = int(td._value)
+    istart = start.value if start is not None else None
+    iend = end.value if end is not None else None
+    stride = freq.nanos
 
     if periods is None and istart is not None and iend is not None:
         b = istart
@@ -136,12 +121,12 @@ def _generate_range_overflow_safe(
         return _generate_range_overflow_safe_signed(endpoint, periods, stride, side)
 
     elif (endpoint > 0 and side == "start" and stride > 0) or (
-        endpoint < 0 < stride and side == "end"
+        endpoint < 0 and side == "end" and stride > 0
     ):
         # no chance of not-overflowing
         raise OutOfBoundsDatetime(msg)
 
-    elif side == "end" and endpoint - stride <= i64max < endpoint:
+    elif side == "end" and endpoint > i64max and endpoint - stride <= i64max:
         # in _generate_regular_range we added `stride` thereby overflowing
         #  the bounds.  Adjust to fix this.
         return _generate_range_overflow_safe(

@@ -110,7 +110,6 @@ def test_default_na_values(all_parsers):
         "-nan",
         "#N/A N/A",
         "",
-        "None",
     }
     assert _NA_VALUES == STR_NA_VALUES
 

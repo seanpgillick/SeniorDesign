@@ -13,6 +13,7 @@ import pandas._testing as tm
 
 class TestDataFrameConcat:
     def test_concat_multiple_frames_dtypes(self):
+
         # GH#2759
         df1 = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
         df2 = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
@@ -195,16 +196,15 @@ class TestDataFrameConcat:
     @pytest.mark.parametrize("ignore_index", [True, False])
     @pytest.mark.parametrize("order", ["C", "F"])
     @pytest.mark.parametrize("axis", [0, 1])
-    def test_concat_copies(self, axis, order, ignore_index, using_copy_on_write):
+    def test_concat_copies(self, axis, order, ignore_index):
         # based on asv ConcatDataFrames
         df = DataFrame(np.zeros((10000, 200), dtype=np.float32, order=order))
 
         res = concat([df] * 5, axis=axis, ignore_index=ignore_index, copy=True)
 
-        if not using_copy_on_write:
-            for arr in res._iter_column_arrays():
-                for arr2 in df._iter_column_arrays():
-                    assert not np.shares_memory(arr, arr2)
+        for arr in res._iter_column_arrays():
+            for arr2 in df._iter_column_arrays():
+                assert not np.shares_memory(arr, arr2)
 
     def test_outer_sort_columns(self):
         # GH#47127

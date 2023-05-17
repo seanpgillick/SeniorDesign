@@ -29,8 +29,7 @@ def date_range_frame():
 
 class TestFrameAsof:
     def test_basic(self, date_range_frame):
-        # Explicitly cast to float to avoid implicit cast when setting np.nan
-        df = date_range_frame.astype({"A": "float"})
+        df = date_range_frame
         N = 50
         df.loc[df.index[15:30], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
@@ -51,8 +50,7 @@ class TestFrameAsof:
 
     def test_subset(self, date_range_frame):
         N = 10
-        # explicitly cast to float to avoid implicit upcast when setting to np.nan
-        df = date_range_frame.iloc[:N].copy().astype({"A": "float"})
+        df = date_range_frame.iloc[:N].copy()
         df.loc[df.index[4:8], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
@@ -165,7 +163,7 @@ class TestFrameAsof:
     def test_is_copy(self, date_range_frame):
         # GH-27357, GH-30784: ensure the result of asof is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = date_range_frame.astype({"A": "float"})
+        df = date_range_frame
         N = 50
         df.loc[df.index[15:30], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")

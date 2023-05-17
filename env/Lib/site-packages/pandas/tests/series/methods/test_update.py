@@ -62,6 +62,7 @@ class TestUpdate:
         ],
     )
     def test_update_dtypes(self, other, dtype, expected):
+
         ser = Series([10, 11, 12], dtype=dtype)
         other = Series(other, index=[1, 3])
         ser.update(other)
@@ -95,7 +96,7 @@ class TestUpdate:
                 [None, "b"],
                 ["a", "b"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow"),
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
             ),
             ([1, None], [None, 2], [1, 2], "Int64"),
             ([True, None], [None, False], [True, False], "boolean"),

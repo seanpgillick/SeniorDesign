@@ -7,10 +7,8 @@ from pandas.core.interchange.column import PandasColumn
 from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-    )
+    import pandas as pd
+    from pandas import Index
 
 
 class PandasDataFrameXchg(DataFrameXchg):
@@ -23,7 +21,7 @@ class PandasDataFrameXchg(DataFrameXchg):
     """
 
     def __init__(
-        self, df: DataFrame, nan_as_null: bool = False, allow_copy: bool = True
+        self, df: pd.DataFrame, nan_as_null: bool = False, allow_copy: bool = True
     ) -> None:
         """
         Constructor - an instance of this (private) class is returned from
