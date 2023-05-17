@@ -1,5 +1,4 @@
 from tokenize import String
-# from turtle import circle, color
 from flask import Flask, jsonify, render_template, request
 
 import json
@@ -361,8 +360,8 @@ def sunGraph(city=None, year=None):
         dfSunburst = pd.DataFrame(
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
-        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount',color= "SpecificCrime",height=graph_height)
-        # fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
         
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
