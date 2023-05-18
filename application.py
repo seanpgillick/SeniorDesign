@@ -81,8 +81,10 @@ def crimeAnalysis(city=None, tab=None):
     if(tab=="data"):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
-        df=getCrimeList(city)
-        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], tab="data", city=city, citiesSelect=citiesSQL,crimeData=np.array(df))
+        cityListInfo=crimeList(city)
+        # df=getCrimeList(city)
+        crimeRates=calcCrimeRates(city)
+        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], graph4JSON=crimeRates[1], crimeRates=crimeRates[0], crimeData=np.array(cityListInfo['data']), pageNumber=cityListInfo['pageNumber'], pages=cityListInfo['pages'], tab="data", city=city, citiesSelect=citiesSQL)
     elif(tab=="heatmap"):
         cityInfo=getHeatMapDrops(city)
         return render_template('crimeAnalysis.html', years=cityInfo['years'], tab="heatmap", city=city, citiesSelect=citiesSQL)
@@ -162,9 +164,92 @@ def getDataDrops(city=None, year=None):
             yearsSelect.append(i[0])
         return {"years":yearsSelect, "cities":citiesSelect}
     
+# @application.route('/crimeList', methods=['GET', 'POST'])
+# @application.route('/crimeListcity=<city>year=<year>', methods=['GET', 'POST'])
+# def getCrimeList(city=None, year=None):
+#     if request.method == 'POST':
+#         print('Incoming..')
+#         print(request.get_json()) 
+#         return ("Nothing") # parse as JSON
+    
+#     else:
+#         cursor = mysql.get_db().cursor()
+#         cityString=getSQLString([city])
+#         cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 10")
+#         crimeSQL=cursor.fetchall()
+#         df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
+#         plotDF=df[['id', 'offense', 'crime_type', 'date']].copy()
+
+
+#         return plotDF
+    
 @application.route('/crimeList', methods=['GET', 'POST'])
-@application.route('/crimeListcity=<city>year=<year>', methods=['GET', 'POST'])
-def getCrimeList(city=None, year=None):
+@application.route('/crimeList/city=<city>year=<year>', methods=['GET', 'POST'])
+@application.route('/crimeList/city=<city>pageNumber=<pageNumber>', methods=['GET', 'POST'])
+@application.route('/crimeList/city=<city>year=<year>pageNumber=<pageNumber>', methods=['GET', 'POST'])
+def crimeList(city=None, year=None, pageNumber=0):
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
+    else:
+        # pageNumber=0
+        print("HIIIII")
+        if(request.args.get('pageNumber')):
+            pageNumber = request.args.get('pageNumber')
+        cursor = mysql.get_db().cursor()
+        cityString=getSQLString([city])
+        offsetNum=int(pageNumber)*25
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 25 OFFSET "+str(offsetNum))
+        crimeSQL=cursor.fetchall()
+        cursor.execute("SELECT COUNT(*) as count_pet FROM SeniorDesign.CrimeData WHERE city IN "+cityString)
+        crimeCount=cursor.fetchall()
+        df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
+        df.insert(0, 'row_no', range(offsetNum+1, offsetNum+1 + len(df)))
+        plotDF=df[['row_no', 'offense', 'crime_type', 'date']].copy()
+
+        print(plotDF)
+        numOfPages=int(crimeCount[0][0]/25)
+
+        print("WHATS UPP")
+
+        return {"data": plotDF, "pageNumber":int(pageNumber), "pages":numOfPages}
+    
+@application.route('/crimeListSpec', methods=['GET', 'POST'])
+@application.route('/crimeListSpec/city=<city>pageNumber=<pageNumber>', methods=['GET', 'POST'])
+def crimeListSpec(city=None, pageNumber=0):
+    if request.method == 'POST':
+        print('Incoming..')
+        print(request.get_json()) 
+        return ("Nothing") # parse as JSON
+    
+    else:
+        # pageNumber=0
+        print("HIIIII")
+        if(request.args.get('pageNumber')):
+            pageNumber = request.args.get('pageNumber')
+        cursor = mysql.get_db().cursor()
+        cityString=getSQLString([city])
+        offsetNum=int(pageNumber)*25
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 25 OFFSET "+str(offsetNum))
+        crimeSQL=cursor.fetchall()
+        cursor.execute("SELECT COUNT(*) as count_pet FROM SeniorDesign.CrimeData WHERE city IN "+cityString)
+        crimeCount=cursor.fetchall()
+        df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
+        df.insert(0, 'row_no', range(offsetNum+1, offsetNum+1 + len(df)))
+        plotDF=df[['row_no', 'offense', 'crime_type', 'date']].copy()
+
+        print(plotDF)
+        numOfPages=int(crimeCount[0][0]/25)
+
+        print("WHATS UPP")
+
+        return {"data": plotDF.to_json(), "pageNumber":int(pageNumber), "pages":numOfPages}
+    
+@application.route('/calcCrimeRates/<city>', methods=['GET', 'POST'])
+def calcCrimeRates(city):
+    # print(request.args.getlist('city'))
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
@@ -172,14 +257,34 @@ def getCrimeList(city=None, year=None):
     
     else:
         cursor = mysql.get_db().cursor()
-        cityString=getSQLString([city])
-        cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 10")
-        crimeSQL=cursor.fetchall()
-        df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
-        plotDF=df[['id', 'offense', 'crime_type', 'date']].copy()
+        cityString="('"+city+"')"
+        cursor.execute("SELECT * FROM SeniorDesign.CityPopulations WHERE city IN "+cityString)
+        cityPopData = cursor.fetchall()
+        df_pop = pd.DataFrame(cityPopData, columns=["id", "city", "state", "population", "year"])
 
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString)
+        cityCrimeData = cursor.fetchall()
+        df_crime = pd.DataFrame(cityCrimeData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
+        crimeRates=[]
+        total=0
+        for index, row in df_pop.iterrows():
+            crimecount=(df_crime.loc[df_crime['year'] == row['year']])['total'].values[0]
+            crimeRates.append({"year":row['year'], "rate":round((crimecount/row['population'])*100, 2)})
+            total+=crimecount/row['population']
+        crimeRates.append({"year": 'total', "rate": round(total/len(crimeRates)*100, 1)})
 
-        return plotDF
+        df=pd.DataFrame(crimeRates[:3], columns=["year", "rate"])
+        plotDF=df.sort_values(by='year')
+        print(plotDF)
+
+        fig = px.line(plotDF, x='year', y='rate')
+        fig.update_traces(line_color=primary_color, line_width=2)
+        graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+        print(crimeRates)
+
+        return [crimeRates, graphJSON]
+        
     
 @application.route('/cityDrops', methods=['GET', 'POST'])
 @application.route('/cityDropscity=<city>year=<year>', methods=['GET', 'POST'])
@@ -363,7 +468,7 @@ def sunGraph(city=None, year=None):
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
 
-        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="GeneralCrime", color_discrete_map={"Other":'gold', 'Violent':'red', 'Property':'blue'})
         
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',

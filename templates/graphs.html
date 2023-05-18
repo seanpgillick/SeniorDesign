@@ -3,6 +3,36 @@
 <div class="mx-auto align-items-center no-pad" id="graph-results" style="width: 90%;">
     <div id="cityRenderStatus">
     </div>
+
+            <!-- FACTS -->
+    <div class="row container-center text-center g-4">
+        <div class="col-md-12 card">
+            <div class="card-header">             
+                <h2>{{city}} Crime Rate By Year</h2>
+            </div>
+            <div class="blog-post card-effect text-center container">
+                <div class="row">
+                    <div class="col-8">
+                        <div  id="chart4"></div>
+                    </div>
+                    <div class="col-4 d-flex align-items-center">
+                        {% for o in crimeRates %}
+                            {% if o.year=="total" %}
+                            <div class="col">
+                                <h2 value="{{ o }}">{{o.rate}}/100</h2>
+                                <h6> are victims of a crime in a given year</h6>
+                            </div>
+                            {% endif %}
+
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    <br/>
+
     <div class="row container-center text-center g-4">
         <div class="col-md-12 card">
             <div class="card-header text-center">
@@ -98,9 +128,22 @@
             <a href="#" class="link-primary hidden no-pad" id="yearly_count">Go back to Yearly count</a>
         </div>
     </div>
-
     <br />
     <hr />
+
+    <div class="row container-center text-center g-4">
+        <div class="col-md-12 card">            
+            <div class="card-header text-center">
+                <h2>CrimeList</h2>
+            </div>
+        
+            <div class="blog-post card-effect text-center">
+                {% include "crimelist.html" %}
+            </div>
+        </div>
+    </div>
+
+
 
 </div>
 <script type="text/javascript">
@@ -133,6 +176,9 @@
 
     var graphs3 = {{ graph3JSON | safe}};
     Plotly.newPlot("chart3", graphs3, layout, config);
+
+    var graphs4 = {{ graph4JSON | safe}};
+    Plotly.plot("chart4", graphs4,{});
 
 
     $(".yearsCheck").click(function () {
