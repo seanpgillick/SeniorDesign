@@ -13,6 +13,7 @@ from unicodedata import decimal
 import folium
 from folium.plugins import HeatMap
 from folium.features import DivIcon
+from folium.plugins import MarkerCluster
 import markupsafe
 import numpy as np
 import math
@@ -512,12 +513,12 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
         kmRadius = float(radius) 
 
     cursor = mysql.get_db().cursor()
-    cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    cursor.execute("SELECT crime_type, latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
     totalCrimeLatLng = cursor.fetchall()
 
-    cursor.execute("SELECT crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
-    crimeTypes = cursor.fetchall()
+    # cursor.execute("SELECT crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    # crimeTypes = cursor.fetchall()
 
     #heat map
     mapObj = folium.Map([lat, lng], zoom_start=14)
@@ -527,35 +528,39 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
     property = 0
     other = 0
 
+    markerCluster = MarkerCluster(bame="Crimes").add_to(mapObj)
+
+    for crime in totalCrimeLatLng:
+        if(crime[0] == "PROPERTY"):
+            folium.Marker(location=[crime[1], crime[2]], popup="Property", icon=folium.Icon(color="blue", icon="home")).add_to(markerCluster)
+        elif(crime[0] == "VIOLENT"):
+            folium.Marker(location=[crime[1], crime[2]], popup="Violent", icon=folium.Icon(color="red", icon="warning-sign")).add_to(markerCluster)
+        else:
+            folium.Marker(location=[crime[1], crime[2]], popup="Other", icon=folium.Icon(color="orange")).add_to(markerCluster)
+
+    # Old display map
+
     # data = []
     # for point in totalCrimeLatLng:
     #     if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
     #         data.append([point[0], point[1], 3])
 
-    for crime in crimeTypes:
-        if(crime[0] == "PROPERTY"):
-            property+=1
-        elif(crime[0] == "VIOLENT"):
-            violent+=1
-        else:
-            other+=1
+    # circleObj = folium.Circle(
+    #     radius = circleRad,
+    #     location = [lat, lng],
+    #     color='blue',
+    #     fill=False,)
 
-    circleObj = folium.Circle(
-        radius = circleRad,
-        location = [lat, lng],
-        color='blue',
-        fill=False,)
+    # latChange = (kmRadius/3)/110.574
+    # longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
 
-    latChange = (kmRadius/3)/110.574
-    longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
-
-    folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
-    folium.map.Marker(location=[float(lat)+latChange,float(lng)+longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(property))).add_to(mapObj)
-    folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
-    folium.map.Marker(location=[float(lat)+latChange,float(lng)-longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(violent))).add_to(mapObj)
-    folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
-    folium.map.Marker(location=[float(lat)-latChange,float(lng)+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(other))).add_to(mapObj)
-    circleObj.add_to(mapObj)
+    # folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
+    # folium.map.Marker(location=[float(lat)+latChange,float(lng)+longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(property))).add_to(mapObj)
+    # folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
+    # folium.map.Marker(location=[float(lat)+latChange,float(lng)-longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(violent))).add_to(mapObj)
+    # folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
+    # folium.map.Marker(location=[float(lat)-latChange,float(lng)+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(other))).add_to(mapObj)
+    # circleObj.add_to(mapObj)
 
     # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
