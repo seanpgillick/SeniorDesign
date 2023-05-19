@@ -627,9 +627,9 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
         else:
             fgY.add_child(colorpoint)
 
-    mapObj.add_child(fgR)
-    mapObj.add_child(fgB)
     mapObj.add_child(fgY)
+    mapObj.add_child(fgB)
+    mapObj.add_child(fgR)
 
     folium.map.LayerControl('topleft', collapsed= False).add_to(mapObj)
 
@@ -678,11 +678,11 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
     #     if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
     #         data.append([point[0], point[1], 3])
 
-    # circleObj = folium.Circle(
-    #     radius = circleRad,
-    #     location = [lat, lng],
-    #     color='blue',
-    #     fill=False,)
+    circleObj = folium.Circle(
+        radius = circleRad,
+        location = [lat, lng],
+        color='gray',
+        fill=True,)
 
     # latChange = (kmRadius/3)/110.574
     # longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
@@ -693,7 +693,7 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
     # folium.map.Marker(location=[float(lat)+latChange,float(lng)-longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(violent))).add_to(mapObj)
     # folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
     # folium.map.Marker(location=[float(lat)-latChange,float(lng)+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(other))).add_to(mapObj)
-    # circleObj.add_to(mapObj)
+    circleObj.add_to(mapObj)
 
     # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
