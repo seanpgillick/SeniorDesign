@@ -1,7 +1,6 @@
 geopy
 pathlib
 selenium 
-pandas
 sodapy
 tqdm
 bs4
@@ -110,7 +109,7 @@ natsort==8.2.0
 numpy
 outcome==1.2.0
 packaging==23.0
-pandas==1.5.1
+pandas
 # pandas-vet==0.2.3
 pathlib==1.0.1
 pathspec==0.9.0

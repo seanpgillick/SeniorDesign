@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Iterator
 
 import numpy as np
 import pytest
@@ -14,13 +15,20 @@ from pandas import (
     Interval,
     RangeIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
 
 class TestFromRecords:
-    def test_from_records_with_datetimes(self):
+    def test_from_records_dt64tz_frame(self):
+        # GH#51162 don't lose tz when calling from_records with DataFrame input
+        dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
+        df = DataFrame({i: dti for i in range(4)})
+        res = DataFrame.from_records(df)
+        tm.assert_frame_equal(res, df)
 
+    def test_from_records_with_datetimes(self):
         # this may fail on certain platforms because of a numpy issue
         # related GH#6140
         if not is_platform_little_endian():
@@ -43,6 +51,8 @@ class TestFromRecords:
         dtypes = [("EXPIRY", "<M8[m]")]
         recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
         result = DataFrame.from_records(recarray)
+        # we get the closest supported unit, "s"
+        expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_sequencelike(self):
@@ -126,7 +136,6 @@ class TestFromRecords:
         assert len(result.columns) == 0
 
     def test_from_records_dictlike(self):
-
         # test the dict methods
         df = DataFrame(
             {
@@ -148,7 +157,7 @@ class TestFromRecords:
         for b in blocks.values():
             columns.extend(b.columns)
 
-        asdict = {x: y for x, y in df.items()}
+        asdict = dict(df.items())
         asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)
@@ -184,12 +193,12 @@ class TestFromRecords:
         # should fail
         msg = "|".join(
             [
-                r"Length of values \(10\) does not match length of index \(1\)",
+                r"'None of \[2\] are in the columns'",
             ]
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(KeyError, match=msg):
             DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=r"^2$"):
+        with pytest.raises(KeyError, match=msg):
             DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
@@ -200,7 +209,7 @@ class TestFromRecords:
             def __getitem__(self, i):
                 return self.args[i]
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 return iter(self.args)
 
         recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
@@ -356,7 +365,6 @@ class TestFromRecords:
         assert columns == original_columns
 
     def test_from_records_decimal(self):
-
         tuples = [(Decimal("1.5"),), (Decimal("2.5"),), (None,)]
 
         df = DataFrame.from_records(tuples, columns=["a"])

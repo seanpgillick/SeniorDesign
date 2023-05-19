@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_extension_array_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -115,13 +113,8 @@ def test_less_precise(data1, data2, dtype, decimals):
     s1 = Series([data1], dtype=dtype)
     s2 = Series([data2], dtype=dtype)
 
-    if (decimals == 5 or decimals == 10) or (
-        decimals >= 3 and abs(data1 - data2) >= 0.0005
-    ):
-        if is_extension_array_dtype(dtype):
-            msg = "ExtensionArray are different"
-        else:
-            msg = "Series values are different"
+    if decimals in (5, 10) or (decimals >= 3 and abs(data1 - data2) >= 0.0005):
+        msg = "Series values are different"
         with pytest.raises(AssertionError, match=msg):
             tm.assert_series_equal(s1, s2, rtol=rtol)
     else:
@@ -239,9 +232,9 @@ Categories \\(3, object\\): \\['a', 'b', 'c'\\]"""
 
 
 def test_series_equal_datetime_values_mismatch(rtol):
-    msg = """numpy array are different
+    msg = """Series are different
 
-numpy array values are different \\(100.0 %\\)
+Series values are different \\(100.0 %\\)
 \\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\[1514764800000000000, 1514851200000000000, 1514937600000000000\\]
 \\[right\\]: \\[1549065600000000000, 1549152000000000000, 1549238400000000000\\]"""
@@ -411,3 +404,21 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, x, check_exact=True)
     tm.assert_series_equal(x, y)
     tm.assert_series_equal(x, y, check_exact=True)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])
+def test_check_dtype_false_different_reso(dtype):
+    # GH 52449
+    ser_s = Series([1000213, 2131232, 21312331]).astype(f"{dtype}[s]")
+    ser_ms = ser_s.astype(f"{dtype}[ms]")
+    with pytest.raises(AssertionError, match="Attributes of Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms)
+    tm.assert_series_equal(ser_ms, ser_s, check_dtype=False)
+
+    ser_ms -= Series([1, 1, 1]).astype(f"{dtype}[ms]")
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms)
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms, check_dtype=False)
