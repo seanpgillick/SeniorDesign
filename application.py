@@ -465,8 +465,25 @@ def sunGraph(city=None, year=None):
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
 
-        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="GeneralCrime", color_discrete_map={"Other":'gold', 'Violent':'red', 'Property':'blue'})
+        # fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="GeneralCrime", color_discrete_map={"Other":'gold', 'Violent':'red', 'Property':'blue'})
+                #Shades of blue
+            #Aqua - #00FFFF
+            #Baby Blue - #89CFF0
+            #Azure - #F0FFFF
+            #Electric Blue - #7DF9FF
+            #Royal Blue - #4169E1
+        #Shades of Red
+            #Blood Red - #880808
+            #Brick red - #AA4A44
+            #Bright Red - #EE4B2B
+            #Burnt Orange - #CC5500
         
+        # fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="SpecificCrime", color_discrete_map={"":"gold", "Theft":"#00FFFF", "Burglary":"#89CFF0", "Arson":"#F0FFFF", "Vehicle Theft":"#7DF9FF", "Homicide": "#880808", "Aggravated Assault": "#AA4A44", "Rape": "#EE4B2B", "Robbery": "#CC5500"})
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+        color_mapping = {"Other":"gold", "Violent": "Red", "Property": "Blue", "":"gold", "Theft":"#1111FF", "Burglary":"#1F1FFF", "Arson":"#2B2BFF", "Vehicle Theft":"#3939FF", "Homicide": "#FF1111", "Aggravated Assault": "#FF2828", "Rape": "#FF3C3C", "Robbery": "#FF4B4B"}
+
+        fig.update_traces(marker_colors=[color_mapping[cat] for cat in fig.data[-1].labels])
+
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=20, r=20, t=25, b=20),

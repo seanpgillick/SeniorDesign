@@ -7,8 +7,6 @@
     <!-- <div class="text-center">
         <i id="loadingSymbol"></i>
     </div> -->
-    {% include 'paginationTab.html' %}
-    <div id="tablePage" class="text-center">Viewing page <span id="currentPageNumber">{{pageNumber+1}}</span> out of <span id="totalPages">{{pages+1}}</span></div>
     <div class="d-flex justify-content-center">
         <table id="example" class="table table-bordered table-striped" style="width:100%">
             <thead>
@@ -31,6 +29,8 @@
             </tbody>
         </table>
     </div>
+    <div id="tablePage" class="text-center">Viewing page <span id="currentPageNumber">{{pageNumber+1}}</span> out of <span id="totalPages">{{pages+1}}</span></div>
+
     {% include 'paginationTab.html' %}
 
 
@@ -40,36 +40,34 @@
     <script type="text/javascript">
         //$("#loadingSymbol").text('Loading Table... ');
         $(".pageNext").click(function (element) {
+            $('li.page-item').addClass('disabled')
             let increase = parseInt($("#currentPageNumber").text())
             let pages=parseInt($("#totalPages").text())-1
-            console.log(increase)
-            console.log(pages)
             if(increase<pages){
                 reloadList(increase)
             }
         })
         $(".pagePrev").click(function (element) {
+            $('li.page-item').addClass('disabled')
             let prevPage = parseInt($("#currentPageNumber").text())-2
-            console.log(prevPage)
             if(prevPage>=0){
-                console.log($(this).text())
                 reloadList(prevPage)
             }
         })
         $(".pageFirst").click(function (element) {
-            console.log($(this).text())
+            $('li.page-item').addClass('disabled')
             reloadList(0)
 
         })
         $(".pageLast").click(function (element) {
+            $('li.page-item').addClass('disabled')
             let lastPage = "{{pages}}"
-            console.log($(this).text())
             reloadList(lastPage)
 
         })
 
         $(".specPage").click(function (element) {
-            console.log($(this).text())
+            $('li.page-item').addClass('disabled')
             let pageNumber=$(this).text()-1
             reloadList(pageNumber)
 
@@ -134,9 +132,10 @@
             $("#paginationPrev").parent().next().next().next().children().first().text(startingPageNumber+2)
             $("#paginationPrev").parent().next().next().next().next().children().first().text(startingPageNumber+3)
             $("#paginationPrev").parent().next().next().next().next().next().children().first().text(startingPageNumber+4)
-            
+            $('li.page-item').removeClass('disabled')
             $("li:contains("+pageNumber+")").addClass("active")
             $("li:contains("+pageNumber+")").children().first().addClass("btn-primary")
+            //$('li.page-item').prop('disabled', false)
 
            
         }
