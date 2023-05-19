@@ -1,5 +1,5 @@
 {% block content %}
-<div class="mt-2" id="google_maps_div" data-city-lat="{{ cityLat }}" data-city-lng="{{ cityLng }}">
+<div class=" bg-light flex-container mx-auto align-items-center no-pad row card" style="width: 90%;" id="google_maps_div" data-city-lat="{{ cityLat }}" data-city-lng="{{ cityLng }}">
     {% set inputValue = "" %}
     {% set inputLatitude = "" %}
     {% set inputLongitude = "" %}
@@ -30,7 +30,7 @@
         <div class="text-center mb-2">
             <i class="text-muted">Enter an address and radius to check the safety score of a specific area of {{ city }}</i>
         </div>
-        <div class="row g-2 w-50 mx-auto">
+        <div class="row g-2 w-75 mx-auto">
 
             <div class="col-sm-5"> 
                 <input
@@ -38,30 +38,41 @@
                 list="addresses"
                 id="address-input"
                 type="text"
-                class="form-control"
-                value="{{ inputValue }}"/>
+                class="form-control text-center"
+                value="{{ inputValue }}"
+                style="background-color: #E9ECEF; "/>
             </div>
-
-            <div class="col-sm-3">
+            
+            <div class="col-sm-3 text-center">
+                
                 <input
                 placeholder="Radius"
                 id="radius-input"
-                type="number"
-                min="1"
-                class="form-control"
-                value="{{ inputRadius }}"/>
+                type="range"
+                min="0.1"
+                max="2.0"
+                class="slider align-bottom"
+                value="{{ inputRadius }}"
+                style="border:none; "
+                step="0.1"/>
+                
             </div>
-            <div class="col-sm-2">
-                <select class="form-select" id="radius_unit" style="background-color: #E9ECEF;">
-                    <option {{ milesSelected }} value="mi">mi</option>
-                    <option {{ kmSelected }} value="km">km</option>
+            <div class="col-sm-2 align-items-center">
+                <span id="radius-value" class=""></span>
+                <select class="form-select" id="radius_unit" style="background-color: #E9ECEF; display: inline; width: 80%;">
+                    <option {{ milesSelected }} value="mi">miles</option>
+                    <option {{ kmSelected }} value="km">kilometres</option>
                 </select>
             </div>
-            <div class="col-sm-2">                
-                <button type="button" id="calculate-score" class="btn btn-outline-primary d-flex align-items-end" 
+            
+            <div class="col-sm-1">                
+                <button type="button" id="calculate-score" class="btn btn-primary d-flex align-items-end no-pad" 
                     data-address="{{ inputValue }}" data-lat="{{ latitude }}" data-lng="{{ longitude }}">Calculate</button>
             </div>
-        </div>   
+        </div>  
+        <div class="text-center mb-2">
+            <i class="text-danger" id="radius_error"></i>
+        </div> 
         {% if(status and status == "failed") %}
             <div class="text-center">
                 <p id="error-score" class="text-danger">The selected address is not located within {{city}}</p>
@@ -95,11 +106,12 @@
                 <i class="text-muted">Note: This score was calculated using crime incident reports from 2019 through 2021</i>
                 </div>
             </div>
-            <div class="row g-1">
-                <div class="col-md-6" id="chart1"></div>
-                <div class="col-md-6" id="frameContainer"></div>
+            <div class="row g-1 card-effect" id="charts">
+                <div class="col-md-6 blog-post" id="chart1"></div>
+                <div class="col-md-6 blog-post" id="frameContainer"></div>
+                <div class="col-md-6 blog-post align-items-center text-center" ><p>Utilizing data from 2019 - 2021, the line graph allows you to pick up on crime trends in an area, which can help reveal if it is becoming safer or more dangerous in recent years. Additionally the maps provide both general crime counts and specific breakdowns of where crimes in an area were reported, and what type of crime took place.</p></div>
+                <div class="col-md-6 blog-post" id="frameContainer2"></div>
             </div>
-            
         </div>
     {% endif %}
 </div>
@@ -107,6 +119,7 @@
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCwhEnLg4K-Bhhuntc3zoMw7oVIhI0neqk&libraries=places&callback=initMap">
 </script>
 <script>
+    
     function initMap(){
         const cityLat = $("#google_maps_div").data("city-lat");
         const cityLng = $("#google_maps_div").data("city-lng");
@@ -140,9 +153,18 @@
     }
 
     $( document ).ready(function() {
+
+        var slider = document.getElementById("radius-input");
+        slider.value = 2;
+        var output = document.getElementById("radius-value");
+        output.innerHTML = slider.value;
+
+        slider.oninput = function() {
+            output.innerHTML = this.value+" ";
+        }
         if("{{ graph }}" != "None"){
             var newGraph = {{ graph | safe}};
-            Plotly.plot("chart1", newGraph,{});
+            Plotly.plot("chart1", newGraph, {});
         }
         
         if("{{address}}"){
@@ -157,12 +179,40 @@
                 console.log("Done");
             });
         }
+
+        if("{{address}}"){
+            $('<iframe>', {
+            src: "/mapGenSafetyLabelcity={{city}}lat={{latitude}}lng={{longitude}}radius={{radius}}unit={{unit}}",
+            id:  'myFrame',
+            frameborder: 0,
+            scrolling: 'no',
+            width:'100%',
+            height:'100%'
+            }).appendTo('#frameContainer').ready(function () {
+                console.log("Done");
+            });
+        }
+        
+        if("{{address}}"){
+            $('<iframe>', {
+            src: "/mapGenSafetyLabelcity={{city}}lat={{latitude}}lng={{longitude}}radius={{radius}}unit={{unit}}",
+            id:  'myFrame',
+            frameborder: 0,
+            scrolling: 'no',
+            width:'100%',
+            height:'100%'
+            }).appendTo('#frameContainer2').ready(function () {
+                console.log("Done");
+                $('#charts').css("height", "50rem");
+            });
+        }
         
         
        $("#calculate-score").on("click", function (){
             let selectedAddress = $(this).data("address");    
             let radius = $("#radius-input").val();
-
+            let unit = $("#radius_unit").find(":selected").val();
+            let radiusCheck = true;
             if(!selectedAddress){
                 $("#address-input").addClass("is-invalid");
             }
@@ -170,11 +220,20 @@
                 $("#radius-input").addClass("is-invalid");
             }
 
-            if(selectedAddress && radius){
+            if(unit=="mi" && radius > 2){
+                $("#radius-input").addClass("is-invalid");
+                $("#radius_error").html("Radius can not be greater than 2 miles");
+                radiusCheck = false;
+            } else if (unit =="km" && radius > 3){
+                $("#radius-input").addClass("is-invalid");
+                $("#radius_error").html("Radius can not be greater than 3 kilometers");
+                radiusCheck = false;
+            }
+
+            if(selectedAddress && radius && radiusCheck){
                 $("#calculating-score").text("Calculating safety score...");
                 let latitude = $(this).data("lat");
                 let longitude = $(this).data("lng");
-                let unit = $("#radius_unit").find(":selected").val();
 
                 window.location.href = "/analysis/{{ city }}/safety?address="+selectedAddress+"&latitude="+latitude+"&longitude="+longitude+"&radius="+radius+"&city={{ city }}&unit="+unit;
             }

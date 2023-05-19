@@ -1,47 +1,154 @@
 {% block content %}
-    <div class="site-header-logo">
+    <!-- <div class="site-header-logo">
         <h1 class="text-center">
             Crimelist
         </h1>
-    </div>
-    <div class="text-center">
+    </div> -->
+    <!-- <div class="text-center">
         <i id="loadingSymbol"></i>
-    </div>
-    <table id="example" class="d-none" style="width:80%">
-        <thead>
-            <tr>
-            <th scope="col">id</th>
-            <th scope="col">Date</th>
-            <th scope="col">Category</th>
-            <th scope="col">Specific Crime</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for o in crimeData %}
+    </div> -->
+    <div class="d-flex justify-content-center">
+        <table id="example" class="table table-bordered table-striped" style="width:100%">
+            <thead>
                 <tr>
-                <th scope="row">{{o[0]}}</th>
-                <td>{{o[3]}}</td>
-                <td>{{o[2]}}</td>
-                <td>{{o[1]}}</td>
+                <th scope="col">#</th>
+                <th scope="col">Date</th>
+                <th scope="col">Category</th>
+                <th scope="col">Specific Crime</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody id="dataBody">
+                {% for o in crimeData %}
+                    <tr>
+                    <th scope="row">{{o[0]}}</th>
+                    <td>{{o[3]}}</td>
+                    <td>{{o[2]}}</td>
+                    <td>{{o[1]}}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="tablePage" class="text-center">Viewing page <span id="currentPageNumber">{{pageNumber+1}}</span> out of <span id="totalPages">{{pages+1}}</span></div>
+
+    {% include 'paginationTab.html' %}
+
 
   
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script type="text/javascript">
-        $("#loadingSymbol").text('Loading Table... ');
+        //$("#loadingSymbol").text('Loading Table... ');
+        $(".pageNext").click(function (element) {
+            $('li.page-item').addClass('disabled')
+            let increase = parseInt($("#currentPageNumber").text())
+            let pages=parseInt($("#totalPages").text())-1
+            if(increase<pages){
+                reloadList(increase)
+            }
+        })
+        $(".pagePrev").click(function (element) {
+            $('li.page-item').addClass('disabled')
+            let prevPage = parseInt($("#currentPageNumber").text())-2
+            if(prevPage>=0){
+                reloadList(prevPage)
+            }
+        })
+        $(".pageFirst").click(function (element) {
+            $('li.page-item').addClass('disabled')
+            reloadList(0)
 
-        $(document).ready(function() {
-            $('#example').dataTable({
-                "fnInitComplete": function (oSettings, json)
-                    {
-                        $('#loadingSymbol').text('')
-                        $('#example').removeClass("d-none")
+        })
+        $(".pageLast").click(function (element) {
+            $('li.page-item').addClass('disabled')
+            let lastPage = "{{pages}}"
+            reloadList(lastPage)
+
+        })
+
+        $(".specPage").click(function (element) {
+            $('li.page-item').addClass('disabled')
+            let pageNumber=$(this).text()-1
+            reloadList(pageNumber)
+
+        })
+
+        function reloadList(pageNumber){
+            url="http://127.0.0.1:2000/crimeListSpec/city={{city}}pageNumber="+pageNumber
+            fetch(url)
+                .then((res) => {
+                    if (!res.ok) {
+                        throw new Error("HTTP error " + res.status)
                     }
-            });
-        });
+                    
+                    //console.log(res)
+                    //window.location.replace(res.url)
+                    //document.getElementById("chart2Load").innerHTML=``
+                    //Plotly.plot("chart1", JSON.parse(JSON.parse(data)[0]),{});
+                    console.log(res)
+                    return res.text()
+                })
+                .then((data)=> {
+                    $("#dataBody").html("")
+                    let newData=JSON.parse(JSON.parse(data).data)
+                    for(let x=0; x<25; x++){
+                        $("#currentPageNumber").text(JSON.parse(data).pageNumber+1)
+                        if(newData['row_no'][x]!=undefined){
+                            $("#dataBody").append("<tr><th scope='row'>"+newData['row_no'][x]+"</th><td>"+newData['date'][x]+"</td><td>"+newData['crime_type'][x]+"</td><td>"+newData['offense'][x]+"</td></tr>")
+                        }
+                        //document.getElementById("dataBody").html("<tr><th scope='row'>hi</th><td>hi</td><td>hi</td><td>hi</td></tr>")
+                    }
+                    reloadPagination(JSON.parse(data).pageNumber+1, JSON.parse(data).pages+1)
+
+                    //console.log(JSON.parse(data.data))
+                })
+                .catch((err) => {
+                    console.log(err);
+                    $("#dataBody").html("<div>Error loading table</div>")
+
+                });
+        }
+
+        function reloadPagination(pageNumber, pages){
+            let startingPageNumber=pageNumber
+            if(pageNumber==2){
+                startingPageNumber-=1
+            }
+            if(pageNumber>2){
+                startingPageNumber-=2
+            }
+            if(pageNumber==pages-1){
+                startingPageNumber-=1
+            }
+            if(pageNumber>=pages){
+                startingPageNumber-=2
+            }
+            $("li.active").children().first().removeClass("btn-primary")
+            $("li.active").removeClass("active")
+
+
+            $("#paginationPrev").parent().next().children().first().text(startingPageNumber)
+            $("#paginationPrev").parent().next().next().children().first().text(startingPageNumber+1)
+            $("#paginationPrev").parent().next().next().next().children().first().text(startingPageNumber+2)
+            $("#paginationPrev").parent().next().next().next().next().children().first().text(startingPageNumber+3)
+            $("#paginationPrev").parent().next().next().next().next().next().children().first().text(startingPageNumber+4)
+            $('li.page-item').removeClass('disabled')
+            $("li:contains("+pageNumber+")").addClass("active")
+            $("li:contains("+pageNumber+")").children().first().addClass("btn-primary")
+            //$('li.page-item').prop('disabled', false)
+
+           
+        }
+        
+
+        /*$('#example').dataTable({
+            "fnInitComplete": function (oSettings, json)
+                {
+                    $('#loadingSymbol').text('')
+                    $('#example').removeClass("d-none")
+                }
+        });*/
+        //$('#loadingSymbol').text('')
+        //$('#example').removeClass("d-none")
     </script>
 {% endblock %}

@@ -1,88 +1,94 @@
 {% include "layout.html" %}
 {% block content %}
-    <div class="w-75 mx-auto mt-2">
-    <div class="site-header-logo">
-        <div>
-            <h1 style="display:inline;">
-                {{city|safe}} Crime Analytics
-            </h1>
-            <a href="#" class="link-primary" id="change_city_link" style="display:inline;">change city</a>
-        </div>
-        <div id="city-select" class="w-50 d-none row g-1">
-            <div class="col-sm-8">
-                <select name="city" id="cities-select" class="form-select">
-                    {% set selected = "" %}
-                    {% for o in citiesSelect %}
+<div class="mx-auto analysis align-items-center no-pad">
+    <div class="row">
+        <div class="col-lg-7 mx-auto text-center">
+            <div class="site-header-logo text-center no-pad">
+                <div>
+                    <h1 style="display:inline;" class="text-white">
+                        {{city|safe}} Crime Analytics
+                    </h1>
+                    <a href="#" class="link-primary" id="change_city_link" style="display:inline;">change city</a>
+                </div>
+                <div id="city-select" class="w-75 d-none g-1">
+                    <select name="city" id="cities-select" class="form-select text-center"
+                        style="display:inline-flex; width: 50%;align-self: center;">
+                        {% set selected = "" %}
+                        {% for o in citiesSelect %}
                         {% if(o[0] == city) %}
-                            {% set selected = "selected" %}
+                        {% set selected = "selected" %}
                         {% endif %}
                         <option {{ selected }} value="{{ o[0] }}">{{ o[0] }}, {{ o[1] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-sm-4">
-                <button id="change_city_btn" class="btn btn-outline-primary">change</button>
+                        {% endfor %}
+                    </select>
+                    <button id="change_city_btn" class="btn btn-primary no-pad"
+                        style="display:inline-flex;">Change</button>
+                </div>
             </div>
         </div>
     </div>
+</div>
+<br />
 
-    <br/>
-
-
+<div class="mx-auto align-items-center no-pad analysis-nav" style="width: 60%;">
     <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button" aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data">Charts</a>
+            <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button"
+                aria-controls="data-tab-pane" aria-selected="false" href="/analysis/{{ city }}/data"><i
+                    class="bi bi-graph-up"></i> Charts</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button" aria-controls="heatmap-tab-pane" aria-selected="false" href="/analysis/{{ city }}/heatmap?city={{city}}&year=All&crime=All">Heatmap</a>
+            <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button"
+                aria-controls="heatmap-tab-pane" aria-selected="false"
+                href="/analysis/{{ city }}/heatmap?city={{city}}&year=All&crime=All"><i class="bi-thermometer-sun"></i>
+                Heatmap</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'crimelist' else '' }}" id="crimelist-tab" type="button" aria-controls="crimelist-tab-pane" aria-selected="false" href="/analysis/{{ city }}/crimelist">Crime List</a>
+            <a class="nav-link {{ 'active' if tab == 'safety' else '' }}" id="safety-tab" type="button"
+                aria-controls="safety-tab-pane" aria-selected="false" href="/analysis/{{ city }}/safety"><i
+                    class="bi-calculator"></i> Safety Score</a>
         </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link {{ 'active' if tab == 'safety' else '' }}" id="safety-tab" type="button" aria-controls="safety-tab-pane" aria-selected="false" href="/analysis/{{ city }}/safety">Safety Score</a>
-        </li>
 
-      </ul>
-      </div>
-        {% if tab == "data" %}
-            {% include "graphs.html" %}
-        {% elif tab == "heatmap" %}
-            {% include "heatmap.html" %}
-        {% elif tab == "crimelist" %}
-            {% include "crimelist.html" %}
-        {% elif tab == "safety" %}
-            {% include "safetyScore.html" %}
-        {% endif %}
+    </ul>
+</div>
+
+{% if tab == "data" %}
+{% include "graphs.html" %}
+{% elif tab == "heatmap" %}
+{% include "heatmap.html" %}
+{% elif tab == "safety" %}
+{% include "safetyScore.html" %}
+{% endif %}
 
 
-    <br/>
+<br />
 
 
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+    crossorigin="anonymous"></script>
 
-    <script>
-         $( document ).ready(function() {
-            $("#change_city_btn").on("click", function () {
-                let selectedCity = $("#city-select").find(":selected").val();
-                if("{{tab}}" == "heatmap"){
-                    window.location.href = "/analysis/"+selectedCity+"/{{tab}}?city="+selectedCity+"&year=All&crime=All";
-                }else{
-                    window.location.href = "/analysis/"+selectedCity+"/{{tab}}"
-                }
-            })
+<script>
+    $(document).ready(function () {
+        $("#change_city_btn").on("click", function () {
+            let selectedCity = $("#city-select").find(":selected").val();
+            if ("{{tab}}" == "heatmap") {
+                window.location.href = "/analysis/" + selectedCity + "/{{tab}}?city=" + selectedCity + "&year=All&crime=All";
+            } else {
+                window.location.href = "/analysis/" + selectedCity + "/{{tab}}"
+            }
+        })
 
-            $("#change_city_link").on("click", function(){
-                let city_dropdown = $("#city-select");
-                if(city_dropdown.hasClass("d-none")){
-                    city_dropdown.removeClass("d-none")
-                    $(this).text("hide dropdown")
-                } else {
-                    city_dropdown.addClass("d-none")
-                    $(this).text("change city")
-                }
-            });
-         });
-    </script>
+        $("#change_city_link").on("click", function () {
+            let city_dropdown = $("#city-select");
+            if (city_dropdown.hasClass("d-none")) {
+                city_dropdown.removeClass("d-none")
+                $(this).text("hide dropdown")
+            } else {
+                city_dropdown.addClass("d-none")
+                $(this).text("change city")
+            }
+        });
+    });
+</script>
 {% endblock %}
