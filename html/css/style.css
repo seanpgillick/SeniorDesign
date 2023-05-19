@@ -160,11 +160,14 @@ section {
     font-size: 24px;
     border-radius: 100px;
     flex: none;
-    margin-left: 7.5rem;
 }
 
 
 .service {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
     position: relative;
     z-index: 2;
     overflow: hidden;
