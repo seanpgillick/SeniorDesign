@@ -352,3 +352,12 @@ form .form-control {
     background: #04AA6D;
     cursor: pointer;
   }
+
+  .page-link {
+    color: var(--dark);
+  }
+
+  .bigNum {
+    color: var(--primary);
+
+  }
