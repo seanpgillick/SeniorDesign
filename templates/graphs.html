@@ -19,8 +19,12 @@
                         {% for o in crimeRates %}
                             {% if o.year=="total" %}
                             <div class="col">
-                                <h2 value="{{ o }}">{{o.rate}}/100</h2>
+                                <h2 value="{{ o }}"><span class="bigNum">{{o.rate}}</span>/100</h2>
                                 <h6> are victims of a crime in a given year</h6>
+                                <hr/>
+                                <div><span class="bigNum">{{violentPercent}}%</span> - From Violent Crimes</div>
+                                <div><span class="bigNum">{{propertyPercent}}%</span> - From Property Crimes</div>
+                                <div><span class="bigNum">{{otherPercent}}%</span> - From Other crimes</div>
                             </div>
                             {% endif %}
 
@@ -55,7 +59,6 @@
                 <h3>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h3>
             </div>
             <div class="blog-post card-effect">
-                <div id="chart1Load"></div>
                 <div id="chart1"></div>
                 <br />
                 <div id="year-select">
@@ -69,6 +72,7 @@
                         <label class="form-check-label" for="inlineCheckbox1">{{o}}</label>
                     </div>
                     {% endfor %}
+                    <div id="chart1Load"></div>
 
                     <!--<button class="btn btn-primary no-pad" type="button" id="updateYearsComp">
                         Set Years
@@ -91,8 +95,6 @@
             </div>
 
             <div class="blog-post card-effect">
-
-                <div id="chart2Load"></div>
                 <div id="chart2" ></div>
                 <br />
                 <div id="city-select">
@@ -106,6 +108,8 @@
                         Compare
                     </button>
                 </div>
+                <div id="chart2Load"></div>
+
 
 
 
@@ -123,9 +127,9 @@
                     the prevalence of different
                     types of crimes, as well as changes in the overall level of crime.</p>
 
+                <button class="btn btn-secondary hidden no-pad" type="button" id="yearly_count">Remove Comparison</button>
 
             </div>
-            <a href="#" class="link-primary hidden no-pad" id="yearly_count">Go back to Yearly count</a>
         </div>
     </div>
     <br />
@@ -182,7 +186,6 @@
 
 
     $(".yearsCheck").click(function () {
-        $('#chart1').empty();
         yearsSelected = $('.yearsCheck:checkbox:checked')
         
         let years = []
@@ -245,11 +248,11 @@
         } else {
             url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=" + cityComp
         }
-        $('#chart2').empty();
         $.get(url, null, (graph) => {
 
-            $('#chart2Load').empty();
             var graphs1 = JSON.parse(graph);
+            $('#chart2').empty();
+            $('#chart2Load').empty();
             Plotly.newPlot("chart2", graphs1, {});
 
             $('#yearlyTitle').hide();
@@ -266,7 +269,6 @@
 
         url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=Yearly"
 
-        $('#chart2').empty();
         $.get(url, null, (graph) => {
 
             $('#chart2Load').empty();

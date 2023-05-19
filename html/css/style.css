@@ -355,5 +355,9 @@ form .form-control {
 
   .page-link {
     color: var(--dark);
+  }
+
+  .bigNum {
+    color: var(--primary);
 
   }

@@ -83,7 +83,7 @@ def crimeAnalysis(city=None, tab=None):
         cityInfo=getDataDrops(city)
         cityListInfo=crimeList(city)
         crimeRates=calcCrimeRates(city)
-        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], graph4JSON=crimeRates[1], crimeRates=crimeRates[0], crimeData=np.array(cityListInfo['data']), pageNumber=cityListInfo['pageNumber'], pages=cityListInfo['pages'], tab="data", city=city, citiesSelect=citiesSQL)
+        return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], graph4JSON=crimeRates[1], crimeRates=crimeRates[0], violentPercent=crimeRates[2], propertyPercent=crimeRates[3], otherPercent=crimeRates[4], crimeData=np.array(cityListInfo['data']), pageNumber=cityListInfo['pageNumber'], pages=cityListInfo['pages'], tab="data", city=city, citiesSelect=citiesSQL)
     elif(tab=="heatmap"):
         cityInfo=getHeatMapDrops(city)
         return render_template('crimeAnalysis.html', years=cityInfo['years'], tab="heatmap", city=city, citiesSelect=citiesSQL)
@@ -264,10 +264,26 @@ def calcCrimeRates(city):
         df_crime = pd.DataFrame(cityCrimeData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
         crimeRates=[]
         total=0
+        violentPercent=0
+        propertyPercent=0
+        otherPercent=0
+        counter=0
         for index, row in df_pop.iterrows():
+            counter+=1
             crimecount=(df_crime.loc[df_crime['year'] == row['year']])['total'].values[0]
             crimeRates.append({"year":row['year'], "rate":round((crimecount/row['population'])*100, 2)})
+
             total+=crimecount/row['population']
+            
+
+        for index, row in df_crime.iterrows():
+            violentPercent+=row['violent']/row['total']
+            propertyPercent+=row['property']/row['total']
+            otherPercent+=row['other']/row['total']
+        violentPercent=round((violentPercent/counter)*100, 2)
+        propertyPercent=round((propertyPercent/counter)*100, 2)
+        otherPercent=round((otherPercent/counter)*100, 2)
+
         crimeRates.append({"year": 'total', "rate": round(total/len(crimeRates)*100, 1)})
 
         df=pd.DataFrame(crimeRates[:3], columns=["year", "rate"])
@@ -278,9 +294,7 @@ def calcCrimeRates(city):
         fig.update_traces(line_color=primary_color, line_width=2)
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-        print(crimeRates)
-
-        return [crimeRates, graphJSON]
+        return [crimeRates, graphJSON, violentPercent, propertyPercent, otherPercent]
         
     
 @application.route('/cityDrops', methods=['GET', 'POST'])
@@ -480,7 +494,7 @@ def sunGraph(city=None, year=None):
         
         # fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="SpecificCrime", color_discrete_map={"":"gold", "Theft":"#00FFFF", "Burglary":"#89CFF0", "Arson":"#F0FFFF", "Vehicle Theft":"#7DF9FF", "Homicide": "#880808", "Aggravated Assault": "#AA4A44", "Rape": "#EE4B2B", "Robbery": "#CC5500"})
         fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
-        color_mapping = {"Other":"gold", "Violent": "Red", "Property": "Blue", "":"gold", "Theft":"#1111FF", "Burglary":"#1F1FFF", "Arson":"#2B2BFF", "Vehicle Theft":"#3939FF", "Homicide": "#FF1111", "Aggravated Assault": "#FF2828", "Rape": "#FF3C3C", "Robbery": "#FF4B4B"}
+        color_mapping = {"Other":"gold", "Violent": "Red", "Property": "Blue", "":"gold", "Arson":"#3939FF", "Burglary":"#2B2BFF", "Vehicle Theft":"#1F1FFF", "Theft":"#1111FF",  "Homicide": "#FF4B4B", "Rape": "#FF3C3C", "Robbery": "#FF2828", "Aggravated Assault": "#FF1111", }
 
         fig.update_traces(marker_colors=[color_mapping[cat] for cat in fig.data[-1].labels])
 
@@ -525,7 +539,7 @@ def lineGraph(city=None, compCity=None):
         plotDF=plotDF.sort_values(by='year')
 
 
-        fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city',template=current_template,height=graph_height)
+        fig = px.line(plotDF, x='year', y='total', color='city',template=current_template,height=graph_height)
         fig.update_layout( xaxis={'showgrid' :True},
             yaxis={ 'showgrid' :True}, margin=dict(l=20, r=20, t=30, b=20))
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
