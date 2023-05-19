@@ -31,7 +31,7 @@ if __name__ == "__main__":
         table_n = "CrimeData"
 
         
-        citiesLeft = ["Baton Rouge"]
+        citiesLeft = ["Auburn", "Gainesville", "Oakland"]
         for file in files:
             data = pd.read_csv(file)
             city = file.name.split('_')[0]

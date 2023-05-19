@@ -14,7 +14,7 @@ stateabbreviations = {
     "Cincinnati": "OH",
     "Colorado Springs": "CO",
     "Fort Worth": "TX",
-    "Gainesville": "GA",
+    "Gainesville": "FL",
     "Houston": "TX",
     "Kansas City": "MO",
     "Los Angeles": "CA",

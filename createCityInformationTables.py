@@ -9,6 +9,7 @@ import requests
 cityAreas= {
     "Atlanta": 136.3,
     "Austin": 271.8,
+    "Auburn": 29.87,
     "Baltimore": 92.28,
     "Baton Rouge": 88.52,
     "Boston": 89.63,
@@ -17,6 +18,7 @@ cityAreas= {
     "Cincinnati": 79.64,
     "Colorado Springs": 195.8,
     "Fort Worth": 355.6,
+    "Gainesville": 35.37,
     "Houston": 665,
     "Kansas City": 319,
     "Los Angeles": 502,
@@ -26,18 +28,19 @@ cityAreas= {
     "Minneapolis": 57.51,
     "Nashville": 526,
     "New York": 302.6,
+    "Oakland": 78.03,
     "Omaha": 146.3,
     "Philadelphia": 141.7,
     "Portland": 145,
     "Raleigh": 149.6,
     "San Francisco": 46.87,
     "Seattle": 83.78,
-    "Washington D.C.": 68.35
 }
 
 stateabbreviations = {
     "Atlanta": "GA",
     "Austin": "TX",
+    "Auburn": "AL",
     "Baltimore": "MD",
     "Baton Rouge": "LA",
     "Boston": "MA",
@@ -46,6 +49,7 @@ stateabbreviations = {
     "Cincinnati": "OH",
     "Colorado Springs": "CO",
     "Fort Worth": "TX",
+    "Gainesville": "FL",
     "Houston": "TX",
     "Kansas City": "MO",
     "Los Angeles": "CA",
@@ -55,13 +59,13 @@ stateabbreviations = {
     "Minneapolis": "MN",
     "Nashville": "TN",
     "New York": "NY",
+    "Oakland": "CA",
     "Omaha": "NE",
     "Philadelphia": "PA",
     "Portland": "OR",
     "Raleigh": "NC",
     "San Francisco": "CA",
     "Seattle": "WA",
-    "Washington D.C.": "DC",
 }
 
 # Data gathered from Google
@@ -71,6 +75,11 @@ cityPopulations2019 = {
     },
     "Austin": {
         "2019": 978763
+    },
+    "Auburn": {
+        "2019": 81399,
+        "2020": 87143,
+        "2021": 85699
     },
     "Baltimore": {
         "2019": 594601
@@ -95,6 +104,9 @@ cityPopulations2019 = {
     },
     "Fort Worth": {
         "2019": 908491
+    },
+    "Gainesville":{
+        "2019": 134188
     },
     "Houston": {
         "2019": 2316000
@@ -123,6 +135,9 @@ cityPopulations2019 = {
     "New York": {
         "2019": 8343000
     },
+    "Oakland": {
+        "2019": 422738
+    },
     "Omaha": {
         "2019": 477766
     },
@@ -141,9 +156,6 @@ cityPopulations2019 = {
     "Seattle": {
         "2019": 753291
     },
-    "Washington D.C.": {
-        "2019": 708253
-    }
 }
 
 csvYearPopulations = ["2020", "2021"]
@@ -190,6 +202,8 @@ if __name__ == "__main__":
                     cityStateString = "Nashville-Davidson (TN)"
                 elif (city == "Washington D.C."):
                     cityStateString = "WASHINGTON (DC)"
+                elif (city == "Auburn"):
+                    continue
                 cityPopulationData = populationData[populationData.City == cityStateString]
                 cityYearPopulationData = cityPopulationData[cityPopulationData.Year == year]
                 population = cityYearPopulationData.iloc[0]["Value"]
@@ -208,6 +222,24 @@ if __name__ == "__main__":
                 cityPopulation = cityPopulation[list(
                 ("city", 'state', 'population', 'year'))]
                 copy_query(engine, cityPopulation, "CityPopulations", city)
+            
+            # Insert 2020 and 2021 from population dictionary for Auburn since it is not in the population csv
+            if(city == "Auburn"):
+                if(not checkCityPopulation(city, "2020", engine)):
+                    population2020 = cityPopulations2019[city]["2020"]
+                    tempCityPopulation = {"city": [city], 'state': [stateabbreviations[city]], 'population': [population2019], 'year': ["2020"]}
+                    cityPopulation = pd.DataFrame(data=tempCityPopulation)
+                    cityPopulation = cityPopulation[list(
+                    ("city", 'state', 'population', 'year'))]
+                    copy_query(engine, cityPopulation, "CityPopulations", city)
+
+                if(not checkCityPopulation(city, "2021", engine)):
+                    population2020 = cityPopulations2019[city]["2021"]
+                    tempCityPopulation = {"city": [city], 'state': [stateabbreviations[city]], 'population': [population2019], 'year': ["2021"]}
+                    cityPopulation = pd.DataFrame(data=tempCityPopulation)
+                    cityPopulation = cityPopulation[list(
+                    ("city", 'state', 'population', 'year'))]
+                    copy_query(engine, cityPopulation, "CityPopulations", city)
 
             # Check if city information already in db
             if(checkCityInfo(city)):
