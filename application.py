@@ -82,7 +82,6 @@ def crimeAnalysis(city=None, tab=None):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
         cityListInfo=crimeList(city)
-        # df=getCrimeList(city)
         crimeRates=calcCrimeRates(city)
         return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], graph4JSON=crimeRates[1], crimeRates=crimeRates[0], crimeData=np.array(cityListInfo['data']), pageNumber=cityListInfo['pageNumber'], pages=cityListInfo['pages'], tab="data", city=city, citiesSelect=citiesSQL)
     elif(tab=="heatmap"):
@@ -195,7 +194,6 @@ def crimeList(city=None, year=None, pageNumber=0):
     
     else:
         # pageNumber=0
-        print("HIIIII")
         if(request.args.get('pageNumber')):
             pageNumber = request.args.get('pageNumber')
         cursor = mysql.get_db().cursor()
@@ -208,11 +206,11 @@ def crimeList(city=None, year=None, pageNumber=0):
         df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
         df.insert(0, 'row_no', range(offsetNum+1, offsetNum+1 + len(df)))
         plotDF=df[['row_no', 'offense', 'crime_type', 'date']].copy()
+        plotDF['date']=plotDF['date'].astype(str)
 
-        print(plotDF)
         numOfPages=int(crimeCount[0][0]/25)
 
-        print("WHATS UPP")
+        print("Pages"+str(pageNumber))
 
         return {"data": plotDF, "pageNumber":int(pageNumber), "pages":numOfPages}
     
@@ -239,11 +237,10 @@ def crimeListSpec(city=None, pageNumber=0):
         df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
         df.insert(0, 'row_no', range(offsetNum+1, offsetNum+1 + len(df)))
         plotDF=df[['row_no', 'offense', 'crime_type', 'date']].copy()
+        plotDF['date']=plotDF['date'].astype(str)
 
-        print(plotDF)
         numOfPages=int(crimeCount[0][0]/25)
-
-        print("WHATS UPP")
+        print(plotDF.to_json())
 
         return {"data": plotDF.to_json(), "pageNumber":int(pageNumber), "pages":numOfPages}
     
