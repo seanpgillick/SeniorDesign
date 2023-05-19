@@ -18,6 +18,8 @@
 
     {% if(radius) %}
         {% set inputRadius = radius %}
+    {% else %}
+        {% set inputRadius = 2.0 %}
     {% endif %}
 
     {% if(unit =="mi") %}
@@ -155,7 +157,6 @@
     $( document ).ready(function() {
 
         var slider = document.getElementById("radius-input");
-        slider.value = 2;
         var output = document.getElementById("radius-value");
         output.innerHTML = slider.value;
 
@@ -175,9 +176,7 @@
             scrolling: 'no',
             width:'100%',
             height:'100%'
-            }).appendTo('#frameContainer').ready(function () {
-                console.log("Done");
-            });
+            }).appendTo('#frameContainer');
         }
 
         if("{{address}}"){
@@ -188,9 +187,7 @@
             scrolling: 'no',
             width:'100%',
             height:'100%'
-            }).appendTo('#frameContainer').ready(function () {
-                console.log("Done");
-            });
+            }).appendTo('#frameContainer');
         }
         
         if("{{address}}"){
@@ -202,7 +199,6 @@
             width:'100%',
             height:'100%'
             }).appendTo('#frameContainer2').ready(function () {
-                console.log("Done");
                 $('#charts').css("height", "50rem");
             });
         }
