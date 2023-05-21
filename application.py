@@ -1,3 +1,4 @@
+from tokenize import String
 from flask import Flask, jsonify, render_template, request
 
 import json
@@ -11,6 +12,8 @@ from flaskext.mysql import MySQL
 from unicodedata import decimal
 import folium
 from folium.plugins import HeatMap
+from folium.features import DivIcon
+from folium.plugins import MarkerCluster
 import markupsafe
 import numpy as np
 import math
@@ -223,9 +226,12 @@ def safetyScore(city):
     cityLat = cityLatLng[0][0]
     cityLng = cityLatLng[0][1]
     graphJSON = None
+    splitAddress = []
+    if(address is not None):
+        splitAddress = address.split(',')
 
     if(address and latitude and longitude and radius):
-        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1)):
+        if(not (abs(float(latitude)-cityLat)<1 and abs(float(longitude)-cityLng)<1) or not(splitAddress[1].strip() == city)):
             return {"safetyScore": overalSafetyScore, "address": address, "status": "failed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
             "cityLat": cityLat, "cityLng": cityLng, "scoresByYear": safetyScoresByYear, "graph": graphJSON}
@@ -298,7 +304,6 @@ def safetyScore(city):
             yaxis={ 'showgrid' :True},margin=dict(l=20, r=20, t=30, b=20))
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
     
     return {"safetyScore": overalSafetyScore, "address": address, "status":"passed",
             "latitude": latitude, "longitude": longitude, "state": cityState, "radius": radius, "unit": radiusUnit,
@@ -357,9 +362,9 @@ def sunGraph(city=None, year=None):
         dfSunburst = pd.DataFrame(
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
-        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount',color= "SpecificCrime",height=graph_height
-                          
-                  )
+
+        fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
+        
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=20, r=20, t=25, b=20),
@@ -456,19 +461,108 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
         kmRadius = float(radius) 
 
     cursor = mysql.get_db().cursor()
-    cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    cursor.execute("SELECT latitude, longitude, crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
     totalCrimeLatLng = cursor.fetchall()
 
+    colorDict = {
+        "VIOLENT": "Red",
+        "PROPERTY": "Blue",
+        "OTHER": "Yellow"
+    }
     #heat map
+    lgd_txt = '<span style="color: {col};">{txt}</span>'
+    fgR = folium.FeatureGroup(name= lgd_txt.format( txt= 'VIOLENT', col= 'red'))
+    fgB = folium.FeatureGroup(name= lgd_txt.format( txt= 'PROPERTY', col= 'blue'))
+    fgY = folium.FeatureGroup(name= lgd_txt.format( txt= 'OTHER', col= 'yellow'))
     mapObj = folium.Map([lat, lng], zoom_start=16)
-    data = []
     for point in totalCrimeLatLng:
         if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
-            data.append([point[0], point[1], 3])
-        
+            colorpoint = folium.Circle(
+                location=[point[0], point[1]],
+                popup=point[2],
+                radius = 10,
+                fill = True,
+                fill_opacity = 1, 
+                fill_color = colorDict.get(point[2]),
+                color = colorDict.get(point[2])
+            )
+        if (colorDict.get(point[2])=="Red"):
+            fgR.add_child(colorpoint)
+        elif (colorDict.get(point[2])=="Blue"):
+            fgB.add_child(colorpoint)
+        else:
+            fgY.add_child(colorpoint)
 
-    HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
+    mapObj.add_child(fgR)
+    mapObj.add_child(fgB)
+    mapObj.add_child(fgY)
+
+    folium.map.LayerControl('topleft', collapsed= False).add_to(mapObj)
+
+    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
+    
+    return mapObj._repr_html_()
+
+@application.route('/mapGenSafetyLabelcity=<city>lat=<lat>lng=<lng>radius=<radius>unit=<unit>', methods=['GET', 'POST'])
+def safetyScoreLabel(city, lat, lng, radius, unit):
+    # Get crimes withing selected area 
+    if(unit == "km"):
+        kmRadius = float(radius) * 0.621371
+    else:
+        kmRadius = float(radius) 
+
+    cursor = mysql.get_db().cursor()
+    cursor.execute("SELECT crime_type, latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+
+    totalCrimeLatLng = cursor.fetchall()
+
+    # cursor.execute("SELECT crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
+    # crimeTypes = cursor.fetchall()
+
+    #heat map
+    mapObj = folium.Map([lat, lng], zoom_start=14)
+    circleRad = kmRadius * 1010
+
+    violent = 0
+    property = 0
+    other = 0
+
+    markerCluster = MarkerCluster(bame="Crimes").add_to(mapObj)
+
+    for crime in totalCrimeLatLng:
+        if(crime[0] == "PROPERTY"):
+            folium.Marker(location=[crime[1], crime[2]], popup="Property", icon=folium.Icon(color="blue", icon="home")).add_to(markerCluster)
+        elif(crime[0] == "VIOLENT"):
+            folium.Marker(location=[crime[1], crime[2]], popup="Violent", icon=folium.Icon(color="red", icon="warning-sign")).add_to(markerCluster)
+        else:
+            folium.Marker(location=[crime[1], crime[2]], popup="Other", icon=folium.Icon(color="orange")).add_to(markerCluster)
+
+    # Old display map
+
+    # data = []
+    # for point in totalCrimeLatLng:
+    #     if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
+    #         data.append([point[0], point[1], 3])
+
+    # circleObj = folium.Circle(
+    #     radius = circleRad,
+    #     location = [lat, lng],
+    #     color='blue',
+    #     fill=False,)
+
+    # latChange = (kmRadius/3)/110.574
+    # longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
+
+    # folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
+    # folium.map.Marker(location=[float(lat)+latChange,float(lng)+longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(property))).add_to(mapObj)
+    # folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
+    # folium.map.Marker(location=[float(lat)+latChange,float(lng)-longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(violent))).add_to(mapObj)
+    # folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
+    # folium.map.Marker(location=[float(lat)-latChange,float(lng)+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(other))).add_to(mapObj)
+    # circleObj.add_to(mapObj)
+
+    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
     return mapObj._repr_html_()
 
