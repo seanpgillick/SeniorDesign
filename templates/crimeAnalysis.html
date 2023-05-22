@@ -1,11 +1,12 @@
 {% include "layout.html" %}
 {% block content %}
-<div class="mx-auto analysis align-items-center no-pad">
-    <div class="row">
-        <div class="col-lg-7 mx-auto text-center">
+
+<!-- Page Title Section-->
+<div class="mb-3 mx-auto analysis align-items-center no-pad">
+        <div class="mx-auto text-center">
             <div class="site-header-logo text-center no-pad">
                 <div>
-                    <h1 style="display:inline;" class="text-white">
+                    <h1 class="d-inline text-white">
                         {{city|safe}} Crime Analytics
                     </h1>
                     <a href="#" class="link-primary" id="change_city_link" style="display:inline;">change city</a>
@@ -26,11 +27,12 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
-<br />
+</div><!-- end of Page Title Section-->
 
-<div class="mx-auto align-items-center no-pad analysis-nav" style="width: 60%;">
+<div class="container">
+
+    <!-- Page Tabs Section-->
+    <div class="mx-auto align-items-center no-pad analysis-nav">
     <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <a class="nav-link {{ 'active' if tab == 'data' else '' }}" id="data-tab" type="button"
@@ -40,7 +42,8 @@
         <li class="nav-item" role="presentation">
             <a class="nav-link {{ 'active' if tab == 'heatmap' else '' }}" id="heatmap-tab" type="button"
                 aria-controls="heatmap-tab-pane" aria-selected="false"
-                href="/analysis/{{ city }}/heatmap?city={{city}}&year=All&crime=All"><i class="bi-thermometer-sun"></i>
+                    href="/analysis/{{ city }}/heatmap?city={{city}}&year=All&crime=All"><i
+                        class="bi-thermometer-sun"></i>
                 Heatmap</a>
         </li>
         <li class="nav-item" role="presentation">
@@ -50,20 +53,21 @@
         </li>
 
     </ul>
-</div>
+    </div><!-- end of Page Tabs Section-->
 
 {% if tab == "data" %}
 {% include "graphs.html" %}
 {% include "crimelist.html" %}
+
 {% elif tab == "heatmap" %}
 {% include "heatmap.html" %}
+
 {% elif tab == "safety" %}
 {% include "safetyScore.html" %}
+
 {% endif %}
 
-
-<br />
-
+</div>
 
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
