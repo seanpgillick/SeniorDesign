@@ -300,10 +300,23 @@ def safetyScore(city):
                 safetyScoresByYear["scores"] += [tempSafetyScore]
 
         safetyScoreDf = pd.DataFrame.from_dict(safetyScoresByYear)
-        fig = px.line(safetyScoreDf, x='years', y='scores', title="Safety score over the years",template=current_template,height=graph_height)
-        fig.update_layout(yaxis_range=[0,5], xaxis={'showgrid' :True},
-            yaxis={ 'showgrid' :True},margin=dict(l=20, r=20, t=30, b=20))
-
+        fig = px.line(safetyScoreDf, x='years', y='scores',template=current_template,height=graph_height)
+        fig.update_layout(
+            title={
+                'text': "Safety Score Over the Years",
+                'y':0.97,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top',
+                'font': dict(
+                    color='#aaa'
+                )
+            },
+            yaxis_range=[0,5], 
+            xaxis={'showgrid' :True},
+            yaxis={ 'showgrid' :True},
+            margin=dict(l=20, r=20, t=30, b=20)
+        )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     
     return {"safetyScore": overalSafetyScore, "address": address, "status":"passed",
@@ -407,9 +420,23 @@ def lineGraph(city=None, compCity=None):
         plotDF=plotDF.sort_values(by='year')
 
 
-        fig = px.line(plotDF, x='year', y='total', title="Total Numbers of Crimes per Year", color='city',template=current_template,height=graph_height)
-        fig.update_layout( xaxis={'showgrid' :True},
-            yaxis={ 'showgrid' :True}, margin=dict(l=20, r=20, t=30, b=20))
+        fig = px.line(plotDF, x='year', y='total', template=current_template, height=graph_height, color='city')
+        fig.update_layout(
+            title={
+                'text': "Total Numbers of Crimes per Year",
+                'y':0.97,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top',
+                'font': dict(
+                    color='#aaa'
+                )
+            },
+            xaxis={'showgrid' :True},
+            yaxis={ 'showgrid' :True},
+            margin=dict(l=20, r=20, t=30, b=20)
+        )
+
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
