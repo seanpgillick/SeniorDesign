@@ -21,6 +21,7 @@ from flask_caching import Cache
 import random
 import plotly.io as pio
 import branca.colormap as branca_folium_cm
+from branca.element import Element
 
 
 application = Flask(__name__,static_folder='html') # This needs to be named `application`
@@ -622,6 +623,20 @@ def heatmapGen(city, year, crime):
                                                        caption = "Criminal Activity Legend",
                                                        vmin=0, vmax=100)
             mapObj.add_child(colormap)
+            css = """
+            <style>
+            div.leaflet-top.leaflet-right {
+                top: auto;
+                bottom: 10px;
+                right: 0px;
+            }
+            div.legend.leaflet-control {
+                margin: 0px;
+            }
+            </style>
+            """
+            css_element = Element(css)
+            mapObj.get_root().html.add_child(css_element)
         else:
             mapObj = folium.Map([39.9526, -75.1652], zoom_start=9)
         data = []
