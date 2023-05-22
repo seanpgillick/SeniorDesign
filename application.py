@@ -174,7 +174,7 @@ def getCrimeList(city=None, year=None):
     else:
         cursor = mysql.get_db().cursor()
         cityString=getSQLString([city])
-        cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 10")
+        cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 200")
         crimeSQL=cursor.fetchall()
         df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
         plotDF=df[['id', 'offense', 'crime_type', 'date']].copy()
