@@ -50,6 +50,11 @@ img {
     font-size: small;
     text-align: left;
 }
+
+.table-responsive{
+    font-size: small;
+}
+
 .dataTables_filter {
     margin-bottom: 5px;
 }
@@ -349,3 +354,14 @@ form .form-control {
     background: #04AA6D;
     cursor: pointer;
   }
+
+    /* Set padding for pagination buttons in DataTables */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0em 0.6em !important;
+    }
+
+    /* Set border color for table rows */
+    .table tbody > tr {
+        border-color: #eee;
+    }
+

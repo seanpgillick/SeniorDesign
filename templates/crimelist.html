@@ -1,14 +1,14 @@
 {% block content %}
-<div class="mx-auto align-items-center no-pad" id="crime-list" style="width: 90%;">
-    <div class="row container-center text-center g-4">
-        <div class="col-md-12 card">
-            <div class="card-header text-center">
-                <h3>List of Crimes</h3>
+<div class="row my-5">
+    <div id="crime-list" class="col-lg-12">
+        <div class="card-effect">
+            <div>
+                <h4>List of Crimes</h4>
             </div>
-            <div class="blog-post card-effect text-center">
+            <div>
                 <i id="loadingSymbol"></i>
-                <div class="mx-auto align-items-center no-pad table-responsive">
-                    <table id="example" class="d-none table table-striped table-bordered" style="width:90%;border-top: 1px solid rgba(0, 0, 0, 0.3);">
+                <div class="table-responsive">
+                    <table id="example" class="d-none table table-hover ">
                         <thead>
                             <tr>
                                 <th scope="col">id</th>
@@ -20,7 +20,7 @@
                         <tbody>
                             {% for o in crimeData %}
                             <tr>
-                                <td scope="row">{{o[0]}}</th>
+                                <td scope="row">{{o[0]}}</td>
                                 <td>{{o[3]}}</td>
                                 <td>{{o[2]}}</td>
                                 <td>{{o[1]}}</td>
@@ -34,18 +34,17 @@
     </div>
 </div>
 
-
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script type="text/javascript">
-    $("#loadingSymbol").text('Loading Table... ');
+    $("#loadingSymbol").text("Loading Table... ");
 
     $(document).ready(function () {
-        $('#example').dataTable({
-            "responsive": true,
-            "fnInitComplete": function (oSettings, json) {
-                $('#loadingSymbol').text('')
-                $('#example').removeClass("d-none")
-            }
+        $("#example").dataTable({
+            responsive: true,
+            fnInitComplete: function (oSettings, json) {
+                $("#loadingSymbol").text("");
+                $("#example").removeClass("d-none");
+            },
         });
     });
 </script>
