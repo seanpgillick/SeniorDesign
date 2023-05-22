@@ -1,32 +1,32 @@
 {% block content %}
 
-<div class="mx-auto align-items-center no-pad" id="graph-results" style="width: 90%;">
+<div class="mx-auto align-items-center no-pad" id="graph-results">
+
     <div id="cityRenderStatus">
     </div>
-    <div class="row container-center text-center g-4">
-        <div class="col-md-12 card">
-            <div class="card-header text-center">
-                <h3>{{city}} Compared to Top Cities in U.S.</h3>
+
+    <div class="row g-5">
+        <div class="col-lg-12">
+            <div class="card-effect">
+                <div>
+                    <h4>{{city}} Compared to Top Cities in U.S.</h4>
+                    <p>Effective bar graph shows US city crime rates, indicating severity with bar heights</p>
             </div>
-            <div class="blog-post card-effect text-center">
+                <div>
                 <div id="chart3Load"></div>
                 <div id="chart3"></div>
-                <p>A bar graph is a powerful tool for visualizing data, and when it comes to tracking crime rates in US
-                    cities. As your eyes scan from left to right, you might see bars that are shorter or taller
-                    depending on
-                    the severity of crime in each city </p>
             </div>
         </div>
     </div>
-
-    <div class="row container-center text-center g-4">
-        <div class="col-md-6 card">
-            <div class="card-header">
-                <h3>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h3>
+        <div class="col-lg-6">
+            <div class="card-effect">
+                <div>
+                    <h4>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h4>
+                    <p>Pie chart slices represent crime categories, size shows proportion. Choose year to view crime type data</p>
             </div>
-            <div class="blog-post card-effect">
+                <div>
                 <div id="chart1Load"></div>
-                <div id="chart1"></div>
+                    <div id="chart1" style="max-height: 300px;"></div>
                 <br />
                 <div id="year-select">
                     <label for="years-select">Select Years: </label>
@@ -44,26 +44,20 @@
                         Set Years
                     </button>-->
                 </div>
-                <p>Each slice of the pie represents a category of crime, and the size of the slice corresponds to the
-                    proportion of that category in relation to the total.
-                    This represents the types of crimes are most common in the city. Please select year if you want to
-                    see yearly type of crimes data.
-                </p>
             </div>
         </div>
-        <div class="col-md-6 card">
-            <div class="card-header">
-
-                <h3 id="compareTitle" class="hidden">Comparing {{city}} to {{compCity}}</h3>
-
-                <h3 id="yearlyTitle">{{city}} Yearly Crime Count</h3>
-
             </div>
-
-            <div class="blog-post card-effect">
-
+        <div class="col-lg-6">
+            <div class="card-effect">
+                <div>
+                    <h4 id="compareTitle" class="hidden">Comparing {{city}} to {{compCity}}</h4>
+                    <h4 id="yearlyTitle">{{city}} Yearly Crime Count</h4>
+                    <p id="compareText" class="hidden">Compare crime rates between cities for safety insights. Analyze data to evaluate crime prevention strategies</p>
+                    <p id="yearlyText">Yearly crime data reveals trends, identifies patterns and shifts over time</p>
+                </div>
+                <div>
                 <div id="chart2Load"></div>
-                <div id="chart2" ></div>
+                    <div id="chart2"></div>
                 <br />
                 <div id="city-select">
                     <label for="cities-comp-select">Select a City to Compare: </label>
@@ -76,41 +70,19 @@
                         Compare
                     </button>
                 </div>
-
-
-
-
-                <p id="compareText" class="hidden">Comparing crime rates between two cities can provide valuable
-                    information about the relative
-                    safety of each city.
-                    By analyzing crime data from both cities, we can identify patterns and trends that may indicate
-                    areas of concern or success
-                    in each city's approach to crime prevention.</p>
-
-                <p id="yearlyText">Yearly crimes can provide important information about trends in crime
-                    over time.
-                    By tracking the number of crimes committed each year, we can identify patterns and changes in
-                    the prevalence of different
-                    types of crimes, as well as changes in the overall level of crime.</p>
-
-
             </div>
             <a href="#" class="link-primary hidden no-pad" id="yearly_count">Go back to Yearly count</a>
+            </div>
         </div>
     </div>
 
-    <br />
-    <hr />
-
 </div>
+
 <script type="text/javascript">
 
-
-
     var layout = {
-        autosize: false,
-        width: 200,
-        height: 0,
+        autosize: true,
+        height: 300,
         margin: {
             l: 0,
             r: 0,
@@ -124,8 +96,7 @@
     var config = { responsive: true }
 
     $(document).ready(function () {
-        var graphs1 = {{ graph1JSON | safe
-    }};
+        var graphs1 = {{ graph1JSON | safe}};
     Plotly.newPlot("chart1", graphs1, layout, config);
 
     var graphs2 = {{ graph2JSON | safe}};
@@ -134,6 +105,20 @@
     var graphs3 = {{ graph3JSON | safe}};
     Plotly.newPlot("chart3", graphs3, layout, config);
 
+    // Handle window resize event to update the dimensions of Plotly charts
+    $(window).resize(function () {
+        // Define an array of chart div IDs
+        var divs = ["chart1", "chart2", "chart3"];
+
+        // Iterate through the array of chart divs
+        for (var i = 0; i < divs.length; i++) {
+            // Update the width and height of each chart using Plotly's relayout method
+            Plotly.relayout(divs[i], {
+                'width': $("#" + divs[i]).width(),
+                'height': $("#" + divs[i]).height()
+            });
+        }
+    });
 
     $(".yearsCheck").click(function () {
         $('#chart1').empty();
