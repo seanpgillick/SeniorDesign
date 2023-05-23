@@ -1,74 +1,88 @@
 {% block content %}
+<div class="mx-auto align-items-center no-pad">
+    <div id="selections" class="row">
+        <div class="col">
+            <div class="card-effect">
+                <div class="col-11 mx-auto align-items-center no-pad">
+                    <div>
+                        <p class="text-muted">Select a city, year, or crime type for a detailed crime map per city:</p>
+                    </div>
+                    <form class="mx-auto mb-2 row g-1 col-12 col-lg-6" action="/analysis/{{city}}/{{tab}}">
 
-    
-    <div id="selections" class="flex-container mx-auto align-items-center no-pad row card" style="width: 90%;">
-        <div class="bg-light">
-        <div class="text-center mb-2 col-md-12">
-            <i class="text-muted">Select a city, year or crime type to get a detailed map of specific crimes in each city</i>
-        </div>
-        <form class="row g-1 w-50 mx-auto" action="/analysis/{{city}}/{{tab}}">
-            <br>
-                <div id="year-select" class="col-sm-4">
-                    <label for="years-select">Select a Year</label>
-                    <select name="year" id="years-select" class="form-select" single>
-                        <option value="All" selected>All</option>
-                        {% for o in years %}
-                            <option value="{{ o }}">{{ o }}</option>
-                        {% endfor %}
-                    </select>
+                        <div id="year-select" class="col-4">
+                            <label for="years-select">Year</label>
+                            <select name="year" id="years-select" class="form-select" single>
+                                <option value="All" selected>All</option>
+                                {% for o in years %}
+                                <option value="{{ o }}">{{ o }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="crime-select" class="col-4">
+                            <label for="crimes-select">Crime Type</label>
+                            <select name="crime" id="crimes-select" class="form-select" single>
+                                <option value="All" selected>All</option>
+                                <option value="Violent">Violent</option>
+                                <option value="Property">Property</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-4 d-flex align-items-end">
+                            <button class="btn btn-secondary w-100 no-pad">Update</button>
+                        </div>
+                    </form>
+                    <div id="mapLoadingText" class="blinking fw-bold link-primary"></div>
+                    <div id="mapContainer" class="d-none overflow-hidden">
+                    </div>
+                    <p>Our heatmap visualizes crime intensity across a city, reflecting concentration levels with color shades</p>
                 </div>
-                <div id="crime-select" class="col-sm-4">
-                    <label for="crimes-select">Select a Crime Type</label>
-                    <select name="crime" id="crimes-select" class="form-select" single>
-                        <option value="All" selected>All</option>
-                        <option value="Violent">Violent</option>
-                        <option value="Property">Property</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-            <br>
-            <div class="col-sm-4 d-flex align-items-end">
-                <button class="btn btn-primary no-pad">Update Heatmap</button>
             </div>
-        </form>
         </div>
-        <div id="frameContainer" class="d-flex justify-content-center no-pad">
-        </div>
-        <p>A heatmap of crimes in a city is a graphical representation that displays the concentration of criminal incidents across 
-            different locations within a particular area. The map is created using geospatial data and is color-coded 
-            to represent the intensity of criminal activity in different parts of the city. 
-            In a crime heatmap, areas with a higher concentration of criminal incidents are usually represented by a darker shade of color, while areas with lower incidences are represented by lighter shades.
-        </p>
     </div>
-
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script type="text/javascript">
-    window.onload = function() {
+</div>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script type="text/javascript">
+    window.onload = function () {
         updateSrc();
         const urlParams = new URLSearchParams(window.location.search);
         document.getElementById("years-select").value = urlParams.get('year');
         document.getElementById("crimes-select").value = urlParams.get('crime');
-        console.log(urlParams.get('crime'));
+        //console.log(urlParams.get('crime'));
     }
-        function updateSrc() {
-            let myIframe = document.createElement('iframe');
-            myIframe.width=1350;
-            intval =  setInterval(function(){
-            
-                myIframe.height = myIframe.contentWindow.document.body.scrollHeight + "px";
-            
-            },800)
-            document.getElementById("frameContainer").innerHTML="";
-            let url_string = "/mapGen";
-            const urlParams = new URLSearchParams(window.location.search);
-            const city = "{{city}}";
-            const year = urlParams.get('year');
-            const crime = urlParams.get('crime');
+    function updateSrc() {
+        let myIframe = document.createElement('iframe');
+        myIframe.width = "100%";
+        myIframe.style.overflow = "hidden";
 
-            let adsURL = url_string+"city="+city+"year="+year+"crime="+crime;
-            console.log(adsURL);
-            myIframe.src = adsURL;
-            document.getElementById("frameContainer").appendChild(myIframe);
+        let mapLoadingText = document.getElementById("mapLoadingText");
+        let mapContainer = document.getElementById("mapContainer");
+        mapLoadingText.innerHTML = "The Heatmap is loading...";
+        mapContainer.innerHTML = "";
+        let url_string = "/mapGen";
+        const urlParams = new URLSearchParams(window.location.search);
+        const city = "{{city}}";
+        const year = urlParams.get('year');
+        const crime = urlParams.get('crime');
+
+        let adsURL = url_string + "city=" + city + "year=" + year + "crime=" + crime;
+        //console.log(adsURL);
+        myIframe.src = adsURL;
+        mapContainer.appendChild(myIframe);
+        myIframe.onload = function () {
+            mapLoadingText.innerHTML = "";
+            mapContainer.classList.remove("d-none");
+            adjustIframeHeight();
+        };
+
+        function adjustIframeHeight() {
+            const innerIframe = myIframe.contentDocument.querySelector("iframe");
+            if (innerIframe) {
+                const newHeight = innerIframe.contentDocument.body.scrollHeight;
+                myIframe.height = newHeight + 30;
+            }
         }
-    </script>
+
+        window.addEventListener('resize', adjustIframeHeight);
+    }
+</script>
 {% endblock %}
