@@ -1,0 +1,243 @@
+{% block content %}
+
+<div class="mx-auto align-items-center no-pad" id="graph-results">
+
+    <div id="cityRenderStatus">
+    </div>
+
+
+    <!-- FACTS -->
+    <div class="row g-5">
+        <div class="col-lg-12">
+            <div class="card-effect">
+                <div>             
+                    <h2>{{city}} Crime Rate By Year</h2>
+                </div>
+                <div class="blog-post text-center container">
+                    <div class="row">
+                        <div class="col-8">
+                            <div  id="chart4"></div>
+                        </div>
+                        <div class="col-4 d-flex align-items-center">
+                            {% for o in crimeRates %}
+                                {% if o.year=="total" %}
+                                <div class="col">
+                                    <h2 value="{{ o }}"><span class="bigNum">{{o.rate}}</span>/100</h2>
+                                    <h6> are victims of a crime in a given year</h6>
+                                    <hr/>
+                                    {% if violentPercent>0 %}<div><span class="bigNum">{{violentPercent}}%</span> - From Violent Crimes</div> {% endif %}
+                                    {% if propertyPercent>0 %}<div><span class="bigNum">{{propertyPercent}}%</span> - From Property Crimes</div> {% endif %}
+                                    {% if otherPercent>0 %}<div><span class="bigNum">{{otherPercent}}%</span> - From Other crimes</div> {% endif %}
+                                </div>
+                                {% endif %}
+
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    <br/>
+
+    <div class="row g-5">
+        <div class="col-lg-12">
+            <div class="card-effect">
+                <div>
+                    <h4>{{city}} Compared to Top Cities in U.S.</h4>
+                    <p>Effective bar graph shows US city crime rates, indicating severity with bar heights.</p>
+            </div>
+                <div>
+                <div id="chart3Load"></div>
+                <div id="chart3"></div>
+            </div>
+        </div>
+    </div>
+        <div class="col-lg-6">
+            <div class="card-effect">
+                <div>
+                    <h4>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h4>
+                    <p>Pie chart slices represent crime categories, size shows proportion. Choose a year to view specific crime type data.</p>
+                </div>
+                <div>
+                <div id="chart1Load"></div>
+                    <div id="chart1" style="max-height: 300px;"></div>
+                <br />
+                <div id="year-select">
+                    <label for="years-select">Select Years: </label>
+                    {% for o in years %}
+                    <div class="form-check form-check-inline">
+                        
+                        <input class="form-check-input yearsCheck" type="checkbox" value="{{o}}" checked>
+                        
+
+                        <label class="form-check-label" for="inlineCheckbox1">{{o}}</label>
+                    </div>
+                    {% endfor %}
+                    <div id="chart1Load"></div>
+                </div>
+            </div>
+        </div>
+            </div>
+        <div class="col-lg-6">
+            <div class="card-effect">
+                <div>
+                    <h4 id="compareTitle" class="hidden">Comparing {{city}} to {{compCity}}</h4>
+                    <h4 id="yearlyTitle">{{city}} Yearly Crime Count</h4>
+                    <p id="compareText" class="hidden">Compare crime rates between cities for safety insights. Analyze data to evaluate crime prevention strategies</p>
+                    <p id="yearlyText">Yearly crime data reveals trends, patterns, and shifts over time.</p>
+                </div>
+                <div>
+                <div id="chart2Load"></div>
+                    <div id="chart2"></div>
+                <br />
+                <div id="city-select">
+                    <label for="cities-comp-select">Select a City to Compare: </label>
+                    <select name="city" id="cities-comp-select" class="form-select w-25" style="display: inline;">
+                        {% for o in cities %}
+                        <option value="{{ o }}">{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-primary no-pad" type="button" id="updateCityComp">
+                        Compare
+                    </button>
+                </div>
+            </div>
+            <a href="#" class="link-primary hidden no-pad" id="yearly_count">Go back to Yearly count</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+
+    var layout = {
+        autosize: true,
+        height: 300,
+        margin: {
+            l: 0,
+            r: 0,
+            b: 10,
+            t: 10,
+            pad: 4
+        },
+        
+    };
+
+    var config = { responsive: true }
+
+    $(document).ready(function () {
+        var graphs1 = {{ graph1JSON | safe}};
+    Plotly.newPlot("chart1", graphs1, layout, config);
+
+    var graphs2 = {{ graph2JSON | safe}};
+    Plotly.newPlot("chart2", graphs2, layout, config);
+
+    var graphs3 = {{ graph3JSON | safe}};
+    Plotly.newPlot("chart3", graphs3, layout, config);
+
+    var graphs4 = {{ graph4JSON | safe}};
+    Plotly.newPlot("chart4", graphs4, layout, config);
+
+    // Handle window resize event to update the dimensions of Plotly charts
+    $(window).resize(function () {
+        // Define an array of chart div IDs
+        var divs = ["chart1", "chart2", "chart3", "chart4"];
+
+        // Iterate through the array of chart divs
+        for (var i = 0; i < divs.length; i++) {
+            // Update the width and height of each chart using Plotly's relayout method
+            Plotly.relayout(divs[i], {
+                'width': $("#" + divs[i]).width(),
+                'height': $("#" + divs[i]).height()
+            });
+        }
+    });
+
+    $(".yearsCheck").click(function () {
+        yearsSelected = $('.yearsCheck:checkbox:checked')
+        
+        let years = []
+        if (yearsSelected.length > 0) {
+            for (let x = 0; x < yearsSelected.length; x++) {
+                console.log(yearsSelected[x].value)
+                years.push(yearsSelected[x].value)
+            }
+        }
+        else {
+            document.getElementById("chart1Load").innerHTML = `<div>Please select a year</div>`
+            return;
+        }
+
+        document.getElementById("chart1Load").innerHTML = `<div>Loading Graphs...</div>`
+        let url = ""
+        if ("{{compCity}}") {
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears=" + years + "compCity={{compCity}}"
+        } else {
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears=" + years
+        }
+
+        $.get(url, null, (graph) => {
+
+            $('#chart1Load').empty();
+            var graphs1 = JSON.parse(graph);
+            Plotly.newPlot("chart1", graphs1, {});
+        });
+    });
+
+    $("#updateCityComp").click(function () {
+        const cityComp = $("#cities-comp-select").val()
+        document.getElementById("chart2Load").innerHTML = `<div>Loading Graphs...</div>`
+        let url = ""
+        console.log(cityComp)
+        if ("{{pieYears}}") {
+            console.log("{{pieYears}}")
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/pieYears={{pieYears}}compCity=" + cityComp
+        } else {
+            url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=" + cityComp
+        }
+        $.get(url, null, (graph) => {
+
+            var graphs1 = JSON.parse(graph);
+            $('#chart2').empty();
+            $('#chart2Load').empty();
+            Plotly.newPlot("chart2", graphs1, {});
+
+            $('#yearlyTitle').hide();
+            $('#yearlyText').hide();
+
+            $('#compareTitle').show().text("Comparing {{city}} to " + cityComp);
+            $('#compareText').show();
+            $('#yearly_count').show();
+        });
+
+    });
+
+    $("#yearly_count").click(function () {
+
+        url = "/analysis/{{city}}/{{tab}}/enhanceGraphs/compCity=Yearly"
+
+        $.get(url, null, (graph) => {
+
+            $('#chart2Load').empty();
+            var graphs1 = JSON.parse(graph);
+            Plotly.newPlot("chart2", graphs1, {});
+
+            $('#yearlyTitle').show();
+            $('#yearlyText').show();
+
+            $('#compareTitle').hide()
+            $('#compareText').hide();
+            $('#yearly_count').hide();
+        });
+
+    });
+            
+        });
+
+
+
+</script>
+{% endblock %}

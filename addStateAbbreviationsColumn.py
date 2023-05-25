@@ -4,14 +4,17 @@ import pandas as pd
 
 stateabbreviations = {
     "Atlanta": "GA",
+    "Auburn": "WA",
     "Austin": "TX",
     "Baltimore": "MD",
+    "Baton Rouge": "LA",
     "Boston": "MA",
     "Buffalo": "NY",
     "Chicago": "IL",
     "Cincinnati": "OH",
     "Colorado Springs": "CO",
     "Fort Worth": "TX",
+    "Gainesville": "FL",
     "Houston": "TX",
     "Kansas City": "MO",
     "Los Angeles": "CA",
@@ -19,9 +22,9 @@ stateabbreviations = {
     "Mesa": "AZ",
     "Milwaukee": "WI",
     "Minneapolis": "MN",
-    "Montgomery": "AL",
     "Nashville": "TN",
     "New York": "NY",
+    "Oakland": "CA",
     "Omaha": "NE",
     "Philadelphia": "PA",
     "Portland": "OR",
@@ -37,6 +40,12 @@ files = Path(directory).glob('*')
 # Loop through all CityData files to add state abbreviation column
 for file in files:
     data = pd.read_csv(file)
-    data["state"] = stateabbreviations[file.name.split("_")[0]]
-    data.to_csv("./CityData/"+file.name, index=False)
+    # if state column already exists, skip file else add state column
+    if "state" in data.columns:
+        print("State column already exists for " + file.name)
+        continue
+    else:
+        print("Adding state column for " + file.name)
+        data["state"] = stateabbreviations[file.name.split("_")[0]]
+        data.to_csv("./CityData/"+file.name, index=False)
     

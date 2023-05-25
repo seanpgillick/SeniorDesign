@@ -6,6 +6,11 @@ import pytest
 
 from pandas._libs.missing import is_matching_na
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer_dtype,
+)
+
 import pandas as pd
 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -189,7 +194,7 @@ class Dim2CompatTests(BaseExtensionTests):
         arr2d = data.reshape(1, -1)
 
         kwargs = {}
-        if method == "std":
+        if method in ["std", "var"]:
             # pass ddof=0 so we get all-zero std instead of all-NA std
             kwargs["ddof"] = 0
 
@@ -215,7 +220,7 @@ class Dim2CompatTests(BaseExtensionTests):
                 # i.e. dtype.kind == "u"
                 return INT_STR_TO_DTYPE[np.dtype(np.uint).name]
 
-        if method in ["mean", "median", "sum", "prod"]:
+        if method in ["median", "sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
             if method in ["sum", "prod"] and data.dtype.kind in "iub":
@@ -230,9 +235,13 @@ class Dim2CompatTests(BaseExtensionTests):
                 assert dtype == expected.dtype
 
             self.assert_extension_array_equal(result, expected)
-        elif method == "std":
-            self.assert_extension_array_equal(result, data - data)
-        # punt on method == "var"
+        elif method in ["mean", "std", "var"]:
+            if is_integer_dtype(data) or is_bool_dtype(data):
+                data = data.astype("Float64")
+            if method == "mean":
+                self.assert_extension_array_equal(result, data)
+            else:
+                self.assert_extension_array_equal(result, data - data)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis1(self, data, method):

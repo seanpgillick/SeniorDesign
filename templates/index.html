@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="site-header-logo">
+</div>
+
+<!-- City Select Section -->
+<div class="hero vh-100 d-flex align-items-center" id="home">
+    <div class="container" id="initialForm">
+        <div class="row">
+            <div class="col-lg-7 mx-auto text-center">
+                <h1 class="display-4 text-white">Select a city to view crime analytics</h1>
+                <div id="city-select" class="text-white my-3">
+                    <select name="city" id="cities-select" class="form-select text-center" >
+                        {% for city in cities %}
+                        <option value="{{ city[0] }}">{{ city[0] }}, {{city[1]}}</option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+                <button type="button" id="formButton" class="btn me-2 btn-primary mt-2">Generate Analytics</button>
+            </div>
+        </div>
+    </div>
+</div><!-- City Select ends -->
+
+<!-- About Section-->
+<section id="about">
+    <div id="about" class="container">
+        <div class="row mb-2">
+            <div class="col">
+                <h3 class="text-center">ABOUT THIS PROJECT</h3>  
+            </div>
+            </div>
+            <div class="row g-4">
+            <div class="col-md-4">
+                <div class="service card-effect">
+                    <i class="bi bi-building iconbox"></i>
+                    <p>Analyzing U.S. city crime data to highlight safer neighborhoods</p>
+                    </div>
+                </div>
+            <div class="col-md-4">
+                <div class="service card-effect">
+                    <i class="bi bi-graph-up iconbox"></i>
+                    <p>Using intuitive visualizations and a 'Safety Score' for clear insights</p>
+                    </div>
+                </div>
+            <div class="col-md-4">
+                <div class="service card-effect">
+                    <i class="bi bi-people iconbox"></i>
+                    <p>A project by Drexel students, supervised by faculty members</p>
+                    </div>
+                </div>
+            </div>
+        <div class="row mb-2 mt-4">
+            <div class="col">
+                <h3 class="text-center">BENEFITS</h3>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="service card-effect ">
+                    <h4 class="mt-4 mb-2">Access</h4>
+                    <p>Compare diverse city crime data at a glance</p>
+                    </div>
+                </div>
+            <div class="col-md-4">
+                <div class="service card-effect ">
+                        <h4 class="mt-4 mb-2">Safety</h4>
+                    <p>Employing safety scores for city and address-level safety evaluation</p>
+                    </div>
+                </div>
+            <div class="col-md-4">
+                <div class="service card-effect ">
+                        <h4 class="mt-4 mb-2">Awareness</h4>
+                    <p>Understand crime patterns and trends over time</p>
+                    </div>
+                </div>
+        </div>
+    </div>
+</section><!-- About Section ends -->
+
+<footer>
+    <div class="footer-top">
+        <div class="container">
+            <div class="row g-4 p-4">
+                <div class="col-md-3">
+                    <h5 class="text-white">Go to</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <h5 class="text-white">Contact</h5>
+                    <ul class="list-unstyled">
+                        <li>Address: 3675 Market St, Philadelphia, PA 19104</li>
+                        <li>Email: sg3527@drexel.edu</li>
+                        <li>Phone: (267) 222-2619</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#formButton").click(function () {
+            var value = $("#cities-select").val()
+            console.log(value)
+            window.location.href = "/analysis/" + value + "/data"
+        });
+    })
+</script>
+
+{% endblock %}

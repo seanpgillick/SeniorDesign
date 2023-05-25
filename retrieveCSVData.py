@@ -37,7 +37,7 @@ cityCSVInfo = {
     "Portland": {
         "url": "./UnparsedCityCSVs/Portland",
         "dateCol": "ReportDate",
-        "offCol": "OffenseCategory",
+        "offCol": "OffenseType",
         "latCol": "OpenDataLat",
         "lonCol": "OpenDataLon",
         "keys": ["2019", "2020", "2021"]
@@ -58,10 +58,10 @@ cityCSVInfo = {
         "lonCol": "Long",
         "keys": ["2019", "2020", "2021"]
     },
-    "Raleigh": {
+    "Raleigh": {    ##### this city has data of 2018 
         "url": "./UnparsedCityCSVs/Raleigh",
         "dateCol": "reported_date",
-        "offCol": "crime_category",
+        "offCol": "crime_description",
         "latCol": "latitude",
         "lonCol": "longitude",
         "keys": ["2019-2021"]
@@ -69,7 +69,7 @@ cityCSVInfo = {
     "Minneapolis": {
         "url": "./UnparsedCityCSVs/Minneapolis",
         "dateCol": "reportedDate",
-        "offCol": "offense",
+        "offCol": "description",
         "latCol": "centerLat",
         "lonCol": "centerLong",
         "keys": ["2019", "2020", "2021"]
@@ -104,11 +104,10 @@ cityCSVInfo = {
 def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
     csvName = city + "_data.csv"
     final_df = pd.DataFrame()
+    data2 = pd.DataFrame()
     # assign directory
     finalCol = [dateCol, offCol, latCol, lonCol]
-    #locator = Nominatim(user_agent="myGeocoder")
 
-    #final_df = pd.DataFrame()
     colnames = []
     offenseColnames = []
     # get csv data
@@ -229,9 +228,7 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                 data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains(
                     "2020") | data[dateCol].str.contains("2021")]
 
-            # for row in data:
-            #     print(row['OpenDataLat'])
-            data2 = data[finalCol]
+            data2 = pd.concat([data2, data[finalCol]])
     # Saving retrived data into a csv file in ./CityData
     final_df = pd.concat([final_df, data2])
     final_df.columns = ["date", "offense", "latitude", "longitude"]

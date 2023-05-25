@@ -34,14 +34,10 @@ class TestUnsupportedFeatures:
     def test_mangle_dupe_cols_false(self):
         # see gh-12935
         data = "a b c\n1 2 3"
-        msg = "is not supported"
 
         for engine in ("c", "python"):
-            with tm.assert_produces_warning(
-                FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
-            ):
-                with pytest.raises(ValueError, match=msg):
-                    read_csv(StringIO(data), engine=engine, mangle_dupe_cols=False)
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                read_csv(StringIO(data), engine=engine, mangle_dupe_cols=True)
 
     def test_c_engine(self):
         # see gh-6607
@@ -204,3 +200,13 @@ def test_invalid_file_inputs(request, all_parsers):
 
     with pytest.raises(ValueError, match="Invalid"):
         parser.read_csv([])
+
+
+def test_invalid_dtype_backend(all_parsers):
+    parser = all_parsers
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv("test", dtype_backend="numpy")
