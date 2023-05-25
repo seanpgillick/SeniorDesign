@@ -107,9 +107,7 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
     data2 = pd.DataFrame()
     # assign directory
     finalCol = [dateCol, offCol, latCol, lonCol]
-    #locator = Nominatim(user_agent="myGeocoder")
 
-    #final_df = pd.DataFrame()
     colnames = []
     offenseColnames = []
     # get csv data
@@ -230,8 +228,6 @@ def retrieveCityCSVData(city, url, dateCol, offCol, latCol, lonCol, keys):
                 data = data[data[dateCol].str.contains("2019") | data[dateCol].str.contains(
                     "2020") | data[dateCol].str.contains("2021")]
 
-            # for row in data:
-            #     print(row['OpenDataLat'])
             data2 = pd.concat([data2, data[finalCol]])
     # Saving retrived data into a csv file in ./CityData
     final_df = pd.concat([final_df, data2])

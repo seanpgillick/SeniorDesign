@@ -43,11 +43,6 @@ if __name__ == "__main__":
             data = data[list(
                 ('city', 'state', 'offense', 'crime_type', 'date', 'latitude', 'longitude'))]
 
-            # print("Deleting data for " + city)
-            # with engine.connect() as conn:
-            #     conn.execute("DELETE FROM CrimeData WHERE city='"+city+"'")
-            
-
             # Un comment this out to load new records into CrimeData
             lastDate = findLastDate(city, engine)
             newData = data

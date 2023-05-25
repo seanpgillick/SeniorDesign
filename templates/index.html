@@ -10,7 +10,6 @@
             <div class="col-lg-7 mx-auto text-center">
                 <h1 class="display-4 text-white">Select a city to view crime analytics</h1>
                 <div id="city-select" class="text-white my-3">
-                    <!--<i class="bi-geo-alt"></i>-->
                     <select name="city" id="cities-select" class="form-select text-center" >
                         {% for city in cities %}
                         <option value="{{ city[0] }}">{{ city[0] }}, {{city[1]}}</option>

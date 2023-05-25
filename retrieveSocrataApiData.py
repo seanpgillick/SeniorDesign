@@ -227,7 +227,6 @@ def retrieveCityData(city, url, dateCol, offCol, latCol, lonCol, keys):
             if (results_df.shape[0] < 2000):
                 looping = False
             else:
-                # print(results_df["date"].iloc[1999])
                 offset += 2000
                 
     if(city == "Chicago"):

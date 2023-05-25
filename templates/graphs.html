@@ -74,10 +74,6 @@
                     </div>
                     {% endfor %}
                     <div id="chart1Load"></div>
-
-                    <!--<button class="btn btn-primary no-pad" type="button" id="updateYearsComp">
-                        Set Years
-                    </button>-->
                 </div>
             </div>
         </div>
@@ -171,10 +167,6 @@
         else {
             document.getElementById("chart1Load").innerHTML = `<div>Please select a year</div>`
             return;
-            /*yearsSelected = $('.yearsCheck:checkbox')
-            for (let x = 0; x < yearsSelected.length; x++) {
-                years.push(yearsSelected[x].value)
-            }*/
         }
 
         document.getElementById("chart1Load").innerHTML = `<div>Loading Graphs...</div>`
@@ -191,23 +183,6 @@
             var graphs1 = JSON.parse(graph);
             Plotly.newPlot("chart1", graphs1, {});
         });
-
-        /*fetch(url)
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error("HTTP error " + res.status)
-                }
-                console.log(res)
-                //document.getElementById("chart1Load").innerHTML=``
-                window.location.replace(res.url)
-
-            })
-            .catch((err) => {
-                console.log(err);
-                document.getElementById("chart1").innerHTML = `<div>Error loading graphs</div>`
-
-            });*/
-
     });
 
     $("#updateCityComp").click(function () {
