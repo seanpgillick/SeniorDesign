@@ -21,6 +21,7 @@ from flask_caching import Cache
 import random
 import plotly.io as pio
 import branca.colormap as branca_folium_cm
+from branca.element import Element
 
 
 application = Flask(__name__,static_folder='html') # This needs to be named `application`
@@ -81,7 +82,7 @@ def crimeAnalysis(city=None, tab=None):
     if(tab=="data"):
         jsonData=graphResults(city)
         cityInfo=getDataDrops(city)
-        cityListInfo=crimeList(city)
+        cityListInfo=getCrimeList(city)
         crimeRates=calcCrimeRates(city)
         return render_template("crimeAnalysis.html", graph1JSON=jsonData[0], graph2JSON=jsonData[1], graph3JSON=jsonData[2], years=cityInfo['years'], cities=cityInfo['cities'], graph4JSON=crimeRates[1], crimeRates=crimeRates[0], violentPercent=crimeRates[2], propertyPercent=crimeRates[3], otherPercent=crimeRates[4], crimeData=np.array(cityListInfo['data']), pageNumber=cityListInfo['pageNumber'], pages=cityListInfo['pages'], tab="data", city=city, citiesSelect=citiesSQL)
     elif(tab=="heatmap"):
@@ -163,8 +164,8 @@ def getDataDrops(city=None, year=None):
             yearsSelect.append(i[0])
         return {"years":yearsSelect, "cities":citiesSelect}
     
-# @application.route('/crimeList', methods=['GET', 'POST'])
-# @application.route('/crimeListcity=<city>year=<year>', methods=['GET', 'POST'])
+@application.route('/crimeList', methods=['GET', 'POST'])
+@application.route('/crimeListcity=<city>year=<year>', methods=['GET', 'POST'])
 # def getCrimeList(city=None, year=None):
 #     if request.method == 'POST':
 #         print('Incoming..')
@@ -186,7 +187,7 @@ def getDataDrops(city=None, year=None):
 @application.route('/crimeList/city=<city>year=<year>', methods=['GET', 'POST'])
 @application.route('/crimeList/city=<city>pageNumber=<pageNumber>', methods=['GET', 'POST'])
 @application.route('/crimeList/city=<city>year=<year>pageNumber=<pageNumber>', methods=['GET', 'POST'])
-def crimeList(city=None, year=None, pageNumber=0):
+def getCrimeList(city=None, year=None, pageNumber=0):
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
@@ -415,10 +416,23 @@ def safetyScore(city):
                 safetyScoresByYear["scores"] += [tempSafetyScore]
 
         safetyScoreDf = pd.DataFrame.from_dict(safetyScoresByYear)
-        fig = px.line(safetyScoreDf, x='years', y='scores', title="Safety score over the years",template=current_template,height=graph_height)
-        fig.update_layout(yaxis_range=[0,5], xaxis={'showgrid' :True},
-            yaxis={ 'showgrid' :True},margin=dict(l=20, r=20, t=30, b=20))
-
+        fig = px.line(safetyScoreDf, x='years', y='scores',template=current_template,height=graph_height)
+        fig.update_layout(
+            title={
+                'text': "Safety Score Over the Years",
+                'y':0.97,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top',
+                'font': dict(
+                    color='#aaa'
+                )
+            },
+            yaxis_range=[0,5], 
+            xaxis={'showgrid' :True},
+            yaxis={ 'showgrid' :True},
+            margin=dict(l=20, r=20, t=30, b=20)
+        )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     
     return {"safetyScore": overalSafetyScore, "address": address, "status":"passed",
@@ -542,6 +556,23 @@ def lineGraph(city=None, compCity=None):
         fig = px.line(plotDF, x='year', y='total', color='city',template=current_template,height=graph_height)
         fig.update_layout( xaxis={'showgrid' :True},
             yaxis={ 'showgrid' :True}, margin=dict(l=20, r=20, t=30, b=20))
+        # fig = px.line(plotDF, x='year', y='total', template=current_template, height=graph_height, color='city')
+        # fig.update_layout(
+        #     title={
+        #         'text': "Total Numbers of Crimes per Year",
+        #         'y':0.97,
+        #         'x':0.5,
+        #         'xanchor': 'center',
+        #         'yanchor': 'top',
+        #         'font': dict(
+        #             color='#aaa'
+        #         )
+        #     },
+        #     xaxis={'showgrid' :True},
+        #     yaxis={ 'showgrid' :True},
+        #     margin=dict(l=20, r=20, t=30, b=20)
+        # )
+
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         # return fig1.to_html(full_html=False, include_plotlyjs=False)
@@ -755,6 +786,20 @@ def heatmapGen(city, year, crime):
                                                        caption = "Criminal Activity Legend",
                                                        vmin=0, vmax=100)
             mapObj.add_child(colormap)
+            css = """
+            <style>
+            div.leaflet-top.leaflet-right {
+                top: auto;
+                bottom: 10px;
+                right: 0px;
+            }
+            div.legend.leaflet-control {
+                margin: 0px;
+            }
+            </style>
+            """
+            css_element = Element(css)
+            mapObj.get_root().html.add_child(css_element)
         else:
             mapObj = folium.Map([39.9526, -75.1652], zoom_start=9)
         data = []
