@@ -47,7 +47,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         document.getElementById("years-select").value = urlParams.get('year');
         document.getElementById("crimes-select").value = urlParams.get('crime');
-        //console.log(urlParams.get('crime'));
     }
     function updateSrc() {
         let myIframe = document.createElement('iframe');
@@ -65,7 +64,6 @@
         const crime = urlParams.get('crime');
 
         let adsURL = url_string + "city=" + city + "year=" + year + "crime=" + crime;
-        //console.log(adsURL);
         myIframe.src = adsURL;
         mapContainer.appendChild(myIframe);
         myIframe.onload = function () {

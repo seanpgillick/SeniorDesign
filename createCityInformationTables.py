@@ -182,13 +182,6 @@ if __name__ == "__main__":
         
         print("Connected to MySql DB")
 
-        # with engine.connect() as conn:
-            # conn.execute("DROP TABLE IF EXISTS CityInformation")
-            # conn.execute('CREATE TABLE CityInformation(id INT NOT NULL AUTO_INCREMENT, city varchar(45), state varchar(45), area FLOAT, latitude FLOAT, longitude FLOAT, PRIMARY KEY ( id ))')
-
-            # conn.execute("DROP TABLE IF EXISTS CityPopulations")
-            # conn.execute('CREATE TABLE CityPopulations(id INT NOT NULL AUTO_INCREMENT, city varchar(45), state varchar(45), population INT, year varchar(45), PRIMARY KEY ( id ))')
-        
         populationData = pd.read_csv('./cityPopulations.csv')
 
         for city in cityAreas:

@@ -26,12 +26,6 @@ from branca.element import Element
 
 application = Flask(__name__,static_folder='html') # This needs to be named `application`
 
-
-#   host: "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com",
-#   port: "3306",
-#   user: "admin",
-#   password: "password!",
-
 # https://flask-mysqldb.readthedocs.io/en/latest/
 application.config['CACHE_TYPE'] = "SimpleCache"
 application.config['MYSQL_DATABASE_HOST'] = "seniordesign-db.cxwhjsfccgui.us-east-1.rds.amazonaws.com"
@@ -43,7 +37,6 @@ mysql = MySQL()
 cache = Cache()
 mysql.init_app(application)
 cache.init_app(application)
-# cursor = mysql.get_db().cursor()
 
 primary_color= '#f5b611'
 dark_color = '#21252f'
@@ -166,22 +159,6 @@ def getDataDrops(city=None, year=None):
     
 @application.route('/crimeList', methods=['GET', 'POST'])
 @application.route('/crimeListcity=<city>year=<year>', methods=['GET', 'POST'])
-# def getCrimeList(city=None, year=None):
-#     if request.method == 'POST':
-#         print('Incoming..')
-#         print(request.get_json()) 
-#         return ("Nothing") # parse as JSON
-    
-#     else:
-#         cursor = mysql.get_db().cursor()
-#         cityString=getSQLString([city])
-#         cursor.execute("SELECT * FROM SeniorDesign.CrimeData WHERE city IN "+cityString+" LIMIT 10")
-#         crimeSQL=cursor.fetchall()
-#         df = pd.DataFrame(crimeSQL, columns=["id", "city", "state", "offense", "crime_type", "date", "latitude", "longitude"])
-#         plotDF=df[['id', 'offense', 'crime_type', 'date']].copy()
-
-
-#         return plotDF
     
 @application.route('/crimeList', methods=['GET', 'POST'])
 @application.route('/crimeList/city=<city>year=<year>', methods=['GET', 'POST'])
@@ -194,7 +171,6 @@ def getCrimeList(city=None, year=None, pageNumber=0):
         return ("Nothing") # parse as JSON
     
     else:
-        # pageNumber=0
         if(request.args.get('pageNumber')):
             pageNumber = request.args.get('pageNumber')
         cursor = mysql.get_db().cursor()
@@ -224,7 +200,6 @@ def crimeListSpec(city=None, pageNumber=0):
         return ("Nothing") # parse as JSON
     
     else:
-        # pageNumber=0
         print("HIIIII")
         if(request.args.get('pageNumber')):
             pageNumber = request.args.get('pageNumber')
@@ -247,7 +222,6 @@ def crimeListSpec(city=None, pageNumber=0):
     
 @application.route('/calcCrimeRates/<city>', methods=['GET', 'POST'])
 def calcCrimeRates(city):
-    # print(request.args.getlist('city'))
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
@@ -385,15 +359,12 @@ def safetyScore(city):
             safetyScoresByYear["years"] += [currentYear]
             sqlQuery += ",COUNT(IF(Year(date)='{}',1,null)) as `{}`".format(currentYear, currentYear)
             
-            # cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND YEAR(date)='"+currentYear+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
-
         sqlQuery += "FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+latitude+" - latitude , 2) + POW("+longitude+" - longitude, 2)) * 100 < "+str(kmRadius)
         cursor.execute(sqlQuery)
 
         crimeCountInfo = cursor.fetchall()
         crimeCountInfo = crimeCountInfo[0]
         for i in range(len(crimeCountInfo)):
-            #calculate overall safety score
             # Calculate safety score
             if(i == 0):
                 N = areaOfCircle * float(totalCrimeCount) / cityArea
@@ -443,18 +414,12 @@ def safetyScore(city):
 @application.route('/graphResults/<city>', methods=['GET', 'POST'])
 @cache.memoize(timeout=86400)
 def graphResults(city=None):
-    # print(request.args.getlist('city'))
     if request.method == 'POST':
         print('Incoming..')
         print(request.get_json()) 
         return ("Nothing") # parse as JSON
     
     else:
-        # cursor = mysql.get_db().cursor()
-
-        # if(city!=None):
-            
-            # return fig1.to_html(full_html=False, include_plotlyjs=False)
         return [sunGraph(city)[0], lineGraph(city)[0], barGraph(city)[0]]
         
 
@@ -469,8 +434,6 @@ def sunGraph(city=None, year=None):
     else:
         cursor = mysql.get_db().cursor()
 
-
-
         cityString="('"+city+"')"
         if(year==None or year is None):
             cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString)
@@ -478,6 +441,7 @@ def sunGraph(city=None, year=None):
             year=year.split(",")
             yearString=getSQLString(year)
             cursor.execute("SELECT * FROM SeniorDesign.CrimeTypeTotals WHERE city IN "+cityString+" AND year IN "+yearString)
+
         cityTypeData = cursor.fetchall()
 
         df = pd.DataFrame(cityTypeData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
@@ -492,21 +456,7 @@ def sunGraph(city=None, year=None):
         dfSunburst = pd.DataFrame(
             dict(SpecificCrime=specificCrime, GeneralCrime=generalCrime, CrimeCount=crimeCount)
         )
-
-        # fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="GeneralCrime", color_discrete_map={"Other":'gold', 'Violent':'red', 'Property':'blue'})
-                #Shades of blue
-            #Aqua - #00FFFF
-            #Baby Blue - #89CFF0
-            #Azure - #F0FFFF
-            #Electric Blue - #7DF9FF
-            #Royal Blue - #4169E1
-        #Shades of Red
-            #Blood Red - #880808
-            #Brick red - #AA4A44
-            #Bright Red - #EE4B2B
-            #Burnt Orange - #CC5500
         
-        # fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount', color="SpecificCrime", color_discrete_map={"":"gold", "Theft":"#00FFFF", "Burglary":"#89CFF0", "Arson":"#F0FFFF", "Vehicle Theft":"#7DF9FF", "Homicide": "#880808", "Aggravated Assault": "#AA4A44", "Rape": "#EE4B2B", "Robbery": "#CC5500"})
         fig = px.sunburst(dfSunburst, path=['GeneralCrime', 'SpecificCrime'], values='CrimeCount')
         color_mapping = {"Other":"gold", "Violent": "Red", "Property": "Blue", "":"gold", "Arson":"#3939FF", "Burglary":"#2B2BFF", "Vehicle Theft":"#1F1FFF", "Theft":"#1111FF",  "Homicide": "#FF4B4B", "Rape": "#FF3C3C", "Robbery": "#FF2828", "Aggravated Assault": "#FF1111", }
 
@@ -544,11 +494,6 @@ def lineGraph(city=None, compCity=None):
 
         df = pd.DataFrame(cityData, columns=["id", "city", "homicide", "agg_assault", "rape", "robbery", "violent", "theft", "burglary", "arson", "property", "other", "total", "year", "vehicle_theft"])
 
-
-        # agg_functionsLine = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "vehicle_theft": 'sum'}
-
-        # dfLineChart = df.groupby(df['year']).aggregate(agg_functionsLine)
-        # print(dfLineChart)
         plotDF=df[['city', 'total', 'year']].copy()
         plotDF=plotDF.sort_values(by='year')
 
@@ -556,26 +501,9 @@ def lineGraph(city=None, compCity=None):
         fig = px.line(plotDF, x='year', y='total', color='city',template=current_template,height=graph_height)
         fig.update_layout( xaxis={'showgrid' :True},
             yaxis={ 'showgrid' :True}, margin=dict(l=20, r=20, t=30, b=20))
-        # fig = px.line(plotDF, x='year', y='total', template=current_template, height=graph_height, color='city')
-        # fig.update_layout(
-        #     title={
-        #         'text': "Total Numbers of Crimes per Year",
-        #         'y':0.97,
-        #         'x':0.5,
-        #         'xanchor': 'center',
-        #         'yanchor': 'top',
-        #         'font': dict(
-        #             color='#aaa'
-        #         )
-        #     },
-        #     xaxis={'showgrid' :True},
-        #     yaxis={ 'showgrid' :True},
-        #     margin=dict(l=20, r=20, t=30, b=20)
-        # )
 
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-        # return fig1.to_html(full_html=False, include_plotlyjs=False)
         return [graphJSON]
     
 
@@ -599,7 +527,6 @@ def barGraph(city=None):
         agg_functionsLine = {'homicide': 'sum', "agg_assault": 'sum', "rape": 'sum', "robbery": 'sum', "violent": 'sum', "theft": 'sum', "burglary": 'sum', "arson": 'sum', "property": 'sum', "other": 'sum', "total": 'sum', "vehicle_theft": 'sum'}
 
         dfLineChart = df.groupby(df['city']).aggregate(agg_functionsLine).reset_index()
-        # plotDF=dfLineChart[['city', 'total', 'year']].copy()
         color_discrete_map = {city: primary_color}
 
         fig = px.bar(dfLineChart, x="city", y="total", color="city", color_discrete_map=color_discrete_map, color_discrete_sequence=[dark_color],template=current_template,height=graph_height)
@@ -613,7 +540,6 @@ def barGraph(city=None):
            
         )
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-        # return fig1.to_html(full_html=False, include_plotlyjs=False)
         return [graphJSON]
 
 @application.route('/mapGenSafetyScorecity=<city>lat=<lat>lng=<lng>radius=<radius>unit=<unit>', methods=['GET', 'POST'])
@@ -663,8 +589,6 @@ def safetyScoreMapGen(city, lat, lng, radius, unit):
     mapObj.add_child(fgR)
 
     folium.map.LayerControl('topleft', collapsed= False).add_to(mapObj)
-
-    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
     return mapObj._repr_html_()
 
@@ -680,9 +604,6 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
     cursor.execute("SELECT crime_type, latitude, longitude FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
 
     totalCrimeLatLng = cursor.fetchall()
-
-    # cursor.execute("SELECT crime_type FROM SeniorDesign.CrimeData WHERE city='"+city+"' AND SQRT(POW("+lat+" - latitude , 2) + POW("+lng+" - longitude, 2)) * 100 < "+str(kmRadius)+"")
-    # crimeTypes = cursor.fetchall()
 
     #heat map
     mapObj = folium.Map([lat, lng], zoom_start=14)
@@ -702,31 +623,13 @@ def safetyScoreLabel(city, lat, lng, radius, unit):
         else:
             folium.Marker(location=[crime[1], crime[2]], popup="Other", icon=folium.Icon(color="orange")).add_to(markerCluster)
 
-    # Old display map
-
-    # data = []
-    # for point in totalCrimeLatLng:
-    #     if((point[0] is not None) and (point[1] is not None) and (isinstance(point[0], float)) and (isinstance(point[1], float)) and (not np.isnan(point[0])) and (not np.isnan(point[1]))):
-    #         data.append([point[0], point[1], 3])
-
     circleObj = folium.Circle(
         radius = circleRad,
         location = [lat, lng],
         color='gray',
         fill=True,)
 
-    # latChange = (kmRadius/3)/110.574
-    # longChange = (kmRadius/1.3)/111.320*math.cos(float(lat))
-
-    # folium.Circle(location=[float(lat)+latChange,float(lng)+longChange], radius = float(circleRad)/3, popup=("Property: " + str(property)), color='Blue', fill_opacity=.50, fill_color='Blue').add_to(mapObj)
-    # folium.map.Marker(location=[float(lat)+latChange,float(lng)+longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(property))).add_to(mapObj)
-    # folium.Circle(location=[float(lat)+latChange,float(lng)-longChange], radius = float(circleRad)/3, popup=("Violent: " + str(violent)), color='Red', fill_opacity=.50, fill_color='Red').add_to(mapObj)
-    # folium.map.Marker(location=[float(lat)+latChange,float(lng)-longChange+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(violent))).add_to(mapObj)
-    # folium.Circle(location=[float(lat)-latChange,float(lng)], radius = float(circleRad)/3, popup=("Other: " + str(other)), color='Yellow', fill_opacity=.50, fill_color='Yellow').add_to(mapObj)
-    # folium.map.Marker(location=[float(lat)-latChange,float(lng)+((kmRadius/1.3)/111.320*math.cos(float(lat))*.25)], icon=DivIcon(icon_size=(40,40), icon_anchor=(4,14), html=f'<div style="font-size: 20pt;">%s</div>' % str(other))).add_to(mapObj)
     circleObj.add_to(mapObj)
-
-    # HeatMap(data, gradient={.25: 'blue', .50: 'green', .75:'yellow', 1:'red'}, max_zoom=20, min_opacity=.25, max=1.0).add_to(mapObj)
     
     return mapObj._repr_html_()
 
@@ -767,7 +670,6 @@ def heatmapGen(city, year, crime):
         
 
         cursor.execute(queryString)
-        # cursor.execute("SELECT * FROM CrimeData WHERE Year(Date) IN "+yearString+" AND City IN "+cityString+" LIMIT 10000")
         cityData = cursor.fetchall()
 
         cursor.execute("SELECT latitude, longitude FROM SeniorDesign.CityInformation WHERE city="+cityString+";")
@@ -778,10 +680,8 @@ def heatmapGen(city, year, crime):
         z_max = 1
         if(len(startingPoint) > 0):
             mapObj = folium.Map([startingPoint[0][0], startingPoint[0][1]], zoom_start=11)
-            ## Add BRANCA colormap ##
             
-            #colormap = branca_folium_cm.linear.Reds_05.scale(z_min, z_max)
-            #colormap.caption = "Bla bla"  # how do I change fontsize and color here?
+            # Add BRANCA colormap
             colormap = branca_folium_cm.LinearColormap(colors=['blue','green', 'yellow','red'], 
                                                        caption = "Criminal Activity Legend",
                                                        vmin=0, vmax=100)
@@ -808,8 +708,6 @@ def heatmapGen(city, year, crime):
             if((x[2] is not None) and (x[3] is not None) and (isinstance(x[2], float)) and (isinstance(x[3], float)) and (not np.isnan(x[2])) and (not np.isnan(x[3]))):
                 if(abs(startingPoint[0][0]-x[2])<1 and abs(startingPoint[0][1]-x[3])<1):
                     data.append([x[2], x[3], 3])
-        # for x in data:
-        #     print(x)
 
         if(len(data)<1):
             htmlCode = '<html><br><h3 style="text-align: center">Failed to retrieve location data for ' + cityString + '</h3></html>'
@@ -850,6 +748,3 @@ def heatmapInputs(city=None, year=None):
 
 if __name__ == "__main__":
     application.run(port=2000, debug=True)
-
-#if __name__ == '__main__':
-    #application.run(host='0.0.0.0', port=8080, debug=True)
