@@ -265,8 +265,10 @@ def calcCrimeRates(city):
         plotDF=df.sort_values(by='year')
         print(plotDF)
 
-        fig = px.line(plotDF, x='year', y='rate')
+        fig = px.line(plotDF, x='year', y='rate', template=current_template)
         fig.update_traces(line_color=primary_color, line_width=2)
+        fig.update_layout( xaxis={'showgrid' :True},
+            yaxis={ 'showgrid' :True}, margin=dict(l=20, r=20, t=30, b=20))
         graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
         return [crimeRates, graphJSON, violentPercent, propertyPercent, otherPercent]

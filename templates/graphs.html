@@ -7,30 +7,32 @@
 
 
     <!-- FACTS -->
-    <div class="row container-center text-center g-4">
-        <div class="col-md-12 card">
-            <div class="card-header">             
-                <h2>{{city}} Crime Rate By Year</h2>
-            </div>
-            <div class="blog-post card-effect text-center container">
-                <div class="row">
-                    <div class="col-8">
-                        <div  id="chart4"></div>
-                    </div>
-                    <div class="col-4 d-flex align-items-center">
-                        {% for o in crimeRates %}
-                            {% if o.year=="total" %}
-                            <div class="col">
-                                <h2 value="{{ o }}"><span class="bigNum">{{o.rate}}</span>/100</h2>
-                                <h6> are victims of a crime in a given year</h6>
-                                <hr/>
-                                <div><span class="bigNum">{{violentPercent}}%</span> - From Violent Crimes</div>
-                                <div><span class="bigNum">{{propertyPercent}}%</span> - From Property Crimes</div>
-                                <div><span class="bigNum">{{otherPercent}}%</span> - From Other crimes</div>
-                            </div>
-                            {% endif %}
+    <div class="row g-5">
+        <div class="col-lg-12">
+            <div class="card-effect">
+                <div>             
+                    <h2>{{city}} Crime Rate By Year</h2>
+                </div>
+                <div class="blog-post text-center container">
+                    <div class="row">
+                        <div class="col-8">
+                            <div  id="chart4"></div>
+                        </div>
+                        <div class="col-4 d-flex align-items-center">
+                            {% for o in crimeRates %}
+                                {% if o.year=="total" %}
+                                <div class="col">
+                                    <h2 value="{{ o }}"><span class="bigNum">{{o.rate}}</span>/100</h2>
+                                    <h6> are victims of a crime in a given year</h6>
+                                    <hr/>
+                                    {% if violentPercent>0 %}<div><span class="bigNum">{{violentPercent}}%</span> - From Violent Crimes</div> {% endif %}
+                                    {% if propertyPercent>0 %}<div><span class="bigNum">{{propertyPercent}}%</span> - From Property Crimes</div> {% endif %}
+                                    {% if otherPercent>0 %}<div><span class="bigNum">{{otherPercent}}%</span> - From Other crimes</div> {% endif %}
+                                </div>
+                                {% endif %}
 
-                        {% endfor %}
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -57,7 +59,7 @@
                 <div>
                     <h4>{{city}} Crime Types {% if compCity %} in {{pieYears}} {% endif %}</h4>
                     <p>Pie chart slices represent crime categories, size shows proportion. Choose a year to view specific crime type data.</p>
-            </div>
+                </div>
                 <div>
                 <div id="chart1Load"></div>
                     <div id="chart1" style="max-height: 300px;"></div>

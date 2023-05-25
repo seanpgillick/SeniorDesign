@@ -384,4 +384,11 @@ form .form-control {
     .blinking {
         animation: blink 2s infinite;
     }
+
+    .bigNum {
+        color: var(--primary);
+    }
+    .page-link {
+        color: var(--dark);
+    }
     /*-----------------------------------------*/
